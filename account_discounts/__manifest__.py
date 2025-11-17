@@ -10,5 +10,6 @@
         "views/account_move_views.xml",
         "views/discount_groups_views.xml",
         "views/product_template_views.xml",
+        "wizard/discount_category_report_wizard.xml",
     ],
 }
