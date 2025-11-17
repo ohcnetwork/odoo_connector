@@ -19,6 +19,14 @@ class CashDenomination(models.Model):
         ('rejected', 'Rejected'),
     ], string='Status', default='draft', tracking=True)
 
+    transfer_total = fields.Float(string='Transfer Total', compute='_compute_transfer_total')
+    remark = fields.Text(string="Remark")
+    
+    @api.depends('transfer_line_ids.sub_total')
+    def _compute_transfer_total(self):
+        for rec in self:
+            rec.transfer_total = sum(rec.transfer_line_ids.mapped('sub_total'))
+
     @api.depends('line_ids.sub_total')
     def _comput_grand_total(self):
         for record in self:
@@ -58,9 +66,17 @@ class CashDenominationTransferLine(models.Model):
     _description = 'Cash Denomination Transfer Line'
 
     denomination_id = fields.Many2one('cash.denomination', string='Cash Denomination', ondelete='cascade')
-    from_counter = fields.Many2one('bill.counter', string='From Counter', readonly=True)
+
     to_counter = fields.Many2one('bill.counter', string='To Counter', readonly=True)
-    amount = fields.Float(string='Amount', readonly=True)
-    remarks = fields.Char(string='Remarks', readonly=True)
-    transfer_date = fields.Datetime(string='Transfer Date', readonly=True)
-    to_user = fields.Many2one('res.users', string='To User')
+    counts = fields.Integer(string='Counts', readonly=True)
+    currency = fields.Selection(
+        [('1','1'),('2','2'),('5','5'),('10','10'),('20','20'),('50','50'),('100','100'),('200','200'),('500','500')],
+        string='Currency', readonly=True
+    )
+    sub_total = fields.Float(string='Total', compute='_compute_total', store=True, readonly=True)
+
+    @api.depends('counts', 'currency')
+    def _compute_total(self):
+        for rec in self:
+            rec.sub_total = rec.counts * int(rec.currency)
+

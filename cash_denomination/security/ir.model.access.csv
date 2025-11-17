@@ -1,7 +1,6 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_cash_denomination,cash.denomination,model_cash_denomination,base.group_user,1,1,1,1
 access_cash_denomination_line,cash.denomination.line,model_cash_denomination_line,base.group_user,1,1,1,1
-access_cash_transfer,cash.transfer,model_cash_transfer,base.group_user,1,1,1,1
 access_cash_denomination_transfer_line,cash.denomination.transfer.line,model_cash_denomination_transfer_line,base.group_user,1,1,1,1
-access_petty_cash,petty.cash,model_petty_cash,base.group_user,1,1,1,1
-access_petty_cash_line,petty.cash.line,model_petty_cash_line,base.group_user,1,1,1,1
+access_cash_trasnfer,cash.transfer,model_cash_transfer,base.group_user,1,1,1,1
+access_cash_trasnfer_line,cash.transfer.line,model_cash_transfer_line,base.group_user,1,1,1,1
