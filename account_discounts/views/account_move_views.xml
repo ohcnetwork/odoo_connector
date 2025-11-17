@@ -7,9 +7,11 @@
             <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='price_unit']" position="after">
                 <field name="account_discount"/>
             </xpath>
-
+            <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='product_id']" position="attributes">
+                <attribute name="domain">[('is_disc_item', '!=', True)]</attribute>
+            </xpath>
             <field name="tax_totals" position="after">
-                <field name="discount_list" widget="discount_list" readonly="1"/>
+                <field name="discount_list" options="{'line_breaks': True}" widget="text" nolabel="1" readonly="1"/>
             </field>
         </field>
     </record>
