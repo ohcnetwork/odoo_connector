@@ -37,6 +37,7 @@
               </group>
               <group>
                 <field name="counter"/>
+                <field name="remark"/>
               </group>
             </group>
             <notebook>
@@ -52,12 +53,10 @@
               <page string="Cash Transfers">
                 <field name="transfer_line_ids">
                   <list editable="bottom">
-                    <field name="from_counter"/>
                     <field name="to_counter"/>
-                    <field name="to_user"/>
-                    <field name="amount"/>
-                    <field name="remarks"/>
-                    <field name="transfer_date"/>
+                    <field name="counts"/>
+                    <field name="currency"/>
+                    <field name="sub_total"/>
                   </list>
                 </field>
               </page>
