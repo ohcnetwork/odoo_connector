@@ -1,11 +1,17 @@
 from pydantic import BaseModel
+from enum import Enum
 
 class DiscountGroup(BaseModel):
     x_care_id: str
     name: str
 
+class DiscountType(Enum):
+    amount = 'amount'
+    factor = 'factor'
+
 class InvoiceDiscounts(BaseModel):
-    x_care_id: str
     name: str
     discount_group: DiscountGroup
-    amount: float = 0.0
+    discount_type: DiscountType
+    rate: float = 0.0
+    disc_amt: float = 0.0
