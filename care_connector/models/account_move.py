@@ -15,8 +15,12 @@ class AccountMoveLines(models.Model):
     received_qty = fields.Float(string='Quantity', store=True)
     free_qty = fields.Float(string='Free Quantity')
 
-    @api.onchange('received_qty', 'free_qty')
+    @api.onchange('received_qty','free_qty')
     def _onchange_received_qty(self):
-        self.quantity = self.received_qty - self.free_qty
-        if self.free_qty > self.received_qty:
-            self.quantity = 0
+        if self.move_id.move_type == 'in_invoice':
+            self.quantity = self.received_qty - self.free_qty
+            if self.free_qty > self.received_qty:
+                self.quantity = 0
+        else:
+            self.quantity = self.received_qty
+            self.free_qty = 0

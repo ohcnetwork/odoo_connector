@@ -177,16 +177,16 @@ class AccountUtility:
     def _get_or_create_discounts(cls, user_env, discount_data):
         try:
             discount_group_model = user_env['account.discount.groups']
-            discount_model = user_env['account.discount']
+            product_template_model = user_env['product.template']
             group_id = None
+            disc_type = discount_data.discount_type.value
             if discount_data.discount_group:
                 group = discount_data.discount_group
-
                 discount_group = discount_group_model.search([
                     ('x_care_id', '=', group.x_care_id)
                 ], limit=1)
-                if not discount_group:
 
+                if not discount_group:
                     discount_group = discount_group_model.create({
                         'x_care_id': group.x_care_id,
                         'name': group.name
@@ -195,30 +195,35 @@ class AccountUtility:
                     discount_group.name = group.name
 
                 group_id = discount_group.id
+            domain = [
+                ('is_disc_item', '=', True),
+                ('discount_group', '=', group_id),
+            ]
 
-            discount = discount_model.search([
-                ('x_care_id', '=', discount_data.x_care_id)
-            ], limit=1)
-
-            if not discount:
-                discount = discount_model.create({
-                    'x_care_id': discount_data.x_care_id,
-                    'name': discount_data.name,
-                    'discount_group': group_id,
-                    'amount': discount_data.amount
-                })
-
+            if disc_type == 'amount':
+                domain.append(('disc_amount', '=', discount_data.rate))
             else:
-                vals = {}
-                if discount.name != discount_data.name:
-                    vals['name'] = discount_data.name
-                if discount.amount != discount_data.amount:
-                    vals['amount'] = discount_data.amount
-                if discount.discount_group.id != group_id:
-                    vals['discount_group'] = group_id
-                if vals:
-                    discount.write(vals)
-            return discount.id
+                domain.append(('disc_percent', '=', discount_data.rate))
+
+            discount_product = product_template_model.search(domain, limit=1)
+
+            if not discount_product:
+                vals = {
+                    'name': discount_data.name,
+                    'is_disc_item': True,
+                    'discount_group': group_id,
+                    'list_price': discount_data.disc_amt,
+                }
+                if disc_type == 'amount':
+                    vals['disc_amount'] = discount_data.rate
+                else:
+                    vals['disc_percent'] = discount_data.rate
+                discount_product = product_template_model.create(vals)
+
+            if discount_product.list_price != discount_data.disc_amt:
+                discount_product.list_price = discount_data.disc_amt
+
+            return discount_product.id
 
         except Exception as e:
             raise Exception(f"{str(e)}")
