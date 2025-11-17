@@ -7,8 +7,8 @@
     "depends": ["base","account","web"],
     "data": [
         "security/ir.model.access.csv",
-        "views/discount_records_views.xml",
         "views/account_move_views.xml",
         "views/discount_groups_views.xml",
+        "views/product_template_views.xml",
     ],
 }

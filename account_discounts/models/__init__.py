@@ -1,1 +1,1 @@
-from . import discount_records, account_move,discount_groups
+from . import account_move,discount_groups, product_template
