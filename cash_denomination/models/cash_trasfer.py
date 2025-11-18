@@ -17,7 +17,8 @@ class CashTransfer(models.Model):
         ('accepted', 'Accepted'),
         ('rejected', 'Rejected'),
     ], default='draft')
-
+    
+    is_counted = fields.Boolean(default=False)
 
     @api.depends('line_ids.sub_total')
     def _compute_grand_total(self):

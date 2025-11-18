@@ -50,7 +50,7 @@
                   </list>
                 </field>
               </page>
-              <page string="Cash Transfers">
+              <!-- <page string="Cash Transfers">
                 <field name="transfer_line_ids">
                   <list editable="bottom">
                     <field name="to_counter"/>
@@ -59,7 +59,7 @@
                     <field name="sub_total"/>
                   </list>
                 </field>
-              </page>
+              </page> -->
             </notebook>
 
             <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 10px; gap: 8px; margin-left:1350px">
