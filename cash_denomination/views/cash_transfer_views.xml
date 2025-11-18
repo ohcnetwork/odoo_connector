@@ -30,8 +30,9 @@
                                 <field name="to_user"/>
                             </group>
                             <group>
-                                <field name="date"/>
+                                <field name="date"/> 
                                 <field name="counter"/>
+                                <field name="is_counted"/>
                             </group>
                         </group>
                         <notebook>

@@ -26,7 +26,7 @@ class CashDenominationPageController(http.Controller):
         end_datetime = datetime.combine(today, time.max)
 
         account_payment_model = request.env['account.payment']
-
+        cash_transfer_model = request.env['cash.transfer']
         payments = account_payment_model.with_user(user).search([
             ('journal_id.type', '=', 'cash'),
             ('payment_type', '=', 'inbound'),
@@ -36,12 +36,21 @@ class CashDenominationPageController(http.Controller):
             ('cashier', '=', user.id),
             ('is_submitted', '=', False),
         ])
+
+        same_counter_transfers = cash_transfer_model.search([
+                    ('counter', '=', int(counter_id)),
+                    ('to_user', '=', int(counter_id)),
+                    ('date', '=', today),  
+                    ('is_counted', '=', False),
+                    ])
+                    
+        same_counter_amount = sum(same_counter_transfers.mapped('grand_total'))
         total_invoiced_cash = sum(payments.mapped('amount'))
         cash_in_hand = 0
-        total_cash = total_invoiced_cash
-
+        total_cash = total_invoiced_cash - same_counter_amount
         return {
             'total_cash': total_cash,
+            'same_counter_amount': same_counter_amount,
         }
 
     @http.route(['/cash/denomination/submit'], type='http', auth='user', methods=['POST'], website=True, csrf=False)
@@ -77,6 +86,14 @@ class CashDenominationPageController(http.Controller):
             ('from_user', '=', user.id),
             ('counter', '=', counter_id),  
         ], limit=1)
+
+        same_counter_transfers = request.env['cash.transfer'].search([
+            ('counter', '=', counter_id),
+            ('to_user', '=', counter_id),
+            ('date', '=', today),
+            ('is_counted', '=', False),
+        ])
+        same_counter_transfers.write({'is_counted': True})
 
        
         transfer_lines = []
@@ -199,7 +216,7 @@ class CashDenominationPageController(http.Controller):
         cashier=[]
         for t in transfers:
             if t.to_user:
-                cashier.append(t.to_user.id)
+                cashier.append(t.from_user.id)
                 transfer_list.append({
                     'id': t.id,
                     'from_user': t.from_user.name,
@@ -210,6 +227,7 @@ class CashDenominationPageController(http.Controller):
                     'grand_total': t.grand_total,
                 })
         user_flag = True if user.id in cashier else False
+
         return {'transfers': transfer_list,'user_flag':user_flag}
 
 
@@ -228,11 +246,9 @@ class CashDenominationPageController(http.Controller):
         if not transfer or transfer.state != 'draft':
             return {'error': 'Invalid transfer'}
 
-        # Calculate total transfer amount
         transfer_amount = sum(line.sub_total for line in transfer.line_ids)
 
         if action == 'accept':
-            # Get payments for receiver counter
             payments = payment_model.with_user(user).search([
                 ('cashier', '=', user.id),
                 ('location', '=', transfer.to_user.id),
@@ -243,11 +259,9 @@ class CashDenominationPageController(http.Controller):
                 ('is_submitted', '=', False),
             ])
 
-            # Always add the amount (even if same user)
             if payments:
                 payments[0].amount += transfer_amount
             else:
-                # Create a new payment record for receiver
                 journal = journal_model.with_user(user).search([('type', '=', 'cash')], limit=1)
                 if journal:
                     payment_model.with_user(user).create({

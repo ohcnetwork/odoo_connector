@@ -44,6 +44,10 @@
                                     <label class="form-label">Cash In Hand</label>
                                     <input type="text" name="total_cash_field" class="form-control" t-att-value="total_cash or '0.00'" id="total_cash_field" readonly="readonly"/>
                                 </div>
+                                <div class="col-md-2">
+                                    <p id="same_counter_transfer_amount" style="font-size:14px; margin-top:5px; display:none; margin-top:35px">
+                                    </p>
+                                </div>
                             </div>
 
                             <div style="max-height:50vh; overflow-y:auto; margin-top:15px">
@@ -76,9 +80,11 @@
                                 <div class="mx-auto">
                                     <button type="button" class="btn" id="cash_transfer_btn" style="background-color: #bcb9bc;">Transfer Cash</button>
                                     <button type="submit" class="btn btn-primary px-4">Submit</button>
-                                    <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#transfer-details-modal" style="background-color: #bcb9bc;">
-                                    View Transfer Details
+
+                                    <button id="view_transfer_details_btn" type="button" class="btn btn-primary">
+                                        View Transfer Details
                                     </button>
+
                                 </div>
 
                                 <div class="position-absolute" style="right: 0;">
@@ -355,6 +361,31 @@
                         </div>
                     </div>
                 </div>
+                <div class="modal fade" id="select-counter-modal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-sm">
+                        <div class="modal-content">
+                            <div class="modal-body text-center p-4">
+
+                                <div class="mb-3">
+                                    <i class="fa fa-info-circle" style="font-size: 40px; color: #2196f3;"></i>
+                                </div>
+
+                                <h5 class="fw-bold mb-2">Action Cannot Proceed</h5>
+
+                                <p class="text-muted">
+                                    A counter must be selected before continuing.  
+                                    Please choose one from the dropdown to proceed.
+                                </p>
+
+                                <button class="btn btn-primary mt-2" data-bs-dismiss="modal">
+                                    Got It
+                                </button>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
 
             </t>
             <t t-else="">
