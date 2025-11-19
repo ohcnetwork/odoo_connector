@@ -32,32 +32,32 @@ class AccountMove(models.Model):
     @api.model
     def create(self, vals):
         move = super(AccountMove, self).create(vals)
+        if move.move_type == 'out_invoice':
+            discount_lines = move.invoice_line_ids.filtered(lambda l: l.account_discount)
 
-        discount_lines = move.invoice_line_ids.filtered(lambda l: l.account_discount)
-
-        if not discount_lines:
-            return move
-        section_line_commands = []
-
-        section_line_commands.append((0, 0, {
-            "display_type": "line_section",
-            "name": "Discount",
-        }))
-
-        for line in discount_lines:
-            product_tmpl = line.account_discount
-            if not product_tmpl:
-                continue
+            if not discount_lines:
+                return move
+            section_line_commands = []
 
             section_line_commands.append((0, 0, {
-                "product_id": product_tmpl.id,
-                "received_qty": -1,
-                "quantity": -1,
-                "name": product_tmpl.name,
+                "display_type": "line_section",
+                "name": "Discount",
             }))
 
-        if section_line_commands:
-            move.write({"invoice_line_ids": section_line_commands})
+            for line in discount_lines:
+                product_tmpl = line.account_discount
+                if not product_tmpl:
+                    continue
+
+                section_line_commands.append((0, 0, {
+                    "product_id": product_tmpl.id,
+                    "received_qty": -1,
+                    "quantity": -1,
+                    "name": product_tmpl.name,
+                }))
+
+            if section_line_commands:
+                move.write({"invoice_line_ids": section_line_commands})
 
         return move
 
