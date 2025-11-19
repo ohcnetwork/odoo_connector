@@ -14,18 +14,20 @@ class AccountMove(models.Model):
     @api.depends('invoice_line_ids.account_discount')
     def _compute_discount_summary(self):
         for move in self:
-            discount_dict = {}
-            for line in move.invoice_line_ids:
-                if line.account_discount:
-                    product_tmpl_id = line.account_discount.id
-                    matched_line = move.invoice_line_ids.filtered(
-                        lambda l: l.product_id.product_tmpl_id.id == product_tmpl_id
-                    )
-                    if matched_line:
-                        discount_dict[matched_line.product_id.discount_group.name] = abs(matched_line.price_subtotal)
+            move.discount_list = None
+            if move.move_type == 'out_invoice':
+                discount_dict = {}
+                for line in move.invoice_line_ids:
+                    if line.account_discount:
+                        product_tmpl_id = line.account_discount.id
+                        matched_line = move.invoice_line_ids.filtered(
+                            lambda l: l.product_id.product_tmpl_id.id == product_tmpl_id
+                        )
+                        if matched_line:
+                            discount_dict[matched_line.product_id.discount_group.name] = abs(matched_line.price_subtotal)
 
-            discount_str = '\n'.join(f"{k} : {v}" for k, v in discount_dict.items())
-            move.discount_list = discount_str
+                discount_str = '\n'.join(f"{k} : {v}" for k, v in discount_dict.items())
+                move.discount_list = discount_str
 
     @api.model
     def create(self, vals):
