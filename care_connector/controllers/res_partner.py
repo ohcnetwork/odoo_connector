@@ -17,8 +17,11 @@ class ResPartner(http.Controller):
             request_data = PartnerData(**data)
             res_partner = PartnerUtility.get_or_create_partner(user_env, request_data)
 
+            if res_partner and "error" in res_partner:
+                raise ValueError(res_partner["error"])
+                
             if not res_partner.id:
-                raise ValueError(f"Failed to create the payment, err: {str(res_partner)}")
+                raise ValueError(f"Failed to create partner, err: {str(res_partner)}")
 
             json_response = {
                 "success": True,

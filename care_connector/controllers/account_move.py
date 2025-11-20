@@ -17,7 +17,7 @@ class AccountMove(http.Controller):
             account_move = AccountUtility.get_or_create_account_move(user_env, request_data)
 
             if not account_move.id:
-                raise ValueError(f"Failed to create or retrieve the Invoice, error: {str(account_move)}")
+                raise ValueError(f"Failed to create/retrieve the Invoice, {str(account_move)}")
 
             json_response = {
                 "success": True,
@@ -45,22 +45,26 @@ class AccountMove(http.Controller):
             error_response = {
                 "success": False,
                 "error_type": "ServerError",
-                "message": f"Unexpected error: {str(err)}",
+                "message":str(err),
             }
             return request.make_json_response(error_response, status=500)
 
     @http.route('/api/account/move/return', type='http', auth='public', methods=['POST'], csrf=False)
     def account_move_return(self, **kwargs):
         try:
+            
             auth_header = request.httprequest.headers.get("Authorization")
             user_env = UserAuthentication.get_authenticated_user(auth_header)
             data = json.loads(request.httprequest.data)
             request_data = AccountMoveReturnApiRequest(**data)
+        
             account_move = AccountUtility.get_or_create_account_move_return(user_env, request_data)
-
-            if not account_move.id:
-                raise ValueError(f"Failed to create or retrieve the Invoice, error: {str(account_move)}")
-
+            
+            try:
+                if not account_move.id:
+                    raise ValueError(f"Failed to create or retrieve the Invoice, error: {str(account_move)}")
+            except Exception as e:
+                raise Exception(f"{str(e)}")
             json_response = {
                 "success": True,
                 "message": "Invoice return successfully",
@@ -72,8 +76,9 @@ class AccountMove(http.Controller):
                     "amount_total": account_move.amount_total,
                 }
             }
+            
             return request.make_json_response(json_response, status=200)
-
+            
 
         except ValueError as e:
             error_response = {
@@ -87,6 +92,6 @@ class AccountMove(http.Controller):
             error_response = {
                 "success": False,
                 "error_type": "ServerError",
-                "message": f"Unexpected error: {str(err)}",
+                "message": str(err),
             }
             return request.make_json_response(error_response, status=500)

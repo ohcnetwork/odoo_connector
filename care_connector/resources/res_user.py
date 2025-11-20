@@ -16,6 +16,9 @@ class UserUtility:
             is_agent = True if partner_data.agent == True else False
 
             if existing_user:
+                raise ValueError(
+                    f"Cannot create user login '{user_data.login}', it's already exists."
+                )
                 existing_user.name = user_data.name
                 partner = existing_user.partner_id
                 partner.company_type = partner_data.partner_type.value
@@ -61,4 +64,5 @@ class UserUtility:
             return res_user
 
         except Exception as e:
-            return {str(e)}
+            return {'error': f"Error while creating/updating user: {str(e)}"}
+
