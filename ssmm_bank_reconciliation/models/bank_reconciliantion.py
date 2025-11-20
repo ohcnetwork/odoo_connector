@@ -114,7 +114,7 @@ class ReconciliationLine(models.Model):
     )
     debit = fields.Monetary(string='Debit', currency_field='currency_id')
     credit = fields.Monetary(string='Credit', currency_field='currency_id')
-    reconcile_date = fields.Date(string="Reconciliation Date",required=True)
+    reconcile_date = fields.Date(string="Reconciliation Date")
 
 
 
