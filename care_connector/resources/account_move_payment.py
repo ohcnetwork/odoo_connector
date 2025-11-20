@@ -68,25 +68,30 @@ class InvoicePaymentUtility:
 
             else:
                 partner = PartnerUtility.get_or_create_partner(user_env, partner_data)
+
+                if isinstance(partner, dict) and partner.get("error"):
+                    raise ValueError(f"Partner creation failed: {partner.get('error')}")
+
                 if not partner:
                     raise ValueError(f"Create or retrieve partner is failed ")
 
                 payment_type = 'outbound' if payment_mode.value == "send" else 'inbound'
 
                 partner_type_str = 'supplier' if customer_type.value == 'vendor' else 'customer'
-
-                payment_vals = {
-                    'x_care_id': x_care_id,
-                    'payment_type': payment_type,
-                    'partner_type': partner_type_str,
-                    'partner_id': partner.id,
-                    'amount': amount,
-                    'journal_id': account_journal.id,
-                    'date': payment_date or fields.Date.today(),
-                    'location': bill_counter.get('bill_counter_id'),
-                    'cashier': bill_counter.get('user_id'),
-                }
-
+                try:
+                    payment_vals = {
+                        'x_care_id': x_care_id,
+                        'payment_type': payment_type,
+                        'partner_type': partner_type_str,
+                        'partner_id': partner.id,
+                        'amount': amount,
+                        'journal_id': account_journal.id,
+                        'date': payment_date or fields.Date.today(),
+                        'location': bill_counter.get('bill_counter_id'),
+                        'cashier': bill_counter.get('user_id'),
+                    }
+                except Exception as e:
+                    raise ValueError(str(e))                
                 account_payment = account_payment_model.create(payment_vals)
                 if not account_payment:
                     raise ValueError(f"Payment creation failed")

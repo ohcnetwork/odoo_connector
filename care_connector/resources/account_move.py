@@ -1,6 +1,8 @@
 from datetime import datetime
 from .res_partner import PartnerUtility
 from .product_product import ProductUtility
+from odoo.exceptions import UserError
+from odoo.tools.translate import _
 
 class AccountUtility:
 
@@ -143,7 +145,8 @@ class AccountUtility:
                             'agent_id': agent_res_partner.id,
                             'commission_id': agent_res_partner.commission_id.id if agent_res_partner.commission_id else False,
                         })]
-                invoice_line_list.append((0, 0, {
+
+                invoice_line_vals = {
                     'product_id': product.id,
                     'quantity': item.quantity,
                     'received_qty': item.quantity,
@@ -151,7 +154,19 @@ class AccountUtility:
                     'x_care_id': item.x_care_id,
                     'agent_ids': agent_ids,
                     'account_discount': discount_id,
-                }))
+                }
+
+                move_line_model = user_env['account.move.line']
+                missing_fields = [f for f in invoice_line_vals.keys() if f not in move_line_model._fields]
+
+                if missing_fields:
+                    raise UserError(_(
+                        "Invoice creation failed. The following required fields are missing: "
+                        "%s"
+                    ) % ", ".join(missing_fields))
+
+                invoice_line_list.append((0, 0, invoice_line_vals))
+
             invoice_date = datetime.strptime(invoice_date, "%d-%m-%Y").date()
             due_date = datetime.strptime(due_date, "%d-%m-%Y").date()
             account_move = account_move_model.create({

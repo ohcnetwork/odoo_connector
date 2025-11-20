@@ -19,6 +19,9 @@ class ResUserController(http.Controller):
             request_data = UserData(**data)
             res_user = UserUtility.get_or_create_user(user_env, request_data)
 
+            if res_user and "error" in res_user:
+                raise ValueError(res_user["error"])
+
             if not res_user.id:
                 raise ValueError(f"Failed to create user, err: {str(res_user)}")
 

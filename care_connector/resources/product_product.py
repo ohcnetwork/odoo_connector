@@ -14,12 +14,13 @@ class ProductUtility:
             tax_list = product_data.taxes
             status = product_data.status.value if product_data.status else None
             category = CategoryUtility.get_or_create_category(user_env, category_data)
+                
             categ_id = category.id if category else None
 
             taxes_ids = None
             if tax_list:
                 taxes_ids = cls._get_or_create_taxes(user_env, tax_list)
-
+    
             product_vals = {
                 'name': product_data.product_name if product_data.product_name else 'New Product',
                 'x_care_id': product_data.x_care_id,

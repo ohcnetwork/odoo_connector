@@ -18,7 +18,7 @@ class ProductProduct(http.Controller):
             product_product = ProductUtility.get_or_create_product(user_env, request_data)
 
             if not product_product.id:
-                raise ValueError(f"Failed to create the payment, err:{str(product_product)}")
+                raise ValueError(f"Failed to create the product, err:{str(product_product)}")
 
             json_response = {
                 "success": True,
