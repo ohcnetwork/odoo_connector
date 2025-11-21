@@ -39,8 +39,8 @@
                                     <field name="move_name"/>
                                     <field name="partner_id"/>
                                     <field name="label"/>
-                                    <field name="debit" sum="Sum of Debit"/>
-                                    <field name="credit" sum="Sum of Credit"/>
+                                    <field name="debit" sum="debit"/>
+                                    <field name="credit" sum="credit"/>
                                     <field name="reconcile_date"/>
                                 </list>
                             </field>
@@ -54,6 +54,22 @@
                                     <label for="total_credit"/>
                                 </div>
                                 <field name="total_credit" nolabel="1"/>
+
+                                <div class="oe_inline o_td_label">
+                                    <label for="total_company_balance"/>
+                                </div>
+                                <field name="total_company_balance" nolabel="1"/>
+
+                                <div class="oe_inline o_td_label">
+                                    <label for="no_reconcile_amount"/>
+                                </div>
+                                <field name="no_reconcile_amount" nolabel="1"/>
+
+                                <div class="oe_inline o_td_label">
+                                    <label for="bank_reconcile_amount_total"/>
+                                </div>
+                                <field name="bank_reconcile_amount_total" nolabel="1"/>
+
                             </group>
                         </page>
                     </notebook>
