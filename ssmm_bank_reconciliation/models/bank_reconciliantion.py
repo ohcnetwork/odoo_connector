@@ -40,11 +40,72 @@ class BankReconciliation(models.Model):
         store=True
     )
 
+    total_company_balance = fields.Monetary(
+        string="Balance as per Company Book",
+        currency_field='currency_id',
+        compute="_compute_total_company_balance",
+        store=True
+    )
+
+    no_reconcile_amount = fields.Monetary(
+        string="Amount Not Reflected in Bank",
+        currency_field='currency_id',
+        compute="_compute_no_reconcile_amount",
+        store=True
+    )
+
+    bank_reconcile_amount_total = fields.Monetary(
+        string="Balance as per Bank",
+        currency_field='currency_id',
+        compute="_compute_bank_reconcile_amount_total",
+        store=True
+    )
+
     @api.depends('br_line_ids.debit', 'br_line_ids.credit')
     def _compute_totals(self):
         for rec in self:
             rec.total_debit = sum(rec.br_line_ids.mapped('debit'))
             rec.total_credit = sum(rec.br_line_ids.mapped('credit'))
+
+
+
+    @api.depends('date_to','account_id')
+    def _compute_total_company_balance(self):
+        for rec in self:
+            domain = [
+                ('date', '<=', self.date_to),
+                ('account_id', '=', self.account_id.id),
+                ('move_id.state', '=', 'posted'),
+            ]
+            move_lines = self.env['account.move.line'].search(domain)
+            rec.total_company_balance = sum(move_lines.mapped('balance')) if move_lines else 0
+
+
+    @api.depends('date_to', 'account_id')
+    def _compute_no_reconcile_amount(self):
+        for rec in self:
+            domain = [
+                ('date', '<=', self.date_to),
+                ('account_id', '=', self.account_id.id),
+                ('move_id.state', '=', 'posted'),
+                ('reconcile_date', '=', False)
+            ]
+            move_lines = self.env['account.move.line'].search(domain)
+            rec.no_reconcile_amount = sum(move_lines.mapped('balance')) if move_lines else 0
+
+    @api.depends('date_to', 'account_id')
+    def _compute_bank_reconcile_amount_total(self):
+        for rec in self:
+            domain = [
+                ('date', '<=', self.date_to),
+                ('account_id', '=', self.account_id.id),
+                ('move_id.state', '=', 'posted'),
+                ('reconcile_date', '!=', False)
+            ]
+            move_lines = self.env['account.move.line'].search(domain)
+            rec.bank_reconcile_amount_total = sum(move_lines.mapped('balance')) if move_lines else 0
+
+
 
     @api.onchange("options")
     def onchange_options(self):
