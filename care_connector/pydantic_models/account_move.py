@@ -22,6 +22,7 @@ class BillType(Enum):
 
 class AccountMoveApiRequest(BaseModel):
     x_care_id: str
+    invoice_number: str
     bill_type: BillType
     invoice_date: str
     due_date : str
