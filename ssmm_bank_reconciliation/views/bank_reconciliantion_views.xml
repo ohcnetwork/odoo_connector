@@ -39,22 +39,13 @@
                                     <field name="move_name"/>
                                     <field name="partner_id"/>
                                     <field name="label"/>
-                                    <field name="debit" sum="debit"/>
-                                    <field name="credit" sum="credit"/>
+                                    <field name="currency_id" invisible="1"/>
+                                    <field name="debit" force_save="1" sum="Debit"/>
+                                    <field name="credit" force_save="1" sum="Credit"/>
                                     <field name="reconcile_date"/>
                                 </list>
                             </field>
                             <group class="oe_subtotal_footer" colspan="2" name="expense_total">
-                                <div class="oe_inline o_td_label">
-                                    <label for="total_debit"/>
-                                </div>
-                                <field name="total_debit" nolabel="1"/>
-
-                                <div class="oe_inline o_td_label">
-                                    <label for="total_credit"/>
-                                </div>
-                                <field name="total_credit" nolabel="1"/>
-
                                 <div class="oe_inline o_td_label">
                                     <label for="total_company_balance"/>
                                 </div>
