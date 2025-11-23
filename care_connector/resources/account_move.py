@@ -23,6 +23,11 @@ class AccountUtility:
             bill_type = request_data.bill_type.value
             invoice_date = request_data.invoice_date
             due_date = request_data.due_date
+            invoice_number = request_data.invoice_number
+            if invoice_number:
+                existing_invoice = account_move.search([('name', '=', invoice_number)], limit=1)
+                if existing_invoice:
+                    raise ValueError(f"Invoice already exists with name {invoice_number}")
 
             move_type = "out_invoice"
             if bill_type == "vendor":
@@ -30,6 +35,7 @@ class AccountUtility:
 
             move_data_dict = {
                 "x_care_id": x_care_id,
+                "name": invoice_number,
                 "res_partner": res_partner,
                 "invoice_items": invoice_items,
                 "invoice_date": invoice_date,
@@ -118,6 +124,7 @@ class AccountUtility:
     def _create_account_move(cls,user_env,move_data):
         try:
             x_care_id = move_data.get("x_care_id")
+            name = move_data.get("name")
             res_partner = move_data.get("res_partner")
             invoice_items = move_data.get("invoice_items")
             invoice_date = move_data.get("invoice_date")
@@ -180,6 +187,8 @@ class AccountUtility:
             if not account_move:
                 raise ValueError("Failed to create the Invoice")
 
+            if name:
+                account_move.write({'name': name})
             if move_type == 'out_invoice':
                 account_move.action_post()
             return account_move
