@@ -12,17 +12,14 @@ class AccountUtility:
             x_care_id = request_data.x_care_id
             partner_data = request_data.partner_data
             invoice_items = request_data.invoice_items
-            res_partner_model = user_env['res.partner']
+
             account_move = user_env["account.move"]
             existing_invoice = account_move.search([('x_care_id', '=', x_care_id)], limit=1)
 
             if existing_invoice:
                 raise ValueError("Invoice already exists")
 
-            res_partner = res_partner_model.search([('x_care_id', '=', partner_data.x_care_id)], limit=1)
-            if not res_partner:
-                raise ValueError("Customer/Vendor is not exists")
-
+            res_partner = PartnerUtility.get_or_create_partner(user_env, partner_data)
             bill_type = request_data.bill_type.value
             invoice_date = request_data.invoice_date
             due_date = request_data.due_date
@@ -93,11 +90,7 @@ class AccountUtility:
                 return credit_note
 
             else:
-                res_partner_model = user_env['res.partner']
-                res_partner = res_partner_model.search([('x_care_id', '=', partner_data.x_care_id)], limit=1)
-                if not res_partner:
-                    raise ValueError("Customer/Vendor is not exists")
-
+                res_partner = PartnerUtility.get_or_create_partner(user_env, partner_data)
                 bill_type = request_data.bill_type.value
                 invoice_date = request_data.invoice_date
                 due_date = request_data.due_date

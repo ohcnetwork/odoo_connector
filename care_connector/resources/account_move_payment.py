@@ -67,10 +67,13 @@ class InvoicePaymentUtility:
                 return account_payment
 
             else:
-                res_partner_model = user_env['res.partner']
-                partner = res_partner_model.search([('x_care_id', '=', partner_data.x_care_id)], limit=1)
+                partner = PartnerUtility.get_or_create_partner(user_env, partner_data)
+
+                if isinstance(partner, dict) and partner.get("error"):
+                    raise ValueError(f"Partner creation failed: {partner.get('error')}")
+
                 if not partner:
-                    raise ValueError("Customer/Vendor is not exists")
+                    raise ValueError(f"Create or retrieve partner is failed ")
 
                 payment_type = 'outbound' if payment_mode.value == "send" else 'inbound'
 
