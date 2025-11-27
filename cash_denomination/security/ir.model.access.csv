@@ -4,3 +4,4 @@ access_cash_denomination_line,cash.denomination.line,model_cash_denomination_lin
 access_cash_denomination_transfer_line,cash.denomination.transfer.line,model_cash_denomination_transfer_line,base.group_user,1,1,1,1
 access_cash_trasnfer,cash.transfer,model_cash_transfer,base.group_user,1,1,1,1
 access_cash_trasnfer_line,cash.transfer.line,model_cash_transfer_line,base.group_user,1,1,1,1
+access_account_head_config,account.head.config,model_account_head_config,base.group_user,1,1,1,1

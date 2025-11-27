@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <data>
+
+    <record id="action_open_journal_entry" model="ir.actions.act_window">
+      <field name="name">Journal Entry</field>
+      <field name="res_model">account.move</field>
+      <field name="view_mode">form</field>
+      <field name="target">current</field>
+      <field name="context">{}</field>
+    </record>
+
     <record id="view_cash_denomination_list" model="ir.ui.view">
       <field name="name">cash.denomination.list</field>
       <field name="model">cash.denomination</field>
@@ -21,7 +30,6 @@
         <form string="Cashier Denomination Entry">
           <header>
             <!-- Buttons based on state -->
-            <button name="action_reset_to_draft" string="Reset to Draft" type="object" class="btn-secondary" invisible="state == 'draft'"/>
 
             <button name="action_approve" string="Approve" type="object" class="btn-primary" invisible="state != 'draft'"/>
 
@@ -29,7 +37,19 @@
 
             <field name="state" widget="statusbar" statusbar_visible="draft,approved,rejected"/>
           </header>
+
           <sheet>
+
+            <div class="oe_button_box" name="button_box">
+              <button name="open_journal_entry" type="object" class="oe_stat_button" icon="fa-book">
+                <span>Journal Entry</span>
+              </button>
+              <button name="action_open_cash_transfers" type="object" class="oe_stat_button" icon="fa-exchange">
+                <span class="oe_stat_text">Cash Transfers</span>
+              </button>
+
+            </div>
+
             <group>
               <group>
                 <field name="date"/>
