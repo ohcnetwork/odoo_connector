@@ -13,7 +13,7 @@
         # 'views/petty_cash.xml',
         'template/cash_denomination_template.xml',
         # 'views/portal_cash_denomination_templates.xml',
-        'views/account_payment_views.xml',
+        'views/account_payment_views.xml', 
         'views/cash_denomination_views.xml',
         'views/account_head_config_views.xml',
     ],

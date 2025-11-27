@@ -3,19 +3,19 @@ from odoo.exceptions import UserError
 
 
 class CashDenomination(models.Model):
-    _name = 'cash.denomination'
-    _description = 'Cash Denomination'
+    _name = 'cash.denomination'  
+    _description = 'Cash Denomination' 
     _rec_name = "user"
     _order = 'id desc'
 
     date = fields.Date(string='Date', readonly=True)
-    user = fields.Many2one('res.users', string='Person', readonly=True)
-    counter = fields.Char(string='Counter', readonly=True)
-    line_ids = fields.One2many('cash.denomination.line', 'denomination_id', string='Denomination Lines', readonly=True)
+    user = fields.Many2one('res.users',string='Person',readonly=True)
+    counter = fields.Char(string='Counter',readonly=True)
+    line_ids = fields.One2many('cash.denomination.line', 'denomination_id', string='Denomination Lines',readonly=True)
     grand_total = fields.Float(string='Total', compute='_comput_grand_total', store=True)
-    transfer_line_ids = fields.One2many('cash.denomination.transfer.line', 'denomination_id',
-                                        string='Cash Transfer Lines', readonly=True)
+    transfer_line_ids = fields.One2many('cash.denomination.transfer.line', 'denomination_id', string='Cash Transfer Lines', readonly=True)
     journal_entry_id = fields.Many2one('account.move', string="Journal Entry", readonly=True)
+
 
     state = fields.Selection([
         ('draft', 'Draft'),
@@ -25,7 +25,7 @@ class CashDenomination(models.Model):
 
     transfer_total = fields.Float(string='Transfer Total', compute='_compute_transfer_total')
     remark = fields.Text(string="Remark")
-
+    
     @api.depends('transfer_line_ids.sub_total')
     def _compute_transfer_total(self):
         for rec in self:
@@ -34,7 +34,8 @@ class CashDenomination(models.Model):
     @api.depends('line_ids.sub_total')
     def _comput_grand_total(self):
         for record in self:
-            self.grand_total = sum(record.line_ids.mapped('sub_total'))
+            self.grand_total=sum(record.line_ids.mapped('sub_total'))
+
 
     def action_approve(self):
         """
@@ -62,12 +63,12 @@ class CashDenomination(models.Model):
             journal = journal_model.search([('type', '=', 'general')], limit=1)
 
             if not journal:
-                return {'error': 'Miscellaneous Journal not found'}
+               return {'error': 'Miscellaneous Journal not found'}
 
             move_vals = {
                 'date': rec.date,
                 'ref': f"Cash Denomination - {rec.user.name}",
-                'journal_id': journal.id,
+                'journal_id': journal.id,   
                 'line_ids': [
                     (0, 0, {
                         'account_id': debit_account,
@@ -85,13 +86,14 @@ class CashDenomination(models.Model):
             }
 
             move = account_move_model.create(move_vals)
-            move.action_post()
+            move.action_post() 
             rec.journal_entry_id = move.id
             self.write({'state': 'approved'})
 
+
     def action_reject(self):
         self.write({'state': 'rejected'})
-
+    
     def open_journal_entry(self):
         self.ensure_one()
         if not self.journal_entry_id:
@@ -138,17 +140,18 @@ class CashDenominationLine(models.Model):
     _description = 'Cash Denomination Line'
 
     denomination_id = fields.Many2one('cash.denomination', string='Cash Denomination', ondelete='cascade')
-    counts = fields.Integer(string='Counts', required=True, readonly=True)
+    counts = fields.Integer(string='Counts', required=True,readonly=True)
     currency = fields.Selection(
-        [('1', '1'), ('2', '2'), ('5', '5'), ('10', '10'), ('20', '20'), ('50', '50'), ('100', '100'), ('200', '200'),
-         ('500', '500')],
-        string='Currency', required=True, readonly=True)
-    sub_total = fields.Float(string='Sub Total', compute='_compute_sub_total', store=True, readonly=True)
+        [('1','1'),('2','2'),('5','5'),('10','10'),('20','20'),('50','50'),('100','100'),('200','200'),('500','500')],
+        string='Currency', required=True,readonly=True)
+    sub_total = fields.Float(string='Sub Total', compute='_compute_sub_total', store=True,readonly=True)
 
+    
     @api.depends('counts', 'currency')
     def _compute_sub_total(self):
         for line in self:
             line.sub_total = line.counts * int(line.currency)
+
 
 
 class CashDenominationTransferLine(models.Model):
@@ -160,8 +163,7 @@ class CashDenominationTransferLine(models.Model):
     to_counter = fields.Many2one('bill.counter', string='To Counter', readonly=True)
     counts = fields.Integer(string='Counts', readonly=True)
     currency = fields.Selection(
-        [('1', '1'), ('2', '2'), ('5', '5'), ('10', '10'), ('20', '20'), ('50', '50'), ('100', '100'), ('200', '200'),
-         ('500', '500')],
+        [('1','1'),('2','2'),('5','5'),('10','10'),('20','20'),('50','50'),('100','100'),('200','200'),('500','500')],
         string='Currency', readonly=True
     )
     sub_total = fields.Float(string='Total', compute='_compute_total', store=True, readonly=True)

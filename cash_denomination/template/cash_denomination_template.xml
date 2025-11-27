@@ -26,6 +26,7 @@
                                 <div class="col-md-2">
                                     <label for="person" class="form-label">Person</label>
                                     <input type="text" id="person" name="person" class="form-control" t-att-value="request.env.user.name" readonly="readonly"/>
+                                    <input type="hidden" id="logged_user_id" t-att-value="request.env.user.id"/>
                                 </div>
 
                                 <div class="col-md-2">
@@ -259,8 +260,8 @@
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
 
-                            <div class="modal-header bg-warning">
-                                <h5 class="modal-title">Amount Mismatch</h5>
+                            <div class="modal-header bg-warning justify-content-center">
+                                <h5 class="modal-title">warning: Amount Mismatch</h5>
                             </div>
 
                             <div class="modal-body">
@@ -276,14 +277,16 @@
                                 </div>
                             </div>
 
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <div class="d-flex justify-content-center align-items-center mt-4 position-relative" style="margin-bottom:10px;">
+                                <div class="mx-auto">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                                          Cancel
-                                </button>
+                                    </button>
 
-                                <button type="button" class="btn btn-primary" id="confirm_mismatch_submit">
+                                    <button type="button" class="btn btn-primary" id="confirm_mismatch_submit">
                                         Submit Anyway
-                                </button>
+                                    </button>
+                                </div>
                             </div>
 
                         </div>
@@ -311,8 +314,8 @@
                 <div class="modal fade" id="cashTransferReviewModal" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
-                            <div class="modal-header bg-info text-white">
-                                <h5 class="modal-title">Pending Cash Transfer</h5>
+                            <div class="modal-header bg-info text-white ">
+                                <h5 class="modal-title justify-content-center">Pending Cash Transfer</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
 
@@ -334,9 +337,11 @@
                                     <span id="modal_amount"></span>
                                 </p>
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-success" id="accept_transfer">Accept</button>
-                                <button type="button" class="btn btn-danger" id="reject_transfer" data-bs-dismiss="modal">Reject</button>
+                            <div class="d-flex justify-content-center align-items-center mt-4 position-relative modal-footer" style="margin-bottom:10px;">
+                                <div class="mx-auto">
+                                    <button type="button" class="btn btn-success" id="accept_transfer">Accept</button>
+                                    <button type="button" class="btn btn-danger" id="reject_transfer" data-bs-dismiss="modal">Reject</button>
+                                </div>
                             </div>
                         </div>
                     </div>
