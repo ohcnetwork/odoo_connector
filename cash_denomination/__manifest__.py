@@ -15,6 +15,7 @@
         # 'views/portal_cash_denomination_templates.xml',
         'views/account_payment_views.xml',
         'views/cash_denomination_views.xml',
+        'views/account_head_config_views.xml',
     ],
     'assets': {
             'web.assets_frontend': [
