@@ -10,7 +10,7 @@ class CashTransfer(models.Model):
     from_user = fields.Many2one('res.users', string='From User', readonly=True)
     to_user = fields.Many2one('bill.counter', string='To Counter', readonly=True)
     counter = fields.Many2one('bill.counter', string='From Counter', readonly=True)
-    line_ids = fields.One2many('cash.transfer.line', 'transfer_id', string='Denomination Lines')
+    line_ids = fields.One2many('cash.transfer.line', 'transfer_id', string='Denomination Lines', readonly=True)
     grand_total = fields.Float(string='Total', compute='_compute_grand_total', store=True)
     state = fields.Selection([
         ('draft', 'Draft'),
@@ -19,6 +19,9 @@ class CashTransfer(models.Model):
     ], default='draft')
     
     is_counted = fields.Boolean(default=False)
+    accepted_by = fields.Many2one('res.users', string="Accepted By")
+    accepted_counter_id = fields.Many2one('bill.counter', string="Accepted Counter")
+
 
     @api.depends('line_ids.sub_total')
     def _compute_grand_total(self):

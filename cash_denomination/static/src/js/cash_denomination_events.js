@@ -25,7 +25,7 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
         this.$('#total_cash_field').val('0.00');
         this._setupCounterUserLink();
         this._checkTransferSuccess();
-        this._checkPendingTransfers();
+        // this._checkPendingTransfers();
 
     },
 
@@ -218,52 +218,55 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
         }
     },
 
-
     _checkPendingTransfers: function (selectedCounterId) {
         const self = this;
-
         if (!selectedCounterId) return;
 
+        const loggedInUserId = document.getElementById('logged_user_id').value;
 
         rpc('/cash/transfer/pending').then(function (result) {
-            if (result.user_flag == false) {
-                if (result.transfers && result.transfers.length > 0) {
-                    const transfer = result.transfers.find(t => t.to_counter_id == parseInt(selectedCounterId));
 
-                    if (!transfer) return;
+            if (result.transfers && result.transfers.length > 0) {
 
-                    $('#modal_from_user').text(transfer.from_user);
-                    $('#modal_from_counter').text(transfer.from_counter);
-                    $('#modal_date').text(transfer.date);
-                    $('#modal_amount').text(transfer.grand_total.toFixed(2));
-                    $('#cashTransferReviewModal').modal('show');
+                const transfer = result.transfers.find(t => t.to_counter_id == parseInt(selectedCounterId));
 
-                    $('#accept_transfer').off('click').on('click', function () {
-                        rpc('/cash/transfer/respond', {
-                            transfer_id: transfer.id,
-                            action: 'accept'
-                        }).then((result) => {
-                            $('#cashTransferReviewModal').modal('hide');
-
-                            const addedAmount = parseFloat(result.added_amount || 0);
-                            const currentCash = parseFloat($('#total_cash_field').val()) || 0;
-                            $('#total_cash_field').val((currentCash + addedAmount).toFixed(2));
-
-                        });
-                    });
-
-
-                    $('#reject_transfer').off('click').on('click', function () {
-                        rpc('/cash/transfer/respond', {
-                            transfer_id: transfer.id,
-                            action: 'reject'
-                        }).then(() => {
-                            $('#cashTransferReviewModal').modal('hide');
-                        });
-                    });
+                if (!transfer) {
+                    return;
                 }
-            }
 
+                if (transfer.from_user_id === loggedInUserId && transfer.from_counter_id === parseInt(selectedCounterId)) {
+                    return; 
+                }
+
+                $('#modal_from_user').text(transfer.from_user);
+                $('#modal_from_counter').text(transfer.from_counter);
+                $('#modal_date').text(transfer.date);
+                $('#modal_amount').text(transfer.grand_total.toFixed(2));
+                $('#cashTransferReviewModal').modal('show');
+
+                $('#accept_transfer').off('click').on('click', function () {
+                    rpc('/cash/transfer/respond', {
+                        transfer_id: transfer.id,
+                        action: 'accept'
+                    }).then((result) => {
+                        $('#cashTransferReviewModal').modal('hide');
+                        const addedAmount = parseFloat(result.added_amount || 0);
+                        const currentCash = parseFloat($('#total_cash_field').val()) || 0;
+                        $('#total_cash_field').val((currentCash + addedAmount).toFixed(2));
+                    });
+                });
+
+                $('#reject_transfer').off('click').on('click', function () {
+                    rpc('/cash/transfer/respond', {
+                        transfer_id: transfer.id,
+                        action: 'reject'
+                    }).then(() => {
+                        $('#cashTransferReviewModal').modal('hide');
+                    });
+                });
+            } else {
+                console.log("No transfers found.");
+            }
         });
     },
 

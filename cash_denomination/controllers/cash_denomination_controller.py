@@ -36,20 +36,27 @@ class CashDenominationPageController(http.Controller):
             ('cashier', '=', user.id),
             ('is_submitted', '=', False),
         ])
+        accepted_transfers = request.env['cash.transfer'].search([
+            ('state', '=', 'accepted'),
+            ('accepted_by', '=', user.id),
+            ('accepted_counter_id', '=', int(counter_id)),
+            ('date', '=', today),
+        ])
+
+        accepted_total = sum(accepted_transfers.mapped('grand_total'))
+
 
         same_counter_transfers = cash_transfer_model.search([
                     ('counter', '=', int(counter_id)),
-                    ('to_user', '=', int(counter_id)),
                     ('date', '=', today),  
                     ('is_counted', '=', False),
                     ])
-                    
+        
         same_counter_amount = sum(same_counter_transfers.mapped('grand_total'))
         total_invoiced_cash = sum(payments.mapped('amount'))
-        cash_in_hand = 0
-        total_cash = total_invoiced_cash - same_counter_amount
+
         return {
-            'total_cash': total_cash,
+            'total_cash': total_invoiced_cash + accepted_total,
             'same_counter_amount': same_counter_amount,
         }
 
@@ -200,7 +207,6 @@ class CashDenominationPageController(http.Controller):
 
         return request.redirect('/cash/denomination?transfer_success=1')
 
-
     @http.route('/cash/transfer/pending', type='json', auth='user')
     def get_pending_transfers(self):
         user = request.env.user
@@ -208,28 +214,25 @@ class CashDenominationPageController(http.Controller):
         transfer_model = request.env['cash.transfer']
         
         transfers = transfer_model.with_user(user).search([
-            ('state', '=', 'draft'),        
+            ('state', '=', 'draft'),
             ('date', '=', today),
         ])
-
+        
         transfer_list = []
-        cashier=[]
         for t in transfers:
             if t.to_user:
-                cashier.append(t.from_user.id)
                 transfer_list.append({
                     'id': t.id,
-                    'from_user': t.from_user.name,
-                    
-                    'from_counter': t.counter.bill_counter,
-                    'to_counter_id': t.to_user.id,
+                    'from_user': t.from_user.name,           
+                    'from_user_id': t.from_user.id,         
+                    'from_counter': t.counter.bill_counter,  
+                    'from_counter_id': t.counter.id,        
+                    'to_counter_id': t.to_user.id,          
                     'date': str(t.date),
                     'grand_total': t.grand_total,
                 })
-        user_flag = True if user.id in cashier else False
-
-        return {'transfers': transfer_list,'user_flag':user_flag}
-
+        
+        return {'transfers': transfer_list}
 
     @http.route('/cash/transfer/respond', type='json', auth='user', methods=['POST'])
     def respond_transfer(self, transfer_id, action):
@@ -239,8 +242,6 @@ class CashDenominationPageController(http.Controller):
         """
         user = request.env.user
         transfer_model = request.env['cash.transfer']
-        payment_model = request.env['account.payment']
-        journal_model = request.env['account.journal']
 
         transfer = transfer_model.with_user(user).browse(int(transfer_id))
         if not transfer or transfer.state != 'draft':
@@ -249,31 +250,11 @@ class CashDenominationPageController(http.Controller):
         transfer_amount = sum(line.sub_total for line in transfer.line_ids)
 
         if action == 'accept':
-            payments = payment_model.with_user(user).search([
-                ('cashier', '=', user.id),
-                ('location', '=', transfer.to_user.id),
-                ('payment_type', '=', 'inbound'),
-                ('journal_id.type', '=', 'cash'),
-                ('state', '=', 'paid'),
-                ('date', '=', transfer.date),
-                ('is_submitted', '=', False),
-            ])
-
-            if payments:
-                payments[0].amount += transfer_amount
-            else:
-                journal = journal_model.with_user(user).search([('type', '=', 'cash')], limit=1)
-                if journal:
-                    payment_model.with_user(user).create({
-                        'payment_type': 'inbound',
-                        'journal_id': journal.id,
-                        'amount': transfer_amount,
-                        'date': transfer.date,
-                        'cashier': user.id,
-                        'location': transfer.to_user.id,
-                        'state': 'paid',
-                        'is_submitted': False,
-                    })
+            transfer.write({
+                'state': 'accepted',
+                'accepted_by': user.id,
+                'accepted_counter_id': transfer.to_user.id,
+            })
 
             transfer.state = 'accepted'
             return {'success': True, 'added_amount': transfer_amount}

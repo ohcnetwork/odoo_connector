@@ -17,8 +17,9 @@
         <list string="Cashier Denomination Entry">
           <field name="date"/>
           <field name="user"/>
-          <field name="counter"/>
+          <field name="counter"/> 
           <field name="grand_total"/>
+          <field name="state"/>
         </list>
       </field>
     </record>
