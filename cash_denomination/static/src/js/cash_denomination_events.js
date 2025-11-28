@@ -62,8 +62,8 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
         rpc('/get/payment/amount/by/counter', { counter_id: counterId })
             .then(function (result) {
                 if (result) {
-
                     self.$('#total_cash_field').val(parseFloat(result.total_cash || 0).toFixed(2));
+                    let totalCash = parseFloat(result.total_cash || 0);
                     const sameAmount = parseFloat(result.same_counter_amount || 0);
 
                     if (sameAmount > 0) {
@@ -73,6 +73,11 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
                     } else {
                         self.$('#same_counter_transfer_amount').hide();
                     }
+
+                    let adjustedTotal = totalCash - sameAmount;
+                    if (adjustedTotal < 0) adjustedTotal = 0;
+
+                    self.$('#total_cash_field').val(adjustedTotal.toFixed(2));
 
                 }
 
@@ -233,9 +238,8 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
                 if (!transfer) {
                     return;
                 }
-
-                if (transfer.from_user_id === loggedInUserId && transfer.from_counter_id === parseInt(selectedCounterId)) {
-                    return; 
+                if(result.is_same_user == true){
+                    return;
                 }
 
                 $('#modal_from_user').text(transfer.from_user);
