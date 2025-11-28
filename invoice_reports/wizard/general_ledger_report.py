@@ -40,7 +40,6 @@ class GeneralLedgerExcelWizard(models.TransientModel):
         move_line_domain = [
             ('date', '>=', self.date_from),
             ('date', '<=', self.date_to),
-            ('company_id', '=', self.env.company.id),
         ]
         account_move_lie_model = self.env['account.move.line']
         move_lines = account_move_lie_model.search(move_line_domain, order="account_id, date asc")

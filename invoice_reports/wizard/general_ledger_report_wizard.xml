@@ -25,6 +25,6 @@
     <menuitem id="menu_general_ledger_excel_report"
               name="General Ledger Report"
               parent="menu_nvoice_report_menu"
-              sequence="15"
+              sequence="5"
               action="action_general_ledger_excel_wizard"/>
 </odoo>
