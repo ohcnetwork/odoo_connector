@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
     <record id="hsn_invoice_report_view" model="ir.ui.view">
-        <field name="name">Invoice HSN Excel Wizard View</field>
+        <field name="name">Invoice HSN Excel Wizard</field>
         <field name="model">invoice.hsn.excel.wizard</field>
         <field name="arch" type="xml">
             <form string="Invoice HSN Excel Report">
