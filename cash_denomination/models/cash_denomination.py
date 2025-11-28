@@ -92,6 +92,52 @@ class CashDenomination(models.Model):
 
 
     def action_reject(self):
+        for rec in self:
+            account_move_model = self.env['account.move']
+            config = self.env['account.head.config'].search([], limit=1)
+
+            if not config:
+                raise UserError("Please configure the Cash Denomination Accounts.")
+
+            debit_account = config.debit_account_id.id
+            credit_account = config.credit_account_id.id
+
+            if not debit_account or not credit_account:
+                raise UserError("Debit and Credit accounts must be set in Cash Denomination Configuration.")
+
+            amount = rec.grand_total
+
+            if amount <= 0:
+                raise UserError("Grand total must be greater than zero to create a Journal Entry.")
+
+            journal_model = self.env['account.journal']
+            journal = journal_model.search([('type', '=', 'general')], limit=1)
+
+            if not journal:
+                return {'error': 'Miscellaneous Journal not found'}
+
+            move_vals = {
+                'date': rec.date,
+                'ref': f"Cash Denomination - {rec.user.name}",
+                'journal_id': journal.id,
+                'line_ids': [
+                    (0, 0, {
+                        'account_id': debit_account,
+                        'name': f"Cash Denomination by {rec.user.name}",
+                        'debit': amount,
+                        'credit': 0,
+                    }),
+                    (0, 0, {
+                        'account_id': credit_account,
+                        'name': f"Cash Denomination by {rec.user.name}",
+                        'debit': 0,
+                        'credit': amount,
+                    }),
+                ]
+            }
+
+            move = account_move_model.create(move_vals)
+            rec.journal_entry_id = move.id
         self.write({'state': 'rejected'})
     
     def open_journal_entry(self):
