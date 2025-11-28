@@ -266,25 +266,14 @@
 
                             <div class="modal-body">
                                 <p>
-                                    The counted amount does not match the cash in hand.<br/>
-                                    Are you sure you want to submit?
+                                    Submission failed: The counted amount does not match the cash in hand
                                 </p>
-
-                                <!-- Remark field INSIDE the modal -->
-                                <div class="form-group mt-3">
-                                    <label for="mismatch_remark">Remark (Required)</label>
-                                    <textarea id="mismatch_remark" class="form-control" placeholder="Enter reason for mismatch"></textarea>
-                                </div>
                             </div>
 
                             <div class="d-flex justify-content-center align-items-center mt-4 position-relative" style="margin-bottom:10px;">
                                 <div class="mx-auto">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                         Cancel
-                                    </button>
-
-                                    <button type="button" class="btn btn-primary" id="confirm_mismatch_submit">
-                                        Submit Anyway
+                                         OK
                                     </button>
                                 </div>
                             </div>

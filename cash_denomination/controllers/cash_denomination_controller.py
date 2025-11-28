@@ -22,12 +22,10 @@ class CashDenominationPageController(http.Controller):
         """Return total cash, cash in hand, and petty cash for the selected counter"""
         user = request.env.user
         today = date.today()
-        start_datetime = datetime.combine(today, time.min)
-        end_datetime = datetime.combine(today, time.max)
 
         account_payment_model = request.env['account.payment']
         cash_transfer_model = request.env['cash.transfer']
-        payments = account_payment_model.with_user(user).search([
+        payments = account_payment_model.sudo().search([
             ('journal_id.type', '=', 'cash'),
             ('payment_type', '=', 'inbound'),
             ('state', '=', 'paid'),
@@ -51,13 +49,16 @@ class CashDenominationPageController(http.Controller):
                     ('date', '=', today),  
                     ('is_counted', '=', False),
                     ])
-        
+        is_same_user = False
+        if same_counter_transfers.from_user.id == user.id:
+            is_same_user = True
         same_counter_amount = sum(same_counter_transfers.mapped('grand_total'))
         total_invoiced_cash = sum(payments.mapped('amount'))
 
         return {
             'total_cash': total_invoiced_cash + accepted_total,
             'same_counter_amount': same_counter_amount,
+            'is_same_user':is_same_user
         }
 
     @http.route(['/cash/denomination/submit'], type='http', auth='user', methods=['POST'], website=True, csrf=False)
@@ -219,8 +220,11 @@ class CashDenominationPageController(http.Controller):
         ])
         
         transfer_list = []
+        is_same_user = False
         for t in transfers:
             if t.to_user:
+                if t.from_user.id == user.id:
+                    is_same_user = True
                 transfer_list.append({
                     'id': t.id,
                     'from_user': t.from_user.name,           
@@ -232,7 +236,10 @@ class CashDenominationPageController(http.Controller):
                     'grand_total': t.grand_total,
                 })
         
-        return {'transfers': transfer_list}
+        return {
+            'transfers': transfer_list,
+            'is_same_user': is_same_user
+        }
 
     @http.route('/cash/transfer/respond', type='json', auth='user', methods=['POST'])
     def respond_transfer(self, transfer_id, action):
