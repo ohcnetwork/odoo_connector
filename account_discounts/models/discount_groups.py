@@ -6,11 +6,3 @@ class AccountDiscountGroups(models.Model):
 
     name = fields.Char(string="Group Name", required=True)
     x_care_id = fields.Char(string="Care ID", readonly=True)
-    incoming = fields.Many2one(
-        'account.account',
-        string='Incoming Account'
-    )
-    outgoing = fields.Many2one(
-        'account.account',
-        string='Outgoing Account'
-    )

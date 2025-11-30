@@ -19,15 +19,17 @@ class AccountMove(models.Model):
                 discount_dict = {}
                 for line in move.invoice_line_ids:
                     if line.account_discount:
-                        product_tmpl_id = line.account_discount.id
-                        matched_line = move.invoice_line_ids.filtered(
-                            lambda l: l.product_id.product_tmpl_id.id == product_tmpl_id
-                        )
-                        if matched_line:
-                            discount_dict[matched_line.product_id.discount_group.name] = abs(matched_line.price_subtotal)
+                        for disc in line.account_discount:
+                            discount_amount = abs(line.price_subtotal * (disc.disc_percent / 100.0))
+                            discount_amount = round(discount_amount, 2)
 
-                discount_str = '\n'.join(f"{k} : {v}" for k, v in discount_dict.items())
+                            if disc.discount_group.name not in discount_dict:
+                                discount_dict[disc.discount_group.name] = 0.0
+
+                            discount_dict[disc.discount_group.name] += discount_amount
+                discount_str = '\n'.join(f"{k} : {format(v, '.2f')}" for k, v in discount_dict.items())
                 move.discount_list = discount_str
+
 
     @api.model
     def create(self, vals):
@@ -43,28 +45,38 @@ class AccountMove(models.Model):
                 "display_type": "line_section",
                 "name": "Discount",
             }))
-
+            discount_dict = {}
             for line in discount_lines:
-                product_tmpl = line.account_discount
-                if not product_tmpl:
-                    continue
+                for disc in line.account_discount:
+                    discount_amount = abs(line.price_subtotal * (disc.disc_percent / 100.0))
+                    discount_amount = round(discount_amount, 2)
 
-                section_line_commands.append((0, 0, {
-                    "product_id": product_tmpl.id,
-                    "received_qty": -1,
-                    "quantity": -1,
-                    "name": product_tmpl.name,
-                }))
+                    if disc.id not in discount_dict:
+                        discount_dict[disc.id] = 0.0
+
+                    discount_dict[disc.id] += discount_amount
+            if discount_dict:
+                for product_tmpl_id, amount in discount_dict.items():
+                    product = self.env['product.product'].search([
+                        ('product_tmpl_id', '=', product_tmpl_id)
+                    ], limit=1)
+                    if product:
+                        section_line_commands.append((0, 0, {
+                            "product_id": product.id,
+                            "received_qty": -1,
+                            "quantity": -1,
+                            'price_unit': amount,
+                            "name": product.name,
+                        }))
 
             if section_line_commands:
                 move.write({"invoice_line_ids": section_line_commands})
-
         return move
 
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
 
-    account_discount = fields.Many2one(
+    account_discount = fields.Many2many(
         'product.template',
         string="Discount",
         domain=[('is_disc_item', '=', True)]
