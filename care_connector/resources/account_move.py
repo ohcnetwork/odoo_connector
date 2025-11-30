@@ -1,6 +1,5 @@
 from datetime import datetime
 from .res_partner import PartnerUtility
-from .product_product import ProductUtility
 from odoo.exceptions import UserError
 from odoo.tools.translate import _
 
@@ -135,9 +134,9 @@ class AccountUtility:
 
             invoice_line_list = []
             for item in invoice_items:
-                discount_id = None
+                discount_ids = []
                 if item.discounts:
-                    discount_id = cls._get_or_create_discounts(user_env, item.discounts)
+                    discount_ids = cls._get_or_create_discounts(user_env, item.discounts)
                 product_data = item.product_data
                 product_product_model = user_env['product.product']
                 product = product_product_model.search([('x_care_id', '=', product_data.x_care_id)], limit=1)
@@ -160,7 +159,7 @@ class AccountUtility:
                     'price_unit': item.sale_price,
                     'x_care_id': item.x_care_id,
                     'agent_ids': agent_ids,
-                    'account_discount': discount_id,
+                    'account_discount': discount_ids,
                 }
 
                 move_line_model = user_env['account.move.line']
@@ -203,51 +202,54 @@ class AccountUtility:
             discount_group_model = user_env['account.discount.groups']
             product_template_model = user_env['product.template']
             group_id = None
-            disc_type = discount_data.discount_type.value
-            if discount_data.discount_group:
-                group = discount_data.discount_group
-                discount_group = discount_group_model.search([
-                    ('x_care_id', '=', group.x_care_id)
-                ], limit=1)
+            disc_product_ids = []
+            for disc in discount_data:
+                disc_type = disc.discount_type.value
+                if disc.discount_group:
+                    group = disc.discount_group
+                    discount_group = discount_group_model.search([
+                        ('x_care_id', '=', group.x_care_id)
+                    ], limit=1)
 
-                if not discount_group:
-                    discount_group = discount_group_model.create({
-                        'x_care_id': group.x_care_id,
-                        'name': group.name
-                    })
-                elif discount_group.name != group.name:
-                    discount_group.name = group.name
+                    if not discount_group:
+                        discount_group = discount_group_model.create({
+                            'x_care_id': group.x_care_id,
+                            'name': group.name
+                        })
+                    elif discount_group.name != group.name:
+                        discount_group.name = group.name
 
-                group_id = discount_group.id
-            domain = [
-                ('is_disc_item', '=', True),
-                ('discount_group', '=', group_id),
-            ]
+                    group_id = discount_group.id
+                domain = [
+                    ('is_disc_item', '=', True),
+                    ('discount_group', '=', group_id),
+                ]
 
-            if disc_type == 'amount':
-                domain.append(('disc_amount', '=', discount_data.rate))
-            else:
-                domain.append(('disc_percent', '=', discount_data.rate))
-
-            discount_product = product_template_model.search(domain, limit=1)
-
-            if not discount_product:
-                vals = {
-                    'name': discount_data.name,
-                    'is_disc_item': True,
-                    'discount_group': group_id,
-                    'list_price': discount_data.disc_amt,
-                }
                 if disc_type == 'amount':
-                    vals['disc_amount'] = discount_data.rate
+                    domain.append(('disc_amount', '=', disc.rate))
                 else:
-                    vals['disc_percent'] = discount_data.rate
-                discount_product = product_template_model.create(vals)
+                    domain.append(('disc_percent', '=', disc.rate))
 
-            if discount_product.list_price != discount_data.disc_amt:
-                discount_product.list_price = discount_data.disc_amt
+                discount_product = product_template_model.search(domain, limit=1)
 
-            return discount_product.id
+                if not discount_product:
+                    vals = {
+                        'name': disc.name,
+                        'is_disc_item': True,
+                        'discount_group': group_id,
+                        'list_price': disc.disc_amt,
+                    }
+                    if disc_type == 'amount':
+                        vals['disc_amount'] = disc.rate
+                    else:
+                        vals['disc_percent'] = disc.rate
+                    discount_product = product_template_model.create(vals)
+
+                if discount_product.list_price != disc.disc_amt:
+                    discount_product.list_price = disc.disc_amt
+                disc_product_ids.append(discount_product.id)
+
+            return disc_product_ids
 
         except Exception as e:
             raise Exception(f"{str(e)}")
