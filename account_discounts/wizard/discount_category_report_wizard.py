@@ -52,7 +52,7 @@ class DiscountCategWizard(models.TransientModel):
                 }
 
             disc_summary[product_disc.id]['total_discount'] += line.price_unit
-        print("disc_summary",disc_summary)
+
         row = 4
         sheet.write_row(row, 0, ["Discount", "Total Discount"], header_format)
         row += 1
