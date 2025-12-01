@@ -3,17 +3,19 @@ from .res_partner import PartnerUtility
 from odoo.exceptions import UserError
 from odoo.tools.translate import _
 
-class AccountUtility:
 
+class AccountUtility:
     @classmethod
-    def get_or_create_account_move(cls,user_env, request_data):
+    def get_or_create_account_move(cls, user_env, request_data):
         try:
             x_care_id = request_data.x_care_id
             partner_data = request_data.partner_data
             invoice_items = request_data.invoice_items
 
             account_move = user_env["account.move"]
-            existing_invoice = account_move.search([('x_care_id', '=', x_care_id)], limit=1)
+            existing_invoice = account_move.search(
+                [("x_care_id", "=", x_care_id)], limit=1
+            )
 
             if existing_invoice:
                 raise ValueError("Invoice already exists")
@@ -24,9 +26,13 @@ class AccountUtility:
             due_date = request_data.due_date
             invoice_number = request_data.invoice_number
             if invoice_number:
-                existing_invoice = account_move.search([('name', '=', invoice_number)], limit=1)
+                existing_invoice = account_move.search(
+                    [("name", "=", invoice_number)], limit=1
+                )
                 if existing_invoice:
-                    raise ValueError(f"Invoice already exists with name {invoice_number}")
+                    raise ValueError(
+                        f"Invoice already exists with name {invoice_number}"
+                    )
 
             move_type = "out_invoice"
             if bill_type == "vendor":
@@ -49,37 +55,50 @@ class AccountUtility:
             raise Exception(f"{str(e)}")
 
     @classmethod
-    def get_or_create_account_move_return(cls,user_env, request_data):
+    def get_or_create_account_move_return(cls, user_env, request_data):
         try:
             x_care_id = request_data.x_care_id
             partner_data = request_data.partner_data
             invoice_items = request_data.invoice_items
             reason = request_data.reason if request_data.reason else None
             account_move = user_env["account.move"]
-            a_m_r_model = user_env['account.move.reversal']
-            existing_invoice = account_move.search([('x_care_id', '=', x_care_id)], limit=1)
+            a_m_r_model = user_env["account.move.reversal"]
+            existing_invoice = account_move.search(
+                [("x_care_id", "=", x_care_id)], limit=1
+            )
 
             if existing_invoice:
-                existing_credit_note = account_move.search([
-                    ("reversed_entry_id", "=", existing_invoice.id)
-                ], limit=1)
+                existing_credit_note = account_move.search(
+                    [("reversed_entry_id", "=", existing_invoice.id)], limit=1
+                )
                 if existing_credit_note:
-                    raise ValueError(f"This invoice has already been reversed and a credit note [{str(existing_credit_note.name)}] exists.")
+                    raise ValueError(
+                        f"This invoice has already been reversed and a credit note [{str(existing_credit_note.name)}] exists."
+                    )
 
                 reversal_wizard = a_m_r_model.with_context(
-                    {'active_ids': [existing_invoice.id], 'active_id': existing_invoice.id,
-                     'active_model': 'account.move'}).create({
-                    'reason': reason,
-                    'journal_id': existing_invoice.journal_id.id,
-                })
+                    {
+                        "active_ids": [existing_invoice.id],
+                        "active_id": existing_invoice.id,
+                        "active_model": "account.move",
+                    }
+                ).create(
+                    {
+                        "reason": reason,
+                        "journal_id": existing_invoice.journal_id.id,
+                    }
+                )
                 if not reversal_wizard:
                     raise ValueError("Failed to reverse the Invoice")
                 reversal_wizard.reverse_moves()
 
-                credit_note = account_move.search([
-                    ('reversed_entry_id', '=', existing_invoice.id),
-                    ('move_type', 'in', ['out_refund', 'in_refund'])
-                ], limit=1)
+                credit_note = account_move.search(
+                    [
+                        ("reversed_entry_id", "=", existing_invoice.id),
+                        ("move_type", "in", ["out_refund", "in_refund"]),
+                    ],
+                    limit=1,
+                )
 
                 if not credit_note:
                     raise ValueError("Failed to create Credit note")
@@ -89,7 +108,9 @@ class AccountUtility:
                 return credit_note
 
             else:
-                res_partner = PartnerUtility.get_or_create_partner(user_env, partner_data)
+                res_partner = PartnerUtility.get_or_create_partner(
+                    user_env, partner_data
+                )
                 bill_type = request_data.bill_type.value
                 invoice_date = request_data.invoice_date
                 due_date = request_data.due_date
@@ -108,7 +129,9 @@ class AccountUtility:
                 }
                 account_move = cls._create_account_move(user_env, move_data_dict)
                 if not account_move.id:
-                    raise ValueError(f"Failed to create the Invoice, err:{str(account_move)}")
+                    raise ValueError(
+                        f"Failed to create the Invoice, err:{str(account_move)}"
+                    )
                 return {
                     "success": True,
                     "invoice_id": account_move.id,
@@ -118,9 +141,8 @@ class AccountUtility:
         except Exception as e:
             raise Exception(f"{str(e)}")
 
-
     @classmethod
-    def _create_account_move(cls,user_env,move_data):
+    def _create_account_move(cls, user_env, move_data):
         try:
             x_care_id = move_data.get("x_care_id")
             name = move_data.get("name")
@@ -129,120 +151,143 @@ class AccountUtility:
             invoice_date = move_data.get("invoice_date")
             due_date = move_data.get("due_date")
             move_type = move_data.get("move_type")
-            account_move_model = user_env['account.move']
-            res_partner_model = user_env['res.partner']
+            account_move_model = user_env["account.move"]
+            res_partner_model = user_env["res.partner"]
 
             invoice_line_list = []
             for item in invoice_items:
                 discount_ids = []
                 if item.discounts:
-                    discount_ids = cls._get_or_create_discounts(user_env, item.discounts)
+                    discount_ids = cls._get_or_create_discounts(
+                        user_env, item.discounts
+                    )
                 product_data = item.product_data
-                product_product_model = user_env['product.product']
-                product = product_product_model.search([('x_care_id', '=', product_data.x_care_id)], limit=1)
+                product_product_model = user_env["product.product"]
+                product = product_product_model.search(
+                    [("x_care_id", "=", product_data.x_care_id)], limit=1
+                )
                 if not product:
-                    raise ValueError(f"Product with id {product_data.x_care_id} is not exists")
+                    raise ValueError(
+                        f"Product with id {product_data.x_care_id} is not exists"
+                    )
 
                 agent_ids = []
                 if item.agent_id:
-                    agent_res_partner = res_partner_model.search([('x_care_id', '=', item.agent_id)], limit=1)
+                    agent_res_partner = res_partner_model.search(
+                        [("x_care_id", "=", item.agent_id)], limit=1
+                    )
                     if agent_res_partner and agent_res_partner.agent:
-                        agent_ids = [(0, 0, {
-                            'agent_id': agent_res_partner.id,
-                            'commission_id': agent_res_partner.commission_id.id if agent_res_partner.commission_id else False,
-                        })]
+                        agent_ids = [
+                            (
+                                0,
+                                0,
+                                {
+                                    "agent_id": agent_res_partner.id,
+                                    "commission_id": agent_res_partner.commission_id.id
+                                    if agent_res_partner.commission_id
+                                    else False,
+                                },
+                            )
+                        ]
 
                 invoice_line_vals = {
-                    'product_id': product.id,
-                    'quantity': item.quantity,
-                    'received_qty': item.quantity,
-                    'price_unit': item.sale_price,
-                    'x_care_id': item.x_care_id,
-                    'agent_ids': agent_ids,
-                    'account_discount': discount_ids,
+                    "product_id": product.id,
+                    "quantity": item.quantity,
+                    "received_qty": item.quantity,
+                    "price_unit": item.sale_price,
+                    "x_care_id": item.x_care_id,
+                    "agent_ids": agent_ids,
+                    "account_discount": discount_ids,
                 }
 
-                move_line_model = user_env['account.move.line']
-                missing_fields = [f for f in invoice_line_vals.keys() if f not in move_line_model._fields]
+                move_line_model = user_env["account.move.line"]
+                missing_fields = [
+                    f
+                    for f in invoice_line_vals.keys()
+                    if f not in move_line_model._fields
+                ]
 
                 if missing_fields:
-                    raise UserError(_(
-                        "Invoice creation failed. The following required fields are missing: "
-                        "%s"
-                    ) % ", ".join(missing_fields))
+                    raise UserError(
+                        _(
+                            "Invoice creation failed. The following required fields are missing: "
+                            "%s"
+                        )
+                        % ", ".join(missing_fields)
+                    )
 
                 invoice_line_list.append((0, 0, invoice_line_vals))
 
             invoice_date = datetime.strptime(invoice_date, "%d-%m-%Y").date()
             due_date = datetime.strptime(due_date, "%d-%m-%Y").date()
-            account_move = account_move_model.create({
-                'move_type': move_type,
-                'partner_id': res_partner.id,
-                'x_care_id': x_care_id,
-                'invoice_date': invoice_date,
-                'invoice_date_due': due_date,
-                'invoice_line_ids': invoice_line_list,
-            })
+            account_move = account_move_model.create(
+                {
+                    "move_type": move_type,
+                    "partner_id": res_partner.id,
+                    "x_care_id": x_care_id,
+                    "invoice_date": invoice_date,
+                    "invoice_date_due": due_date,
+                    "invoice_line_ids": invoice_line_list,
+                }
+            )
             if not account_move:
                 raise ValueError("Failed to create the Invoice")
 
             if name:
-                account_move.write({'name': name})
-            if move_type == 'out_invoice':
+                account_move.write({"name": name})
+            if move_type == "out_invoice":
                 account_move.action_post()
             return account_move
 
         except Exception as e:
             raise Exception(f"{str(e)}")
 
-
     @classmethod
     def _get_or_create_discounts(cls, user_env, discount_data):
         try:
-            discount_group_model = user_env['account.discount.groups']
-            product_template_model = user_env['product.template']
+            discount_group_model = user_env["account.discount.groups"]
+            product_template_model = user_env["product.template"]
             group_id = None
             disc_product_ids = []
             for disc in discount_data:
                 disc_type = disc.discount_type.value
                 if disc.discount_group:
                     group = disc.discount_group
-                    discount_group = discount_group_model.search([
-                        ('x_care_id', '=', group.x_care_id)
-                    ], limit=1)
+                    discount_group = discount_group_model.search(
+                        [("x_care_id", "=", group.x_care_id)], limit=1
+                    )
 
                     if not discount_group:
-                        discount_group = discount_group_model.create({
-                            'x_care_id': group.x_care_id,
-                            'name': group.name
-                        })
+                        discount_group = discount_group_model.create(
+                            {"x_care_id": group.x_care_id, "name": group.name}
+                        )
                     elif discount_group.name != group.name:
                         discount_group.name = group.name
 
                     group_id = discount_group.id
                 domain = [
-                    ('is_disc_item', '=', True),
-                    ('discount_group', '=', group_id),
+                    ("is_disc_item", "=", True),
+                    ("discount_group", "=", group_id),
                 ]
 
-                if disc_type == 'amount':
-                    domain.append(('disc_amount', '=', disc.rate))
+                if disc_type == "amount":
+                    domain.append(("disc_amount", "=", disc.rate))
                 else:
-                    domain.append(('disc_percent', '=', disc.rate))
+                    domain.append(("disc_percent", "=", disc.rate))
 
                 discount_product = product_template_model.search(domain, limit=1)
 
                 if not discount_product:
                     vals = {
-                        'name': disc.name,
-                        'is_disc_item': True,
-                        'discount_group': group_id,
-                        'list_price': disc.disc_amt,
+                        "name": disc.name,
+                        "is_disc_item": True,
+                        "discount_group": group_id,
+                        "list_price": disc.disc_amt,
                     }
-                    if disc_type == 'amount':
-                        vals['disc_amount'] = disc.rate
+                    if disc_type == "amount":
+                        vals["disc_amount"] = disc.rate
                     else:
-                        vals['disc_percent'] = disc.rate
+                        vals["disc_percent"] = disc.rate
                     discount_product = product_template_model.create(vals)
 
                 if discount_product.list_price != disc.disc_amt:
