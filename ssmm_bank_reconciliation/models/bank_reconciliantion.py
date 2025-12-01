@@ -8,7 +8,11 @@ class BankReconciliation(models.Model):
     name = fields.Char(string="Reconciliation Name", required=True)
     date_from = fields.Date(string="Date From", required=True)
     date_to = fields.Date(string="Date To", required=True)
-    account_id = fields.Many2one('account.account',string='Bank',required=True, domain=[('account_type', '=', 'asset_cash')])
+    bank_cash_type = fields.Selection([
+        ('bank', 'Bank'),
+        ('cash', 'Cash'),
+    ], string="Bank/Cash Type",default='bank',store=True)
+    account_id = fields.Many2one('account.account',string='Bank',required=True, domain=[('account_type', '=', 'asset_cash'),('bank_cash_type', '=','bank')])
     br_line_ids = fields.One2many('reconciliation.line','reconciliation_id',string="Reconciliation Lines")
     state = fields.Selection([
         ('draft', 'Draft'),
@@ -30,35 +34,35 @@ class BankReconciliation(models.Model):
         string="Total Debit",
         currency_field='currency_id',
         compute="_compute_totals",
-        store=True
+
     )
 
     total_credit = fields.Monetary(
         string="Total Credit",
         currency_field='currency_id',
         compute="_compute_totals",
-        store=True
+
     )
 
     total_company_balance = fields.Monetary(
         string="Balance as per Company Book",
         currency_field='currency_id',
         compute="_compute_total_company_balance",
-        store=True
+
     )
 
     no_reconcile_amount = fields.Monetary(
         string="Amount Not Reflected in Bank",
         currency_field='currency_id',
         compute="_compute_no_reconcile_amount",
-        store=True
+
     )
 
     bank_reconcile_amount_total = fields.Monetary(
         string="Balance as per Bank",
         currency_field='currency_id',
         compute="_compute_bank_reconcile_amount_total",
-        store=True
+
     )
 
     @api.depends('br_line_ids.debit', 'br_line_ids.credit')
@@ -73,10 +77,13 @@ class BankReconciliation(models.Model):
     def _compute_total_company_balance(self):
         for rec in self:
             domain = [
+
+                ('date', '>=', self.date_from),
                 ('date', '<=', self.date_to),
                 ('account_id', '=', self.account_id.id),
                 ('move_id.state', '=', 'posted'),
             ]
+
             move_lines = self.env['account.move.line'].search(domain)
             rec.total_company_balance = sum(move_lines.mapped('balance')) if move_lines else 0
 
@@ -85,6 +92,7 @@ class BankReconciliation(models.Model):
     def _compute_no_reconcile_amount(self):
         for rec in self:
             domain = [
+
                 ('date', '<=', self.date_to),
                 ('account_id', '=', self.account_id.id),
                 ('move_id.state', '=', 'posted'),
@@ -97,6 +105,7 @@ class BankReconciliation(models.Model):
     def _compute_bank_reconcile_amount_total(self):
         for rec in self:
             domain = [
+
                 ('date', '<=', self.date_to),
                 ('account_id', '=', self.account_id.id),
                 ('move_id.state', '=', 'posted'),
@@ -107,8 +116,9 @@ class BankReconciliation(models.Model):
 
 
 
-    @api.onchange("options")
+    @api.onchange("options","date_from","date_to")
     def onchange_options(self):
+        print("---option")
         if not (self.date_from and self.date_to and self.account_id):
             self.br_line_ids = [(5, 0, 0)]  # clear lines
             return
@@ -127,6 +137,7 @@ class BankReconciliation(models.Model):
             domain.append(('reconcile_date', '=', False))
 
         move_lines = self.env['account.move.line'].search(domain)
+        print("move ;ines",move_lines)
         self.br_line_ids = [(5, 0, 0)]
         vals = []
         for line in move_lines:
