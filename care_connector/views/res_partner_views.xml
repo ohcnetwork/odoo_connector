@@ -8,6 +8,7 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='function']" position="after">
                     <field name="x_care_id" readonly="1"/>
+                    <field name="x_care_id_type" readonly="1"/>
                 </xpath>
             </field>
         </record>
