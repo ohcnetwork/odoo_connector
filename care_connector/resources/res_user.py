@@ -21,7 +21,7 @@ class UserUtility:
 
             user_type = user_data.user_type.value
             partner_data = user_data.partner_data
-            is_agent = True if partner_data.agent == True else False
+            is_agent = bool(partner_data.agent)
 
             if existing_user:
                 existing_user.name = user_data.name
