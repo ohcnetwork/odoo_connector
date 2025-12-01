@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_account_discount_groups,account.discount.groups,model_account_discount_groups,base.group_user,1,1,1,1
+access_discount_categ_wizard,discount.categ.wizard,model_discount_categ_wizard,base.group_user,1,1,1,1
