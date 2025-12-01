@@ -12,6 +12,7 @@
                 <field name="invoice_date"/>
                 <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                 <field name="currency_id"/>
+                <field name="commission_state"/>
             </list>
         </field>
     </record>
