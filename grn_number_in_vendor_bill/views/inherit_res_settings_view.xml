@@ -1,0 +1,41 @@
+<odoo>
+    <record id="view_account_config_settings_inherit_vendor_period" model="ir.ui.view">
+        <field name="name">res.config.settings.inherit.vendor.period</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//block[@id='account_vendor_bills']/setting[@id='autopost_bills']" position="after">
+
+                <separator string="GRN Number Settings"/>
+                <setting id="enable_vendor_period" help="Enable vendor bill restriction period">
+                    <div class="row">
+                        <div class="col-6 d-flex align-items-center">
+
+                            <field name="enable_vendor_period"/>
+                            <label for="enable_vendor_period" class="me-2"/>
+                        </div>
+
+                        <div class="col-6" invisible="not enable_vendor_period">
+                            <label for="number_sequence"/>
+                            <field name="number_sequence"/>
+                        </div>
+                    </div>
+
+                    <div class="row mt16" invisible="not enable_vendor_period">
+                        <div class="col-6">
+                            <label for="vendor_period_start_date"/>
+                            <field name="vendor_period_start_date"/>
+                        </div>
+
+                        <div class="col-6">
+                            <label for="vendor_period_end_date"/>
+                            <field name="vendor_period_end_date"/>
+                        </div>
+                    </div>
+                </setting>
+
+            </xpath>
+        </field>
+    </record>
+</odoo>

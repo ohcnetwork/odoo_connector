@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ssmm_bank_reconciliation,ssmm.bank.reconciliation,model_ssmm_bank_reconciliation,base.group_user,1,1,1,1
+access_reconciliation_line,reconciliation.line,model_reconciliation_line,base.group_user,1,1,1,1
+access_bank_reconciliation_wizard,bank.reconciliation.wizard,model_bank_reconciliation_wizard,base.group_user,1,1,1,1

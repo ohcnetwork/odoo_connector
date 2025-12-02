@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="hsn_invoice_report_view" model="ir.ui.view">
+        <field name="name">Invoice HSN Excel Wizard</field>
+        <field name="model">invoice.hsn.excel.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Invoice HSN Excel Report">
+                <group col="4">
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                </group>
+                <footer>
+                    <button name="action_print_excel" string="Print Excel" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_hsn_invoice_report" model="ir.actions.act_window">
+        <field name="name">Invoice HSN Excel Wizard</field>
+        <field name="res_model">invoice.hsn.excel.wizard</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="hsn_invoice_report_view"/>
+        <field name="target">new</field>
+    </record>
+    <menuitem id="menu_nvoice_report_menu" name="Invoice Excel Reports" sequence="10" parent="account.menu_finance_reports"/>
+    <menuitem id="menu_hsn_invoice_report_menu" name="HSN Invoice Report" sequence="1" action="action_hsn_invoice_report" parent="menu_nvoice_report_menu"/>
+
+</odoo>

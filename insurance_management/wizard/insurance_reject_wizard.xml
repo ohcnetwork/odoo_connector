@@ -1,0 +1,17 @@
+<odoo>
+    <record id="insurance_reject_wizard_form" model="ir.ui.view">
+        <field name="name">insurance.reject.wizard.form</field>
+        <field name="model">insurance.reject.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reject Insurance">
+                <group>
+                    <field name="reason" placeholder="Enter reason for rejection..."/>
+                </group>
+                <footer>
+                    <button string="Reject" type="object" name="action_submit_reason" class="oe_highlight"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

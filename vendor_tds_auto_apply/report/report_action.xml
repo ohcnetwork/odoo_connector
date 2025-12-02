@@ -1,0 +1,11 @@
+<odoo>
+    <record id="action_tds_vendor_excel_report" model="ir.actions.report">
+        <field name="name">TDS Vendor Report</field>
+        <field name="model">tds.vendor.report.wizard</field>
+        <field name="report_type">xlsx</field>
+        <field name="report_name">vendor_tds_auto_apply.tds_vendor_excel_report</field>
+        <field name="report_file">vendor_tds_auto_apply.tds_vendor_excel_report</field>
+        <field name="binding_model_id" ref="model_tds_vendor_report_wizard"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>

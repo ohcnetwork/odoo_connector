@@ -1,7 +1,7 @@
 from odoo.http import request
 
-class UserUtility:
 
+class UserUtility:
     @classmethod
     def get_or_create_user(cls, user_env, user_data):
         """Retrieve or create a user"""
@@ -17,16 +17,18 @@ class UserUtility:
             if existing_user:
                 cls._update_partner_details(user_env, existing_user,partner_data)
                 return existing_user
-            group_xml_id = 'base.group_portal' if user_type == 'portal' else 'base.group_user'
+            group_xml_id = (
+                "base.group_portal" if user_type == "portal" else "base.group_user"
+            )
 
             user_vals = {
-                'name': user_data.name,
-                'login': user_data.login,
-                'email': user_data.email,
-                'groups_id': [(6, 0, [request.env.ref(group_xml_id).id])],
+                "name": user_data.name,
+                "login": user_data.login,
+                "email": user_data.email,
+                "groups_id": [(6, 0, [request.env.ref(group_xml_id).id])],
             }
             if user_data.password:
-                user_vals['password'] = user_data.password
+                user_vals["password"] = user_data.password
 
             res_user = res_users_model.create(user_vals)
             if not res_user:
