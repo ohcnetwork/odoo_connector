@@ -7,6 +7,7 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='invoice_date']" position="after">
                     <field name="grn_number" invisible="move_type != 'in_invoice'" readonly="1"/>
+                    <field name="drug_license_number" invisible="move_type != 'in_invoice'"/>
                 </xpath>
             </field>
         </record>
