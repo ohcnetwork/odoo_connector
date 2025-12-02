@@ -5,6 +5,7 @@ class AccountMove(models.Model):
     _inherit = 'account.move'
 
     grn_number = fields.Integer(string='GRN No.', readonly=True, copy=False)
+    drug_license_number = fields.Char(string='Drug License Number', store=True)
 
     def action_post(self):
         """Assign vendor bill number when the bill is confirmed (posted)"""
