@@ -39,3 +39,6 @@ class AccountMoveReturnApiRequest(BaseModel):
     partner_data: PartnerData | None = None
     invoice_items: List[InvoiceItem] | None = None
     reason: str | None = None
+
+class AccountAccountApiRequest(BaseModel):
+    search_key: str
