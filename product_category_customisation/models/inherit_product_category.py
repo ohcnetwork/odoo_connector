@@ -7,7 +7,7 @@ from odoo import models, fields, api
 class ProductCategory(models.Model):
     _inherit = 'product.category'
 
-    use_different_taxes = fields.Boolean(string=" Different Taxes")
+    use_different_taxes = fields.Boolean(string = "Different Taxes")
 
     subcategory_tax_config_ids = fields.One2many(
         'product.category.tax.config',
