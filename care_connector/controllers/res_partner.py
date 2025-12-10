@@ -7,8 +7,9 @@ from ..resources.res_partner import PartnerUtility
 
 
 class ResPartner(http.Controller):
-
-    @http.route('/api/add/partner', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route(
+        "/api/add/partner", type="http", auth="public", methods=["POST"], csrf=False
+    )
     def create_update_partner(self, **kwargs):
         try:
             auth_header = request.httprequest.headers.get("Authorization")
@@ -19,7 +20,7 @@ class ResPartner(http.Controller):
 
             if res_partner and "error" in res_partner:
                 raise ValueError(res_partner["error"])
-                
+
             if not res_partner.id:
                 raise ValueError(f"Failed to create partner, err: {str(res_partner)}")
 
@@ -30,10 +31,10 @@ class ResPartner(http.Controller):
                     "partner_id": res_partner.id,
                     "partner_name": res_partner.name,
                     "x_care_id": res_partner.x_care_id,
+                    "x_care_id_type": "vendor",
                 },
             }
             return request.make_json_response(json_response, status=200)
-
 
         except ValueError as e:
             error_response = {

@@ -12,5 +12,5 @@ class InsuranceRejectWizard(models.TransientModel):
         """Store the reason & update state to rejected."""
         cust = self.customer_insurance_id
         cust.rejection_reason = self.reason
-        cust.state = 'rejected'
+        cust.state = 'reject'
         return {'type': 'ir.actions.act_window_close'}

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+  <record id="general_ledger_wizard_inherit_label" model="ir.ui.view">
+    <field name="name">general.ledger.wizard.add.label</field>
+    <field name="model">general.ledger.report.wizard</field>
+    <field name="inherit_id" ref="account_financial_report.general_ledger_wizard"/>
+    <field name="arch" type="xml">
+
+      <xpath expr="//group[@name='account_filter']/label[@for='account_ids']" position="replace">
+      </xpath>
+
+      <xpath expr="//field[@name='account_ids']" position="replace">
+        <label for="account_ids" />
+        <field name="account_ids" widget="many2many_tags" options="{'no_create': True}" nolabel="1" />
+      </xpath>
+
+      <xpath expr="//field[@name='partner_ids']" position="before">
+        <label for="partner_ids" options="{'no_create': True}"/>
+      </xpath>
+
+    </field>
+  </record>
+</odoo>
