@@ -48,76 +48,6 @@ class AccountUtility:
         except Exception as e:
             raise Exception(f"{str(e)}")
 
-    @classmethod
-    def get_or_create_account_move_return(cls,user_env, request_data):
-        try:
-            x_care_id = request_data.x_care_id
-            partner_data = request_data.partner_data
-            invoice_items = request_data.invoice_items
-            reason = request_data.reason if request_data.reason else None
-            account_move = user_env["account.move"]
-            a_m_r_model = user_env['account.move.reversal']
-            existing_invoice = account_move.search([('x_care_id', '=', x_care_id)], limit=1)
-
-            if existing_invoice:
-                existing_credit_note = account_move.search([
-                    ("reversed_entry_id", "=", existing_invoice.id)
-                ], limit=1)
-                if existing_credit_note:
-                    raise ValueError(f"This invoice has already been reversed and a credit note [{str(existing_credit_note.name)}] exists.")
-
-                reversal_wizard = a_m_r_model.with_context(
-                    {'active_ids': [existing_invoice.id], 'active_id': existing_invoice.id,
-                     'active_model': 'account.move'}).create({
-                    'reason': reason,
-                    'journal_id': existing_invoice.journal_id.id,
-                })
-                if not reversal_wizard:
-                    raise ValueError("Failed to reverse the Invoice")
-                reversal_wizard.reverse_moves()
-
-                credit_note = account_move.search([
-                    ('reversed_entry_id', '=', existing_invoice.id),
-                    ('move_type', 'in', ['out_refund', 'in_refund'])
-                ], limit=1)
-
-                if not credit_note:
-                    raise ValueError("Failed to create Credit note")
-
-                credit_note.x_care_id = f"RE/{credit_note.x_care_id}"
-                credit_note.action_post()
-                return credit_note
-
-            else:
-                res_partner = PartnerUtility.get_or_create_partner(user_env, partner_data)
-                bill_type = request_data.bill_type.value
-                invoice_date = request_data.invoice_date
-                due_date = request_data.due_date
-
-                move_type = "out_refund"
-                if bill_type == "vendor":
-                    move_type = "in_refund"
-
-                move_data_dict = {
-                    "x_care_id": x_care_id,
-                    "res_partner": res_partner,
-                    "invoice_items": invoice_items,
-                    "invoice_date": invoice_date,
-                    "due_date": due_date,
-                    "move_type": move_type,
-                }
-                account_move = cls._create_account_move(user_env, move_data_dict)
-                if not account_move.id:
-                    raise ValueError(f"Failed to create the Invoice, err:{str(account_move)}")
-                return {
-                    "success": True,
-                    "invoice_id": account_move.id,
-                    "invoice_name": account_move.name,
-                }
-
-        except Exception as e:
-            raise Exception(f"{str(e)}")
-
 
     @classmethod
     def _create_account_move(cls,user_env,move_data):
@@ -259,22 +189,21 @@ class AccountUtility:
     def _cancel_account_move(cls, user_env, request_data):
         try:
             x_care_id = request_data.x_care_id
-            payment_model = user_env["account.payment"]
+            partial_reconcile_model = user_env['account.partial.reconcile']
             account_move_model = user_env["account.move"]
             existing_invoice = account_move_model.search([('x_care_id', '=', x_care_id)], limit=1)
 
             if not existing_invoice:
                 raise ValueError(f"No Invoice exists for id {x_care_id}")
 
-            related_payments = payment_model.search([
-                ('invoice_ids', 'in', existing_invoice.id)
+            partial_recs = partial_reconcile_model.search([
+                '|',
+                ('debit_move_id.move_id', '=', existing_invoice.id),
+                ('credit_move_id.move_id', '=', existing_invoice.id)
             ])
-            for pay in related_payments:
-                if pay.state == 'posted' or pay.state == 'sent':
-                    pay.action_draft()
 
-                if pay.state != 'cancelled':
-                    pay.action_cancel()
+            if partial_recs:
+                partial_recs.unlink()
 
             if existing_invoice.state == 'posted':
                 existing_invoice.button_draft()
