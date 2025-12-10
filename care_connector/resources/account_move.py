@@ -253,3 +253,35 @@ class AccountUtility:
 
         except Exception as e:
             raise Exception(f"{str(e)}")
+
+
+    @classmethod
+    def _cancel_account_move(cls, user_env, request_data):
+        try:
+            x_care_id = request_data.x_care_id
+            payment_model = user_env["account.payment"]
+            account_move_model = user_env["account.move"]
+            existing_invoice = account_move_model.search([('x_care_id', '=', x_care_id)], limit=1)
+
+            if not existing_invoice:
+                raise ValueError(f"No Invoice exists for id {x_care_id}")
+
+            related_payments = payment_model.search([
+                ('invoice_ids', 'in', existing_invoice.id)
+            ])
+            for pay in related_payments:
+                if pay.state == 'posted' or pay.state == 'sent':
+                    pay.action_draft()
+
+                if pay.state != 'cancelled':
+                    pay.action_cancel()
+
+            if existing_invoice.state == 'posted':
+                existing_invoice.button_draft()
+
+            existing_invoice.button_cancel()
+
+            return existing_invoice
+
+        except Exception as e:
+            raise Exception(f"{str(e)}")

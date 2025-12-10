@@ -20,7 +20,8 @@ class AccountMoveLines(models.Model):
         if self.move_id.move_type == 'in_invoice':
             self.quantity = self.received_qty - self.free_qty
             if self.free_qty > self.received_qty:
-                self.quantity = 0
+                self.free_qty = 0
+                self.quantity = self.received_qty
         else:
             self.quantity = self.received_qty
             self.free_qty = 0
