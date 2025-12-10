@@ -42,3 +42,6 @@ class AccountMoveReturnApiRequest(BaseModel):
 
 class AccountAccountApiRequest(BaseModel):
     search_key: str
+
+class AccountMoveCancelApiRequest(BaseModel):
+    x_care_id: str
