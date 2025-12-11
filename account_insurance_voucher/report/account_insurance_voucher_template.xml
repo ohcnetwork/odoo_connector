@@ -132,7 +132,7 @@
                             </td>
                             <td style="font-weight:bold;">Admission Date :</td>
                             <td>
-                                <t t-esc="o.admmission_date" t-options='{"widget": "date"}'/>
+                                <t t-esc="o.admission_date" t-options='{"widget": "date"}'/>
                             </td>
                         </tr>
                         <tr>
