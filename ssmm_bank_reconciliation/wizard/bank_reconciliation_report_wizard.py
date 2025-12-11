@@ -31,7 +31,7 @@ class BankReconciliationWizard(models.TransientModel):
         title_format = workbook.add_format({'bold': True, 'font_size': 14, 'align': 'center', 'bg_color': '#B6D7A8'})
         header_format = workbook.add_format({'bold': True, 'bg_color': '#D9EAD3', 'border': 1, 'align': 'center'})
         text_format = workbook.add_format({'border': 1, 'align': 'left'})
-        number_format = workbook.add_format({'border': 1, 'align': 'right', 'num_format': '$ 0.00'})
+        number_format = workbook.add_format({'border': 1, 'align': 'right', 'num_format': '₹ 0.00'})
 
         sheet.merge_range('A1:H1', 'Bank Reconciliation Report', title_format)
         sheet.write('A2', f"From: {self.date_from}", workbook.add_format({'bold': True}))
