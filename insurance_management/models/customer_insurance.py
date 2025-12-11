@@ -256,6 +256,9 @@ class CustomerInsurance(models.Model):
                 ('move_id.move_type', 'in', ['out_invoice', 'out_refund']),
             ])
 
+            if not invoice_lines:
+                raise ValidationError(_("Either no invoice has been generated for the selected customer, or the insurance tag has been entered incorrectly!!"))
+
             for line in invoice_lines:
                 self.env['customer.insurance.line'].create({
                     'customer_insurance_id': rec.id,
