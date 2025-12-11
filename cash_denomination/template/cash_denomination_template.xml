@@ -34,7 +34,7 @@
                                     <select name="counter" id="counter" class="form-control" required="required">
                                         <option value="" disabled="disabled" selected="selected">Select Counter</option>
                                         <t t-foreach="counters" t-as="ctr">
-                                            <option t-att-value="ctr.id" t-att-selected="ctr.id == selected_counter_id">
+                                            <option t-att-value="ctr.id">
                                                 <t t-esc="ctr.bill_counter"/>
                                             </option>
                                         </t>
@@ -46,8 +46,10 @@
                                     <input type="text" name="total_cash_field" class="form-control" t-att-value="total_cash or '0.00'" id="total_cash_field" readonly="readonly"/>
                                 </div>
                                 <div class="col-md-2">
-                                    <p id="same_counter_transfer_amount" style="font-size:14px; margin-top:5px; display:none; margin-top:35px">
-                                    </p>
+                                    <strong>
+                                        <p id="transfer_cash_amount_text" style="font-size:20px; margin-top:5px; margin-top:35px">Transfer Cash:<span id="counter_transfer_amount"/>
+                                        </p>
+                                    </strong>
                                 </div>
                             </div>
 
@@ -82,9 +84,9 @@
                                     <button type="button" class="btn" id="cash_transfer_btn" style="background-color: #bcb9bc;">Transfer Cash</button>
                                     <button type="submit" class="btn btn-primary px-4">Submit</button>
 
-                                    <button id="view_transfer_details_btn" type="button" class="btn btn-primary">
-                                        View Transfer Details
-                                    </button>
+                                    <!--                                    <button id="view_transfer_details_btn" type="button" class="btn btn-primary">-->
+                                    <!--                                        View Transfer Details-->
+                                    <!--                                    </button>-->
 
                                 </div>
 
@@ -113,9 +115,10 @@
                                             <div class="mb-3 d-flex align-items-center" style="margin-left:15px;">
                                                 <label for="to_all_locations" class="form-label me-2 mb-0" style="min-width:90px;">To Location</label>
                                                 <select id="to_all_locations" name="to_all_locations" class="form-select" style="width:250px;" required="required">
-                                                    <option value="">Select Location</option>
+                                                    <option value="" disabled="disabled" selected="selected">Select Counter</option>
                                                 </select>
                                             </div>
+
 
                                             <table class="table table-bordered text-center">
                                                 <thead class="table-light">
@@ -256,6 +259,7 @@
                         </div>
                     </div>
                 </div>
+
                 <div class="modal fade" id="mismatch-submit-modal" tabindex="-1">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
@@ -266,14 +270,24 @@
 
                             <div class="modal-body">
                                 <p>
-                                    Submission failed: The counted amount does not match the cash in hand
+                                    The counted amount does not match the cash in hand.<br/>
+                                    Are you sure you want to submit?
                                 </p>
+
+                                <div class="form-group mt-3">
+                                    <label for="mismatch_remark">Remark</label>
+                                    <textarea id="mismatch_remark" class="form-control" placeholder="Enter reason for mismatch"></textarea>
+                                </div>
                             </div>
 
                             <div class="d-flex justify-content-center align-items-center mt-4 position-relative" style="margin-bottom:10px;">
                                 <div class="mx-auto">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                         OK
+                                         Cancel
+                                    </button>
+
+                                    <button type="button" class="btn btn-primary" id="confirm_mismatch_submit">
+                                        Submit Anyway
                                     </button>
                                 </div>
                             </div>
@@ -305,7 +319,7 @@
                         <div class="modal-content">
                             <div class="modal-header bg-info text-white ">
                                 <h5 class="modal-title justify-content-center">Pending Cash Transfer</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                <!--                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>-->
                             </div>
 
                             <div class="modal-body">
@@ -322,8 +336,8 @@
                                     <span id="modal_date"></span>
                                 </p>
                                 <p>
-                                    <strong>Amount:</strong> ₹                                    
-                                    <span id="modal_amount"></span>
+                                    <strong>Amount:</strong> ₹
+                                    <span id="modal_total_transfer_cash"></span>
                                 </p>
                             </div>
                             <div class="d-flex justify-content-center align-items-center mt-4 position-relative modal-footer" style="margin-bottom:10px;">
@@ -340,21 +354,30 @@
                 <div class="modal fade" id="transfer-limit-modal" tabindex="-1">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content text-center">
-                            <div class="modal-header bg-danger text-white">
-                                <h5 class="modal-title">Transfer Amount Exceeded!</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            <div class="modal-header bg-danger text-white d-flex justify-content-center position-relative">
+
+                                <h5 class="modal-title w-100 text-center m-0">
+                                    Transfer Amount Exceeded!
+                                </h5>
+
+                                <button type="button" class="btn-close btn-close-white position-absolute end-0 me-2" data-bs-dismiss="modal">
+                                </button>
                             </div>
+
                             <div class="modal-body">
                                 <p class="fs-5">
-                                Transfer amount cannot be more than the cash in hand.
+                                    Transfer amount cannot be more than the cash in hand.
                                 </p>
                             </div>
-                            <div class="modal-footer">
-                                <button class="btn btn-danger" data-bs-dismiss="modal">OK</button>
+
+                            <div class="modal-footer d-flex justify-content-center">
+                                <button class="btn btn-danger px-4" data-bs-dismiss="modal">OK</button>
                             </div>
+
                         </div>
                     </div>
                 </div>
+
                 <div class="modal fade" id="select-counter-modal" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-sm">
                         <div class="modal-content">
@@ -385,10 +408,9 @@
             <t t-else="">
                 <div class="container text-center mt-5">
                     <div class="alert alert-warning shadow p-5" style="max-width:600px; margin:auto;">
-                        <h3 class="text-danger mb-3">Access Restricted</h3>
-                        <p class="fs-5">You don’t have any cash counter assigned to your account.</p>
-                        <p class="text-muted mb-4">Please contact your administrator to get access to the Cash Denomination page.</p>
-                        <a href="/" class="btn btn-primary">Go to Home Page</a>
+                        <h3 class="text-danger mb-3">No Cash Payments Found</h3>
+                        <p class="fs-5">There are no cash payment entries available for today. Please enter a payment to proceed with denomination.</p>
+                        <a href="/cash/denomination/register" class="btn btn-primary">Go to Denomination Register</a>
                     </div>
                 </div>
             </t>

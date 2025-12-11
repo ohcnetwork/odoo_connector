@@ -5,33 +5,41 @@
             <field name="name">cash.transfer.list</field>
             <field name="model">cash.transfer</field>
             <field name="arch" type="xml">
-                <list string="Cash Tranfer">
+                <list string="Cash Transfer">
                     <field name="date"/>
                     <field name="from_user"/>
-                    <field name="to_user"/>
-                    <field name="counter"/>
+                    <field name="from_location"/>
+                    <field name="to_location"/>
                     <field name="grand_total"/>
+                    <field name="state"/>
                 </list>
             </field>
         </record>
 
-        <record id="view_cash_trasnfer_form" model="ir.ui.view">
+        <record id="view_cash_transfer_form" model="ir.ui.view">
             <field name="name">cash.transfer.form</field>
             <field name="model">cash.transfer</field>
             <field name="arch" type="xml">
-                <form string="Cash Tranfer">
+                <form string="Cash Transfer">
                     <header>
-                        <field name="state" widget="statusbar" statusbar_visible="draft,accepted,rejected"/>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,submit,accepted,rejected"/>
                     </header>
                     <sheet>
                         <group>
                             <group>
+                                <field name="name"/>
                                 <field name="from_user"/>
-                                <field name="to_user"/>
+                                <field name="from_location"/>
                             </group>
                             <group>
                                 <field name="date"/> 
-                                <field name="counter"/>
+                                <field name="to_location"/>
+                                <field name="denomination_id" invisible="1"/>
+                            </group>
+                            <group string="Approval Info">
+                                <field name="accepted_by" invisible="state != 'accepted'"/>
+
+                                <field name="rejected_by" invisible="state != 'rejected'"/>
                             </group>
                         </group>
                         <notebook>
@@ -40,7 +48,8 @@
                                     <list editable="top">
                                         <field name="counts"/>
                                         <field name="currency"/>
-                                        <field name="sub_total"/>
+                                        <field name="currency_id" invisible="1"/>
+                                        <field name="sub_total" sum="Sub Total"/>
                                     </list>
                                 </field>
                             </page>
@@ -55,8 +64,8 @@
             </field>
         </record>
 
-        <record id="action_cash_tranfer" model="ir.actions.act_window">
-            <field name="name">Cash Tranfer</field>
+        <record id="action_cash_transfer" model="ir.actions.act_window">
+            <field name="name">Cash Transfer</field>
             <field name="res_model">cash.transfer</field>
             <field name="view_mode">list,form</field>
             <field name="help" type="html">
@@ -66,6 +75,6 @@
             </field>
         </record>
 
-        <menuitem id="menu_cash_transfer" name="Cash Trasnfer" parent="care_connector.menu_main_cash_denomination" action="action_cash_tranfer" sequence="3"/>
+        <menuitem id="menu_cash_transfer" name="Cash Transfer Records" parent="care_connector.menu_main_cash_denomination" action="action_cash_transfer" sequence="1"/>
     </data>
 </odoo>

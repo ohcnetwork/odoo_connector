@@ -4,29 +4,18 @@ import { rpc } from "@web/core/network/rpc";
 publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
     selector: '.cash_denomination_template',
     events: {
-        'input .counts-input': '_onCountChange',
-        'click #cash_transfer_btn': '_OpenTransferCashModal',
         'change #counter': '_onCounterChange',
-        'click #view_transfer_details_btn': '_OpenTransferDetailsModal',
-        'input .transfer-counts-input': '_onTransferCountChange',
+        'click #cash_transfer_btn': '_OpenTransferCashModal',
+        'input .counts-input': '_onDenominationChange',
+        'input .transfer-counts-input': '_onTransferDenominationChange',
         'submit #cash_denomination_form': '_CashDenominationSubmit',
+        'submit #mismatch-submit-modal': '_MismatchCashDenominationSubmit',
         'submit #cash_tranfer_form': '_onTransferSubmit',
     },
 
     start: function () {
         this._super.apply(this, arguments);
         this._setCurrentDate();
-        this.$('.counts-input').val('');
-        this.$('.transfer-counts-input').val('');
-        this.$('#grand_total').val('0.00');
-        this.$('.total-field').val('');
-        this.$('.transfer-total-field').val('');
-        this.$('#transfer_grand_total').val('0.00');
-        this.$('#total_cash_field').val('0.00');
-        this._setupCounterUserLink();
-        this._checkTransferSuccess();
-        // this._checkPendingTransfers();
-
     },
 
     _setCurrentDate: function () {
@@ -38,117 +27,59 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
     _onCounterChange: function (ev) {
         const counterId = parseInt(ev.currentTarget.value);
         if (!counterId) return;
-
-        this._fetchPaymentAmountByCounter(counterId);
-        this._checkPendingTransfers(counterId);
-    },
-
-    _setupCounterUserLink: function () {
-        const self = this;
-
-        document.querySelector('#counter')?.addEventListener('change', function (ev) {
-            const counterId = ev.target.value;
-            if (counterId) {
-                self._fetchPaymentAmountByCounter(counterId);
-
-                self._checkPendingTransfers(counterId);
-            }
-        });
-    },
-
-
-    _fetchPaymentAmountByCounter: function (counterId) {
         const self = this;
         rpc('/get/payment/amount/by/counter', { counter_id: counterId })
             .then(function (result) {
                 if (result) {
+                    console.log("result", result);
                     self.$('#total_cash_field').val(parseFloat(result.total_cash || 0).toFixed(2));
-                    let totalCash = parseFloat(result.total_cash || 0);
-                    const sameAmount = parseFloat(result.same_counter_amount || 0);
+                    let transferCash = parseFloat(result.transfer_amount || 0);
+                    const transfer = result.transfer_list[0];
+                    $('#counter_transfer_amount').text(transferCash);
+                    console.log("transfer", transfer);
+                    if (transfer) {
+                        const transfer_id = transfer.id
+                        console.log("transferCash", transfer);
+                        console.log("transfer.from_counter", transfer.from_counter);
+                        console.log("transfer.date", transfer.date);
+                        console.log("transfer.grand_total", transfer.grand_total);
+                        $('#modal_total_transfer_cash').text(transfer.grand_total);
+                        $('#modal_from_user').text(transfer.from_user);
+                        $('#modal_from_counter').text(transfer.from_counter);
+                        $('#modal_date').text(transfer.date);
+                        $('#modal_amount').text(parseFloat(transfer.grand_total || 0).toFixed(2));
+                        $('#cashTransferReviewModal').modal('show');
 
-                    if (sameAmount > 0) {
-                        self.$('#same_counter_transfer_amount')
-                            .text("Transfer Amount: ₹" + sameAmount.toFixed(2))
-                            .show();
-                    } else {
-                        self.$('#same_counter_transfer_amount').hide();
+                        $('#accept_transfer').off('click').on('click', function () {
+                            $('#cashTransferReviewModal').modal('hide');
+                            rpc('/cash/transfer/respond', {
+                                transfer_id: transfer_id,
+                                action: 'accept'
+                            }).then((result) => {
+
+                                const addedAmount = parseFloat(result.added_amount || 0);
+                                const currentCash = parseFloat($('#total_cash_field').val()) || 0;
+                                $('#total_cash_field').val((currentCash + addedAmount).toFixed(2));
+                            });
+                        });
+
+                        $('#reject_transfer').off('click').on('click', function () {
+
+                            $('#cashTransferReviewModal').modal('hide');
+                            rpc('/cash/transfer/respond', {
+                                transfer_id: transfer.id,
+                                action: 'reject'
+                            }).then(() => {
+                                $('#cashTransferReviewModal').modal('hide');
+                            });
+                        });
                     }
-
-                    let adjustedTotal = totalCash - sameAmount;
-                    if (adjustedTotal < 0) adjustedTotal = 0;
-
-                    self.$('#total_cash_field').val(adjustedTotal.toFixed(2));
-
                 }
 
             })
             .catch(function (err) {
                 console.error('Error fetching payment amount:', err);
             });
-    },
-
-    _onCountChange: function (ev) {
-        const $input = $(ev.currentTarget);
-        const count = parseInt($input.val()) || 0;
-        const currency = parseInt($input.data('value')) || 0;
-        const total = count * currency;
-
-        const $row = $input.closest('tr');
-        $row.find('.total-field').val(total.toFixed(2));
-
-        this._updateGrandTotal();
-    },
-
-    _updateGrandTotal: function () {
-        let grandTotal = 0;
-        this.$('.total-field').each(function () {
-            const val = parseFloat($(this).val()) || 0;
-            grandTotal += val;
-        });
-
-        this.$('#grand_total').val(grandTotal.toFixed(2));
-    },
-
-
-    _CashDenominationSubmit: function (ev) {
-        ev.preventDefault();
-
-        const cashInHand = parseFloat(this.$('#total_cash_field').val()) || 0;
-        const grandTotal = parseFloat(this.$('#grand_total').val()) || 0;
-
-        if (grandTotal === 0) {
-            $('#no-count-modal').modal('show');
-            return;
-        }
-
-        if (grandTotal !== cashInHand) {
-
-            $('#mismatch-submit-modal').modal('show');
-
-            $('#confirm_mismatch_submit').off('click').on('click', () => {
-                const remark = $('#mismatch_remark').val().trim();
-
-                $('#remark').val(remark);
-
-                $('#mismatch-submit-modal').modal('hide');
-                this._submitDenomination();
-            });
-
-            return;
-        }
-
-        $('#success-modal').modal('show');
-        $('#success-modal').one('hidden.bs.modal', () => {
-            this._submitDenomination();
-        });
-    },
-
-    _submitDenomination: function () {
-
-        this.$('#same_counter_transfer_amount')
-            .text("Transfer Amount: ₹0.00")
-            .show();
-        this.same_counter_amount = 0; this.$('#cash_denomination_form')[0].submit();
     },
 
     _OpenTransferCashModal: function (ev) {
@@ -177,7 +108,6 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
     _fetchAllCounter: function () {
         rpc('/get/all/counter').then(function (result) {
             const counterSelect = self.$('#to_all_locations');
-            counterSelect.empty();
             if (result && result.locations && result.locations.length > 0) {
                 const locations = result.locations
                 locations.forEach(location => {
@@ -193,7 +123,30 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
         });
     },
 
-    _onTransferCountChange: function (ev) {
+    _onDenominationChange: function (ev) {
+        const $input = $(ev.currentTarget);
+        const count = parseInt($input.val()) || 0;
+        const currency = parseInt($input.data('value')) || 0;
+        const total = count * currency;
+
+        const $row = $input.closest('tr');
+        $row.find('.total-field').val(total.toFixed(2));
+
+        this._updateGrandTotal();
+    },
+
+    _updateGrandTotal: function () {
+        let grandTotal = 0;
+        this.$('.total-field').each(function () {
+            const val = parseFloat($(this).val()) || 0;
+            grandTotal += val;
+        });
+
+        this.$('#grand_total').val(grandTotal.toFixed(2));
+    },
+
+
+    _onTransferDenominationChange: function (ev) {
         const $input = $(ev.currentTarget);
         const count = parseInt($input.val()) || 0;
         const currency = parseInt($input.data('value')) || 0;
@@ -213,117 +166,16 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
         this.$('#transfer_grand_total').val(grandTotal.toFixed(2));
     },
 
-    _checkTransferSuccess: function () {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('transfer_success') === '1') {
-            $('#transfer-success-modal').modal('show');
-
-            const newUrl = window.location.pathname;
-            window.history.replaceState({}, document.title, newUrl);
-        }
-    },
-
-    _checkPendingTransfers: function (selectedCounterId) {
-        const self = this;
-        if (!selectedCounterId) return;
-
-        const loggedInUserId = document.getElementById('logged_user_id').value;
-
-        rpc('/cash/transfer/pending').then(function (result) {
-
-            if (result.transfers && result.transfers.length > 0) {
-
-                const transfer = result.transfers.find(t => t.to_counter_id == parseInt(selectedCounterId));
-
-                if (!transfer) {
-                    return;
-                }
-                if(result.is_same_user == true){
-                    return;
-                }
-
-                $('#modal_from_user').text(transfer.from_user);
-                $('#modal_from_counter').text(transfer.from_counter);
-                $('#modal_date').text(transfer.date);
-                $('#modal_amount').text(transfer.grand_total.toFixed(2));
-                $('#cashTransferReviewModal').modal('show');
-
-                $('#accept_transfer').off('click').on('click', function () {
-                    rpc('/cash/transfer/respond', {
-                        transfer_id: transfer.id,
-                        action: 'accept'
-                    }).then((result) => {
-                        $('#cashTransferReviewModal').modal('hide');
-                        const addedAmount = parseFloat(result.added_amount || 0);
-                        const currentCash = parseFloat($('#total_cash_field').val()) || 0;
-                        $('#total_cash_field').val((currentCash + addedAmount).toFixed(2));
-                    });
-                });
-
-                $('#reject_transfer').off('click').on('click', function () {
-                    rpc('/cash/transfer/respond', {
-                        transfer_id: transfer.id,
-                        action: 'reject'
-                    }).then(() => {
-                        $('#cashTransferReviewModal').modal('hide');
-                    });
-                });
-            } else {
-                console.log("No transfers found.");
-            }
-        });
-    },
-
-    _OpenTransferDetailsModal: function (ev) {
-        ev.preventDefault();
-        const selectedCounterId = this.$('#counter').val();
-        if (selectedCounterId != null) {
-            const self = this;
-
-            rpc('/cash/transfer/details', { counter_id: selectedCounterId }).then(function (result) {
-                if (!result.transfers) return;
-
-                $('.outgoing').empty();
-                $('.incoming').empty();
-
-                const outgoingTransfers = result.transfers.filter(t => t.from_counter_id == selectedCounterId);
-                outgoingTransfers.forEach(t => {
-                    const row = `<tr>
-                <td>${t.to_counter_name}</td>
-                <td>${parseFloat(t.grand_total).toFixed(2)}</td>
-                <td>${t.date}</td>
-                <td>${t.state}</td>
-            </tr>`;
-                    $('.outgoing').append(row);
-                });
-
-                const incomingTransfers = result.transfers.filter(t => t.to_counter_id == selectedCounterId);
-                incomingTransfers.forEach(t => {
-                    const row = `<tr>
-                <td>${t.from_counter}</td>
-                <td>${t.from_user}</td>
-                <td>${parseFloat(t.grand_total).toFixed(2)}</td>
-                <td>${t.date}</td>
-                <td>${t.state}</td>
-            </tr>`;
-                    $('.incoming').append(row);
-                });
-
-                $('#transfer-details-modal').modal('show');
-            });
-        }
-
-        if (selectedCounterId == null) {
-            $('#select-counter-modal').modal('show');
-            return;
-        }
-    },
     _onTransferSubmit: function (ev) {
         ev.preventDefault();
 
         const grandTotal = parseFloat(this.$('#transfer_grand_total').val()) || 0;
         const cashInHand = parseFloat(this.$('#total_cash_field').val()) || 0;
 
+        if (grandTotal === 0) {
+            $('#no-count-modal').modal('show');
+            return;
+        }
         if (grandTotal > cashInHand) {
             $('#transfer-limit-modal').modal('show');
             return;
@@ -331,6 +183,43 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
 
         this.$('#cash_tranfer_form')[0].submit();
     },
+    _CashDenominationSubmit: function (ev) {
+        ev.preventDefault();
 
+        const cashInHand = parseFloat(this.$('#total_cash_field').val()) || 0;
+        const grandTotal = parseFloat(this.$('#grand_total').val()) || 0;
+
+        if (grandTotal === 0) {
+            $('#no-count-modal').modal('show');
+            return;
+        }
+
+        if (grandTotal !== cashInHand) {
+
+            $('#mismatch-submit-modal').modal('show');
+
+            $('#confirm_mismatch_submit').off('click').on('click', () => {
+                const remark = $('#mismatch_remark').val().trim();
+
+                $('#remark').val(remark);
+
+                $('#mismatch-submit-modal').modal('hide');
+                this._submitDenomination();
+            });
+
+            return;
+        }
+        this._submitDenomination();
+
+    },
+    _submitDenomination: function () {
+
+        this.$('#cash_denomination_form')[0].submit();
+    },
+
+    _MismatchCashDenominationSubmit: function (ev) {
+        ev.preventDefault();
+        this._submitDenomination();
+    }
 
 });
