@@ -41,27 +41,35 @@ class AccountPayment(models.Model):
 
         return res
 
-    @api.onchange('state')
-    def _onchange_payment_state(self):
-        for rec in self:
-            cash_denomination_model = self.env['cash.denomination']
-            existing_denomination = cash_denomination_model.sudo().search([
-                ('user', '=', rec.cashier.id),
-                ('counter', '=', rec.location.id),
-                ('state', '=', 'draft')
-            ], limit=1)
-            existing_line = False
-            if existing_denomination:
-                existing_line = existing_denomination.payment_ids.filtered(
-                    lambda l: l.payment_id.id == rec.id
-                )
 
-            if rec.state == 'paid':
-                if existing_denomination and not existing_line:
-                    self.env['denomination.payment.lines'].sudo().create({
-                        'denomination_id': existing_denomination.id,
-                        'payment_id': rec.id,
-                    })
-            else:
-                if existing_line:
-                    existing_line.sudo().unlink()
+
+    def write(self, vals):
+        res = super(AccountPayment, self).write(vals)
+
+        for rec in self:
+            if 'state' in vals:  # state changed
+                cash_denomination_model = self.env['cash.denomination']
+                existing_denomination = cash_denomination_model.sudo().search([
+                    ('user', '=', rec.cashier.id),
+                    ('counter', '=', rec.location.id),
+                    ('state', '=', 'draft')
+                ], limit=1)
+
+                existing_line = False
+                if existing_denomination:
+                    existing_line = existing_denomination.payment_ids.filtered(
+                        lambda l: l.payment_id.id == rec.id
+                    )
+
+                if rec.state == 'paid':
+                    if existing_denomination and not existing_line:
+                        self.env['denomination.payment.lines'].sudo().create({
+                            'denomination_id': existing_denomination.id,
+                            'payment_id': rec.id,
+                        })
+
+                else:
+                    if existing_line:
+                        existing_line.sudo().unlink()
+
+        return res
