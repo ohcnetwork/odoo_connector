@@ -9,7 +9,7 @@
     'category': 'Account',
     'version': '18.1',
 
-    'depends': ['base','account'],
+    'depends': ['base','account','insurance_management'],
 
     'data': [
         'report/account_insurance_voucher_template.xml',
