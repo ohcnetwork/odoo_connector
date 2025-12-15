@@ -4,13 +4,11 @@
 
     'summary': "Product Category Tax Configuration",
 
-    'description': """
-Custom module extending product categories with configurable tax rules,
-and adding custom business logic for accounting and stock-related operations.
-    """,
+    'description': """Custom module extending product categories with configurable tax rules,
+                      and adding custom business logic for accounting and stock-related operations.""",
 
     'category': 'Tools',
-    'version': '1.0',
+    'version': '18.0',
 
     'depends': [
         'base',
@@ -22,11 +20,7 @@ and adding custom business logic for accounting and stock-related operations.
 
     'data': [
         'security/ir.model.access.csv',
-        'views/views.xml',
-    ],
-
-    'demo': [
-        'demo/demo.xml',
+        'views/inherit_product_category_views.xml',
     ],
 
     'installable': True,

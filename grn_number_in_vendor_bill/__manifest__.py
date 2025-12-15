@@ -10,6 +10,6 @@
         'security/ir.model.access.csv', 
         'views/inherit_vendor_bill_views.xml',
         'views/inherit_res_settings_view.xml',
-        
+        'views/res_partner_views.xml',
     ],
 }

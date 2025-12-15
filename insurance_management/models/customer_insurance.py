@@ -8,14 +8,13 @@ class CustomerInsurance(models.Model):
 
     customer_id = fields.Many2one('res.partner', string="Customer", required=True)
     insurance_tag = fields.Char(string="Insurance Tag", required=True)
-    insurance_company_id = fields.Many2one('insurance.company', string="Insurance Company")
+    insurance_company_id = fields.Many2one('insurance.company', string="Insurance Company",required=True)
     approved_date=fields.Date()
 
     invoice_line_ids = fields.One2many(
         'customer.insurance.line',
         'customer_insurance_id',
         string="Related Invoice Lines",
-
     )
     approved_amount = fields.Float()
 
@@ -38,7 +37,7 @@ class CustomerInsurance(models.Model):
         compute="_compute_totals",
         store=True
     )
-    journal_id =fields.Many2one('account.journal',string='Journal')
+    journal_id =fields.Many2one('account.journal',string='Journal',required=True)
     narration=fields.Text()
     journal_ref=fields.Char()
     rejection_reason = fields.Text(string="Rejection Reason")
@@ -51,6 +50,22 @@ class CustomerInsurance(models.Model):
         string="Invoices",
         store=False
     )
+
+    age = fields.Char(string="Customer Age")
+    doctor = fields.Char(string="Doctor")
+    bill_number = fields.Char(string="Bill Number")
+    ip_number = fields.Char(string="I.P.No")
+    op_number = fields.Char(string="o.P.No")
+    room_number = fields.Char(string="Room No")
+    admission_date = fields.Datetime(string="Admission Date")
+    as_on = fields.Datetime(string="As On")
+    company_id = fields.Many2one(
+        'res.company',
+        string="Company",
+        default=lambda self: self.env.company,
+        readonly=True
+    )
+
 
     def action_view_journal_entry(self):
         self.ensure_one()
@@ -70,7 +85,7 @@ class CustomerInsurance(models.Model):
     def _compute_invoice_count(self):
         for rec in self:
             invoice_moves = rec.invoice_line_ids.move_line_id.move_id
-            rec.invoice_count = len(invoice_moves)  # len() on recordset = unique count
+            rec.invoice_count = len(invoice_moves) 
 
     @api.depends('invoice_line_ids.move_line_id.move_id')
     def _compute_invoice_ids(self):
@@ -94,13 +109,22 @@ class CustomerInsurance(models.Model):
             'domain': [('id', 'in', self.invoice_ids.ids)],
             'context': "{'create': False}",
             'target': 'current',
-        }
-
-
-
+        } 
 
     def action_confirm(self):
         for rec in self:
+            
+            if not rec.journal_ref:
+                raise ValidationError(_("Journal Refference Not Added!!"))
+            
+            if not rec.approved_amount:
+                raise ValidationError(_("Approved Amount Not Added!!"))
+
+            if not rec.approved_date:
+                raise ValidationError(_("Approved Date Not Added!!"))
+
+            if not rec.invoice_line_ids:
+                raise ValidationError(_("Fetch the Invoice Line Before Confirmation!!"))
             rec.state = 'confirmed'
 
     def action_reject(self):
@@ -117,8 +141,7 @@ class CustomerInsurance(models.Model):
         }
     def action_approve(self):
         for rec in self:
-            if not rec.approved_amount:
-                raise ValidationError(_("Approved Amount Not Added!!"))
+
             if not rec.insurance_company_id.account_id:
                 raise UserError("Please set an account for the insurance company.")
 
@@ -132,23 +155,20 @@ class CustomerInsurance(models.Model):
             if not rec.journal_id:
                 raise UserError("Please configure a  Journal.")
 
-            # Create Journal Entry
             move_vals = {
 
-                'ref': f"INS-{rec.journal_ref}-",  # <-- reference shown in journal
+                'ref': f"INS-{rec.journal_ref}-",  
                 'journal_id': rec.journal_id.id,
                 'move_type': 'entry',
                 'date':rec.approved_date,
                 'currency_id':self.env.company.currency_id.id,
                 'line_ids': [
-                    # Debit Insurance Company Account
                     (0, 0, {
                         'account_id': rec.insurance_company_id.account_id.id,
                         'name': 'Insurance Company Debit',
                         'debit': rec.approved_amount,
                         'credit': 0.0,
                     }),
-                    # Credit Customer Receivable
                     (0, 0, {
                         'account_id': rec.customer_id.property_account_receivable_id.id,
                         'name': 'Customer Credit (Insurance)',
@@ -172,7 +192,6 @@ class CustomerInsurance(models.Model):
             if not receivable_account:
                 raise UserError(_("Customer has no receivable account configured."))
 
-            # Get the insurance JE credit line (receivable side)
             insurance_receivable_line = rec.journal_entry_id.line_ids.filtered(
                 lambda l: l.account_id == receivable_account
                           and l.credit > 0
@@ -181,21 +200,18 @@ class CustomerInsurance(models.Model):
             if not insurance_receivable_line:
                 raise UserError(_("No open receivable line found on insurance journal entry."))
 
-            # Find ALL open receivable lines for this customer from the original invoices
             invoice_receivable_lines = self.env['account.move.line'].search([
                 ('account_id', '=', receivable_account.id),
                 ('partner_id', '=', rec.customer_id.id),
                 ('reconciled', '=', False),
                 ('move_id.move_type', 'in', ['out_invoice', 'out_refund']),
                 ('move_id.state', '=', 'posted'),
-                ('id', '!=', insurance_receivable_line.id),  # exclude insurance line itself
+                ('id', '!=', insurance_receivable_line.id),  
             ])
 
-            # Filter to only those invoices related to this insurance (same insurance_tag)
             related_invoice_lines = []
             for inv_line in rec.invoice_line_ids:
                 if inv_line.move_line_id:
-                    # Get the receivable line from the same invoice as this product line
                     inv_receivable_line = inv_line.move_line_id.move_id.line_ids.filtered(
                         lambda l: l.account_id == receivable_account
 
@@ -212,9 +228,6 @@ class CustomerInsurance(models.Model):
             if not invoice_receivable_lines:
                 raise UserError(_("No open receivable lines found on related customer invoices."))
 
-
-
-            # Reconcile insurance payment with customer invoice receivables
             lines_to_reconcile = insurance_receivable_line + invoice_receivable_lines
             lines_to_reconcile.reconcile()
 
@@ -224,9 +237,6 @@ class CustomerInsurance(models.Model):
         for rec in self:
             rec.state = 'draft'
 
-
-
-
     @api.depends('customer_id','insurance_tag')
     def _compute_display_name(self):
         for rec in self:
@@ -235,7 +245,6 @@ class CustomerInsurance(models.Model):
     def action_fetch_invoice_lines(self):
         """Button action to load invoice lines based on insurance_tag."""
         for rec in self:
-            # remove old lines
             rec.invoice_line_ids.unlink()
 
             if not rec.insurance_tag:

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_custom_insurance_bill" model="ir.actions.report">
+        <field name="name">Print Customer Insurance Voucher</field>
+        <field name="model">customer.insurance</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">account_insurance_voucher.report_invoice_custom_bill</field>
+        <field name="report_file">account_insurance_voucher.report_invoice_custom_bill</field>
+        <field name="binding_model_id" ref="insurance_management.model_customer_insurance"/>
+
+        <field name="print_report_name">'Insurance Bill - %s' % (object.insurance_tag)</field>
+    </record>
+
+</odoo>

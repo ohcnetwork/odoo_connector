@@ -18,13 +18,14 @@
                                 <group>
                                     <field name="factor"/>
                                 </group>
+                                <group>
+                                    <field name="use_different_taxes"/>
+
+                                </group>
 
                             </group>
 
-
-                            <field name="use_different_taxes"/>
-                            <field name="subcategory_tax_config_ids"
-                                   invisible="use_different_taxes==False">
+                            <field name="subcategory_tax_config_ids" invisible="use_different_taxes==False">
 
                                 <list editable="bottom">
                                     <field name="sequence"/>

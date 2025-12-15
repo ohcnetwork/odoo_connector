@@ -7,8 +7,9 @@ from ..resources.res_user import UserUtility
 
 
 class ResUserController(http.Controller):
-
-    @http.route('/api/add/user', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route(
+        "/api/add/user", type="http", auth="public", methods=["POST"], csrf=False
+    )
     def create_user(self, **kwargs):
         """API endpoint to create or update a res.users record"""
         try:
@@ -33,6 +34,7 @@ class ResUserController(http.Controller):
                     "login": res_user.login,
                     "name": res_user.name,
                     "email": res_user.email,
+                    "x_care_id": res_user.x_care_id,
                 },
             }
             return request.make_json_response(json_response, status=200)
