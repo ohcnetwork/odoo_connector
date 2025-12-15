@@ -40,5 +40,5 @@ class AccountMoveReturnApiRequest(BaseModel):
     invoice_items: List[InvoiceItem] | None = None
     reason: str | None = None
 
-class AccountAccountApiRequest(BaseModel):
+class AccountPaymentMethodApiRequest(BaseModel):
     search_key: str
