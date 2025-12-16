@@ -14,6 +14,8 @@ class AccountUtility:
             invoice_items = request_data.invoice_items
             insurance_tag = request_data.insurance_tag
             payment_method_id = request_data.payment_method_id
+            ssmm_id = request_data.ssmm_id
+            created_by = request_data.created_by
 
             account_move = user_env["account.move"]
             existing_invoice = account_move.search(
@@ -68,6 +70,12 @@ class AccountUtility:
                     raise ValueError(account_payment_method)
                 account_move.write({
                     'preferred_payment_method_line_id': account_payment_method.id
+                })
+
+            if ssmm_id or created_by:
+                account_move.write({
+                    'ssmm_id': ssmm_id,
+                    'created_by': created_by
                 })
 
             return account_move
