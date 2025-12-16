@@ -108,6 +108,7 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
     _fetchAllCounter: function () {
         rpc('/get/all/counter').then(function (result) {
             const counterSelect = self.$('#to_all_locations');
+            counterSelect.empty();
             if (result && result.locations && result.locations.length > 0) {
                 const locations = result.locations
                 locations.forEach(location => {
