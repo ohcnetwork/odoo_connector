@@ -55,9 +55,12 @@ class AccountUtility:
                 raise ValueError("Failed to create the Invoice")
 
             if insurance_tag:
-                account_move.write({
-                    'insurance_tag':insurance_tag
-                })
+                settings = user_env['res.config.settings'].sudo().get_values()
+                setting_tag = settings.get('insurance_tag_setting')
+                if setting_tag and setting_tag in insurance_tag:
+                    account_move.write({
+                        'insurance_tag': setting_tag
+                    })
 
             if payment_method_id:
                 account_payment_method = ChartOfAccountUtility.get_payment_method_by_id(user_env,payment_method_id)
