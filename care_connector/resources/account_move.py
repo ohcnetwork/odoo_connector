@@ -65,7 +65,9 @@ class AccountUtility:
                     })
 
             if payment_method_id:
-                account_payment_method = ChartOfAccountUtility.get_payment_method_by_id(user_env,payment_method_id)
+                account_payment_method_line_model = user_env["account.payment.method.line"]
+                account_payment_method = account_payment_method_line_model.search([
+                    ("id", "=", int(payment_method_id))], limit=1)
                 if not account_payment_method.id:
                     raise ValueError(account_payment_method)
                 account_move.write({
