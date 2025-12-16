@@ -29,7 +29,7 @@ class AccountMoveApiRequest(BaseModel):
     partner_data: PartnerData
     invoice_items: List[InvoiceItem]
     reason: str | None = None
-    insurance_tag: str | None = None
+    insurance_tag: List[str] | None = None
     payment_method_id: int | None = None
 
 
