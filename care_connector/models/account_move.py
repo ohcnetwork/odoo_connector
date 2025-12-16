@@ -6,6 +6,8 @@ class AccountMove(models.Model):
     _inherit = 'account.move'
 
     x_care_id = fields.Char(string='Care ID')
+    ssmm_id = fields.Char(string='SSMM ID')
+    created_by = fields.Char(string='Created By')
 
 
 class AccountMoveLines(models.Model):
