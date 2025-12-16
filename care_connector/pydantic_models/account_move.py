@@ -29,6 +29,8 @@ class AccountMoveApiRequest(BaseModel):
     partner_data: PartnerData
     invoice_items: List[InvoiceItem]
     reason: str | None = None
+    insurance_tag: str | None = None
+    payment_method_id: int | None = None
 
 
 class AccountMoveReturnApiRequest(BaseModel):
@@ -41,4 +43,4 @@ class AccountMoveReturnApiRequest(BaseModel):
     reason: str | None = None
 
 class AccountPaymentMethodApiRequest(BaseModel):
-    search_key: str
+    search_key: str | None = None

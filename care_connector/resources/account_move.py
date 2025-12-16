@@ -1,5 +1,6 @@
 from datetime import datetime
 from .res_partner import PartnerUtility
+from .account_account import ChartOfAccountUtility
 from odoo.exceptions import UserError
 from odoo.tools.translate import _
 
@@ -11,6 +12,8 @@ class AccountUtility:
             x_care_id = request_data.x_care_id
             partner_data = request_data.partner_data
             invoice_items = request_data.invoice_items
+            insurance_tag = request_data.insurance_tag
+            payment_method_id = request_data.payment_method_id
 
             account_move = user_env["account.move"]
             existing_invoice = account_move.search(
@@ -50,6 +53,20 @@ class AccountUtility:
             account_move = cls._create_account_move(user_env, move_data_dict)
             if not account_move:
                 raise ValueError("Failed to create the Invoice")
+
+            if insurance_tag:
+                account_move.write({
+                    'insurance_tag':insurance_tag
+                })
+
+            if payment_method_id:
+                account_payment_method = ChartOfAccountUtility.get_payment_method_by_id(user_env,payment_method_id)
+                if not account_payment_method.id:
+                    raise ValueError(account_payment_method)
+                account_move.write({
+                    'preferred_payment_method_line_id': account_payment_method.id
+                })
+
             return account_move
         except Exception as e:
             raise Exception(f"{str(e)}")
