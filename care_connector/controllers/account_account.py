@@ -8,31 +8,6 @@ from ..pydantic_models.account_move import AccountPaymentMethodApiRequest
 
 class AccountAccount(http.Controller):
 
-    @http.route('/api/get/all/payment/methods', type='http', auth='public', methods=['GET'], csrf=False)
-    def account_payment_methods(self, **kwargs):
-        try:
-            auth_header = request.httprequest.headers.get("Authorization")
-            user_env = UserAuthentication.get_authenticated_user(auth_header)
-            account_payment_method_list = ChartOfAccountUtility.get_all_account_payment_method(user_env)
-            if not account_payment_method_list:
-                raise ValueError("Failed to get the Accounts Payment Method List")
-
-            json_response = {
-                "success": True,
-                "message": "Fetched all payment methods",
-                "payment_methods": account_payment_method_list
-            }
-            return request.make_json_response(json_response, status=200)
-
-
-        except Exception as err:
-            error_response = {
-                "success": False,
-                "error_type": "ServerError",
-                "message": str(err),
-            }
-            return request.make_json_response(error_response, status=500)
-
     @http.route('/api/v1/payment/method/<int:method_id>', type='http', auth='public', methods=['GET'], csrf=False)
     def get_account_payment_method_by_id(self, method_id):
         try:
@@ -41,23 +16,12 @@ class AccountAccount(http.Controller):
             if not method_id:
                 raise ValueError("Payment method id is missing")
 
-            account_payment_method = ChartOfAccountUtility.get_account_payment_method_by_id(user_env, method_id)
-
-            if not account_payment_method.exists():
-                error_response = {
-                    "success": False,
-                    "error_type": "ValueError",
-                    "message": f"Failed to fetch payment method with id  {method_id}",
-                }
-                return request.make_json_response(error_response, status=400)
+            account_payment_method = ChartOfAccountUtility.get_payment_method_by_id(user_env, method_id)
 
             json_response = {
                 "success": True,
-                "message": "Payment Method Fetched successfully",
-                "payment_method": {
-                    "id": account_payment_method.id,
-                    "name": account_payment_method.name
-                }
+                "count": len(account_payment_method),
+                "payment_method": account_payment_method
             }
             return request.make_json_response(json_response, status=200)
 
@@ -67,7 +31,7 @@ class AccountAccount(http.Controller):
                 headers={'Content-Type': 'application/json'}
             )
 
-    @http.route('/api/accounts/search', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/payment/methods/search', type='http', auth='public', methods=['GET'], csrf=False)
     def search_account_payment_method_by_name(self, **post):
         try:
             auth_header = request.httprequest.headers.get("Authorization")
@@ -75,13 +39,6 @@ class AccountAccount(http.Controller):
             data = json.loads(request.httprequest.data)
             request_data = AccountPaymentMethodApiRequest(**data)
             account_payment_method = ChartOfAccountUtility.get_account_payment_method_by_name(user_env, request_data)
-            if not account_payment_method:
-                error_response = {
-                    "success": False,
-                    "error_type": "ValueError",
-                    "message": f"No Payment Method with Name  {request_data.search_key}",
-                }
-                return request.make_json_response(error_response, status=400)
 
             json_response = {
                 "status": True,
