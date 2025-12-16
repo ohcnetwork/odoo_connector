@@ -8,15 +8,53 @@ class CashDenominationPageController(http.Controller):
 
     @http.route('/cash/denomination', type='http', auth='user', website=True)
     def cash_denomination_page(self, **kw):
-        counter_list = []
         user = request.env.user
-        cash_denomination_model = request.env['cash.denomination']
-        existing_denomination = cash_denomination_model.sudo().search([
-            ('user', '=', user.id),
-            ('state', '=', 'draft')
+
+        cash_denomination_model = request.env['cash.denomination'].sudo()
+        payment_model = request.env['account.payment'].sudo()
+        payment_line_model = request.env['denomination.payment.lines'].sudo()
+
+        counter_list = []
+
+        payments = payment_model.search([
+            ('partner_type', '=', 'customer'),
+            ('journal_id.type', '=', 'cash'),
+            ('state', '=', 'paid'),
+            ('cashier', '=', user.id),
+            ('is_denomination', '=', False),
         ])
-        for entry in existing_denomination:
-            counter_list.append(entry.counter)
+
+        for payment in payments:
+            if not payment.location:
+                continue
+
+            denomination = cash_denomination_model.search([
+                ('user', '=', payment.cashier.id),
+                ('counter', '=', payment.location.id),
+                ('state', '=', 'draft')
+            ], limit=1)
+
+            if not denomination:
+                denomination = cash_denomination_model.create({
+                    'date': fields.Date.today(),
+                    'user': payment.cashier.id,
+                    'counter': payment.location.id,
+                    'state': 'draft'
+                })
+
+            existing_line = denomination.payment_ids.filtered(
+                lambda l: l.payment_id.id == payment.id
+            )
+
+            if not existing_line:
+                payment_line_model.create({
+                    'denomination_id': denomination.id,
+                    'payment_id': payment.id,
+                })
+
+            if denomination.counter not in counter_list:
+                counter_list.append(denomination.counter)
+
         denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1]
         return request.render("cash_denomination.website_cash_denomination", {
             'counters': counter_list,

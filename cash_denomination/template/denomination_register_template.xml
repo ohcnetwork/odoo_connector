@@ -75,11 +75,11 @@
                                     </td>
 
                                     <td class="text-center">
-                                        <t t-esc="rec.pending_amount"/>
+                                        <t t-esc="sum(rec.denomination_line_ids.mapped('sub_total'))"/>
                                     </td>
 
                                     <td>
-                                        <t t-esc="sum(rec.denomination_line_ids.mapped('sub_total'))"/>
+                                        <t t-esc="rec.pending_amount"/>
                                     </td>
 
                                     <td class="text-center position-relative">

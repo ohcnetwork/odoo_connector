@@ -13,7 +13,7 @@
         'template/denomination_register_template.xml',
         'template/payment_transaction_template.xml',
         'template/denomination_history_menu.xml',
-        # 'views/account_payment_views.xml',
+        'views/account_payment_views.xml',
         'views/cash_denomination_views.xml', 
         'views/account_head_config_views.xml',
         'wizard/cash_denomination_reject_reason_wizard.xml',
