@@ -81,7 +81,7 @@
                                     <field name="product_id"/>
                                     <field name="quantity"/>
                                     <field name="price_unit"/>
-                                    <field name="price_subtotal"/>
+                                    <field name="price_subtotal" readonly="1"/>
                                     <field name="insurance_amount"/>
                                     <field name="show_in_report"/>
                                 </list>

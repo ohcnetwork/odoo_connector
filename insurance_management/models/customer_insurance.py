@@ -260,15 +260,16 @@ class CustomerInsurance(models.Model):
                 raise ValidationError(_("Either no invoice has been generated for the selected customer, or the insurance tag has been entered incorrectly!!"))
 
             for line in invoice_lines:
-                self.env['customer.insurance.line'].create({
-                    'customer_insurance_id': rec.id,
-                    'description': line.name,
-                    'product_id': line.product_id.id,
-                    'quantity': line.quantity,
-                    'price_unit': line.price_unit,
-                    'move_line_id': line.id,
-                    'price_subtotal': line.price_subtotal,
-                })
+                if line.price_subtotal > 0:
+                    self.env['customer.insurance.line'].create({
+                        'customer_insurance_id': rec.id,
+                        'description': line.name,
+                        'product_id': line.product_id.id,
+                        'quantity': line.quantity,
+                        'price_unit': line.price_unit,
+                        'move_line_id': line.id,
+                        'price_subtotal': line.price_subtotal,
+                    })
 
 class CustomerInsuranceLine(models.Model):
     _name = 'customer.insurance.line'
@@ -285,3 +286,20 @@ class CustomerInsuranceLine(models.Model):
     price_subtotal = fields.Float(string="Subtotal")
     insurance_amount = fields.Float(string="Insurance Amount")
     show_in_report=fields.Boolean()
+
+    @api.onchange('quantity', 'price_unit')
+    def _onchange_qty_price(self):
+        for line in self:
+            qty = line.quantity or 0.0
+            price = line.price_unit or 0.0
+            line.price_subtotal = qty * price
+
+    @api.onchange('insurance_amount')
+    def _onchange_insurance_amount(self):
+        for line in self:
+            if line.insurance_amount and line.quantity:
+                line.price_unit = line.insurance_amount / line.quantity
+                line.price_subtotal = line.insurance_amount
+            else:
+                line.price_unit = 0.0
+                line.price_subtotal = 0.0
