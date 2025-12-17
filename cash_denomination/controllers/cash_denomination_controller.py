@@ -140,6 +140,9 @@ class CashDenominationPageController(http.Controller):
                 'remark': remark,
                 'state': 'submit'
             })
+            payments = cash_denomination.payment_ids.mapped('payment_id')
+            if payments:
+                payments.sudo().write({'is_denomination': True})
             
         return request.redirect('/cash/denomination?success=1')
 
