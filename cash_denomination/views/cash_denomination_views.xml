@@ -9,7 +9,13 @@
           <field name="date"/>
           <field name="user"/>
           <field name="counter"/>
-          <field name="state"/>
+          <field name="pending_amount"/>
+          <field name="state" widget="badge"
+                 decoration-info="state == 'draft'"
+                 decoration-warning="state == 'submit'"
+                 decoration-success="state == 'approved'"
+                 decoration-danger="state == 'rejected'"
+          />
         </list>
       </field>
     </record>
