@@ -314,41 +314,41 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal fade" id="cashTransferReviewModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header bg-info text-white ">
-                                <h5 class="modal-title justify-content-center">Pending Cash Transfer</h5>
-                                <!--                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>-->
-                            </div>
+<!--                <div class="modal fade" id="cashTransferReviewModal" tabindex="-1" aria-hidden="true">-->
+<!--                    <div class="modal-dialog modal-dialog-centered">-->
+<!--                        <div class="modal-content">-->
+<!--                            <div class="modal-header bg-info text-white ">-->
+<!--                                <h5 class="modal-title justify-content-center">Pending Cash Transfer</h5>-->
+<!--                                &lt;!&ndash;                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>&ndash;&gt;-->
+<!--                            </div>-->
 
-                            <div class="modal-body">
-                                <p>
-                                    <strong>From User:</strong>
-                                    <span id="modal_from_user"></span>
-                                </p>
-                                <p>
-                                    <strong>From Counter:</strong>
-                                    <span id="modal_from_counter"></span>
-                                </p>
-                                <p>
-                                    <strong>Date:</strong>
-                                    <span id="modal_date"></span>
-                                </p>
-                                <p>
-                                    <strong>Amount:</strong> ₹
-                                    <span id="modal_total_transfer_cash"></span>
-                                </p>
-                            </div>
-                            <div class="d-flex justify-content-center align-items-center mt-4 position-relative modal-footer" style="margin-bottom:10px;">
-                                <div class="mx-auto">
-                                    <button type="button" class="btn btn-success" id="accept_transfer">Accept</button>
-                                    <button type="button" class="btn btn-danger" id="reject_transfer" data-bs-dismiss="modal">Reject</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<!--                            <div class="modal-body">-->
+<!--                                <p>-->
+<!--                                    <strong>From User:</strong>-->
+<!--                                    <span id="modal_from_user"></span>-->
+<!--                                </p>-->
+<!--                                <p>-->
+<!--                                    <strong>From Counter:</strong>-->
+<!--                                    <span id="modal_from_counter"></span>-->
+<!--                                </p>-->
+<!--                                <p>-->
+<!--                                    <strong>Date:</strong>-->
+<!--                                    <span id="modal_date"></span>-->
+<!--                                </p>-->
+<!--                                <p>-->
+<!--                                    <strong>Amount:</strong> ₹-->
+<!--                                    <span id="modal_total_transfer_cash"></span>-->
+<!--                                </p>-->
+<!--                            </div>-->
+<!--                            <div class="d-flex justify-content-center align-items-center mt-4 position-relative modal-footer" style="margin-bottom:10px;">-->
+<!--                                <div class="mx-auto">-->
+<!--                                    <button type="button" class="btn btn-success" id="accept_transfer">Accept</button>-->
+<!--                                    <button type="button" class="btn btn-danger" id="reject_transfer" data-bs-dismiss="modal">Reject</button>-->
+<!--                                </div>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
 
                 <!-- Transfer exceeds cash in hand modal -->
                 <div class="modal fade" id="transfer-limit-modal" tabindex="-1">
