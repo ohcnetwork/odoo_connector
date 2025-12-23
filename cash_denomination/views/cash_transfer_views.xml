@@ -32,14 +32,18 @@
                                 <field name="from_location"/>
                             </group>
                             <group>
-                                <field name="date"/> 
+                                <field name="date"/>
                                 <field name="to_location"/>
                                 <field name="denomination_id" invisible="1"/>
                             </group>
-                            <group string="Approval Info">
-                                <field name="accepted_by" invisible="state != 'accepted'"/>
-
-                                <field name="rejected_by" invisible="state != 'rejected'"/>
+                            <group>
+                                <group string="Approval Info" invisible="state != 'accepted'">
+                                    <field name="accepted_by" invisible="state != 'accepted'"/>
+                                </group>
+                                <group string="Rejected Info" invisible="state != 'rejected'">
+                                    <field name="rejected_by" invisible="state != 'rejected'"/>
+                                    <field name="reject_reason" invisible="state != 'rejected'"/>
+                                </group>
                             </group>
                         </group>
                         <notebook>

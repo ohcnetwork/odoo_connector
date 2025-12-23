@@ -20,8 +20,10 @@ class CashTransfer(models.Model):
         ('rejected', 'Rejected'),
     ], default='draft')
     denomination_id = fields.Many2one('cash.denomination', string='Cash Denomination', ondelete='cascade', readonly=True)
-    accepted_by = fields.Many2one('res.partner', string="Accepted By", readonly=True)
-    rejected_by = fields.Many2one('res.partner', string="Rejected By", readonly=True)
+    accepted_by = fields.Many2one('res.users', string="Accepted By", readonly=True)
+    rejected_by = fields.Many2one('res.users', string="Rejected By")
+    reject_reason = fields.Text(string="Reject Reason")
+
 
 
     @api.depends('line_ids.sub_total')

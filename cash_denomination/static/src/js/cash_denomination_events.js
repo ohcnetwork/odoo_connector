@@ -31,48 +31,18 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
         rpc('/get/payment/amount/by/counter', { counter_id: counterId })
             .then(function (result) {
                 if (result) {
-                    console.log("result", result);
                     self.$('#total_cash_field').val(parseFloat(result.total_cash || 0).toFixed(2));
                     let transferCash = parseFloat(result.transfer_amount || 0);
                     const transfer = result.transfer_list[0];
                     $('#counter_transfer_amount').text(transferCash);
-                    console.log("transfer", transfer);
                     if (transfer) {
                         const transfer_id = transfer.id
-                        console.log("transferCash", transfer);
-                        console.log("transfer.from_counter", transfer.from_counter);
-                        console.log("transfer.date", transfer.date);
-                        console.log("transfer.grand_total", transfer.grand_total);
                         $('#modal_total_transfer_cash').text(transfer.grand_total);
                         $('#modal_from_user').text(transfer.from_user);
                         $('#modal_from_counter').text(transfer.from_counter);
                         $('#modal_date').text(transfer.date);
                         $('#modal_amount').text(parseFloat(transfer.grand_total || 0).toFixed(2));
                         $('#cashTransferReviewModal').modal('show');
-
-                        $('#accept_transfer').off('click').on('click', function () {
-                            $('#cashTransferReviewModal').modal('hide');
-                            rpc('/cash/transfer/respond', {
-                                transfer_id: transfer_id,
-                                action: 'accept'
-                            }).then((result) => {
-
-                                const addedAmount = parseFloat(result.added_amount || 0);
-                                const currentCash = parseFloat($('#total_cash_field').val()) || 0;
-                                $('#total_cash_field').val((currentCash + addedAmount).toFixed(2));
-                            });
-                        });
-
-                        $('#reject_transfer').off('click').on('click', function () {
-
-                            $('#cashTransferReviewModal').modal('hide');
-                            rpc('/cash/transfer/respond', {
-                                transfer_id: transfer.id,
-                                action: 'reject'
-                            }).then(() => {
-                                $('#cashTransferReviewModal').modal('hide');
-                            });
-                        });
                     }
                 }
 
