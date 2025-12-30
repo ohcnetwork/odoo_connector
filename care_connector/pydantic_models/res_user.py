@@ -12,7 +12,6 @@ class UserType(str, Enum):
 class UserData(BaseModel):
     name: str
     login: str
-    x_care_id: str
     password: Optional[str] = None
     email: EmailStr
     user_type: UserType
