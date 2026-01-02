@@ -7,7 +7,8 @@
             <field name="inherit_id" ref="base.view_partner_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='function']" position="after">
-                    <field name="x_care_id" readonly="1"/>
+                    <field name="x_care_url" widget="url" readonly="1" string="Care Link"/>
+                    <field name="x_care_id" invisible="1"/>
                     <field name="x_care_id_type" readonly="1"/>
                 </xpath>
             </field>

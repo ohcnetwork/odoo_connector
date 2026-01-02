@@ -8,7 +8,8 @@
                 <list string="Bill Counter">
                     <field name="bill_counter"/>
                     <field name="name"/>
-                    <field name="x_care_id"/>
+                    <field name="x_care_url" widget="url" string="Care Link"/>
+                    <field name="x_care_id" invisible="1"/>
                 </list>
             </field>
         </record>
@@ -25,7 +26,8 @@
                                 <field name="name" widget="many2many_tags"/>
                             </group>
                             <group>
-                                <field name="x_care_id"/>
+                                <field name="x_care_url" widget="url" readonly="1" string="Care Link"/>
+                                <field name="x_care_id" invisible="1"/>
                             </group>
                         </group>
                     </sheet>

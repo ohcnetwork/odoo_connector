@@ -6,7 +6,8 @@
         <field name="inherit_id" ref="product.product_template_only_form_view"></field>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='default_code']" position="after">
-                <field name="x_care_id" readonly="1"/>
+                <field name="x_care_url" widget="url" readonly="1" string="Care Link"/>
+                <field name="x_care_id" invisible="1"/>
 
             </xpath>
         </field>
