@@ -220,15 +220,15 @@ class AccountUtility:
                             )
                         ]
 
-                billed_qty, free_quantity = cls._calculate_quantities(
-                    item.quantity, item.free_quantity, move_type
+                billed_qty, free_qty = cls._calculate_quantities(
+                    item.quantity, item.free_qty, move_type
                 )
 
                 invoice_line_vals = {
                     "product_id": product.id,
                     "quantity": billed_qty,
                     "received_qty": item.quantity,
-                    "free_quantity": free_quantity,
+                    "free_qty": free_qty,
                     "price_unit": item.sale_price,
                     "x_care_id": item.x_care_id,
                     "agent_ids": agent_ids,
@@ -335,19 +335,19 @@ class AccountUtility:
             raise Exception(f"{str(e)}")
 
     @classmethod
-    def _calculate_quantities(cls, received_qty, free_quantity, move_type):
+    def _calculate_quantities(cls, received_qty, free_qty, move_type):
         """
         Calculate billed and free quantities based on move type.
-        For vendor bills (in_invoice), billed_qty = received_qty - free_quantity.
-        For other types, free_quantity is ignored.
+        For vendor bills (in_invoice), billed_qty = received_qty - free_qty.
+        For other types, free_qty is ignored.
         """
-        if move_type != "in_invoice" or free_quantity <= 0:
+        if move_type != "in_invoice" or free_qty <= 0:
             return received_qty, 0.0
 
-        if free_quantity > received_qty:
+        if free_qty > received_qty:
             return received_qty, 0.0
 
-        return received_qty - free_quantity, free_quantity
+        return received_qty - free_qty, free_qty
 
     @classmethod
     def _cancel_account_move(cls, user_env, request_data):
