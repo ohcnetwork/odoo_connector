@@ -17,7 +17,7 @@ class InvoicePaymentUtility:
             payment_mode = request_data.payment_mode
             customer_type = request_data.customer_type
             counter_data = request_data.counter_data
-
+            bank_reference = request_data.bank_reference
             account_move_model = user_env["account.move"]
             account_journal_model = user_env['account.journal']
             account_payment_model = user_env['account.payment']
@@ -56,7 +56,8 @@ class InvoicePaymentUtility:
                 account_payment = a_p_r_transient_model.with_context(ctx).create({
                     'amount': amount,
                     'journal_id': account_journal.id,
-                    'payment_date': payment_date or fields.Date.today()
+                    'payment_date': payment_date or fields.Date.today(),
+                    'bank_reference': bank_reference
                 })._create_payments()
                 if not account_payment:
                     raise ValueError(f"Payment creation failed")
@@ -89,6 +90,7 @@ class InvoicePaymentUtility:
                         'date': payment_date or fields.Date.today(),
                         'location': bill_counter.get('bill_counter_id'),
                         'cashier': bill_counter.get('user_id'),
+                        'bank_reference': bank_reference
                     }
                 except Exception as e:
                     raise ValueError(str(e))                
