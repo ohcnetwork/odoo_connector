@@ -31,7 +31,7 @@ class AccountMoveApiRequest(BaseModel):
     reason: str | None = None
     insurance_tag: List[str] | None = None
     payment_method_id: int | None = None
-    ssmm_id: str | None = None
+    x_identifier: str | None = None
     created_by: str | None = None
 
 
