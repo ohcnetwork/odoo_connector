@@ -1,12 +1,23 @@
 <odoo>
+    <!-- Main Wizard Form -->
     <record id="view_trial_balance_excel_wizard" model="ir.ui.view">
         <field name="name">trial.balance.excel.wizard.form</field>
         <field name="model">trial.balance.excel.wizard</field>
         <field name="arch" type="xml">
-            <form string="Trial Balance Excel Export">
+            <form string="Schedule Wise Trial Balance">
                 <group>
-                    <field name="date_from"/>
-                    <field name="date_to"/>
+                    <group string="Date Range">
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group string="Options">
+                        <field name="target_move" widget="radio"/>
+                        <field name="hide_zero_balance"/>
+                    </group>
+                </group>
+                <group string="Filters" col="4">
+                    <field name="journal_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                    <field name="account_ids" widget="many2many_tags" options="{'no_create': True}"/>
                 </group>
                 <footer>
                     <button name="action_export_excel" type="object" string="Export to Excel" class="btn-primary"/>
@@ -16,13 +27,16 @@
         </field>
     </record>
 
+    <!-- Action -->
     <record id="action_trial_balance_excel_wizard" model="ir.actions.act_window">
-        <field name="name">Trial Balance Excel Export</field>
+        <field name="name">Schedule Wise Trial Balance</field>
         <field name="res_model">trial.balance.excel.wizard</field>
         <field name="view_mode">form</field>
+        <field name="view_id" ref="view_trial_balance_excel_wizard"/>
         <field name="target">new</field>
     </record>
 
+    <!-- Menu -->
     <menuitem id="menu_trial_balance_excel_report"
               name="Trial Balance Report"
               parent="menu_nvoice_report_menu"
