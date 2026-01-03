@@ -15,7 +15,8 @@ class AccountUtility:
             insurance_tag = request_data.insurance_tag
             payment_method_id = request_data.payment_method_id
             x_identifier = request_data.x_identifier
-            created_by = request_data.created_by
+            x_created_by = request_data.x_created_by
+            payment_reference = request_data.payment_reference
 
             account_move = user_env["account.move"]
             existing_invoice = account_move.search(
@@ -74,10 +75,11 @@ class AccountUtility:
                     'preferred_payment_method_line_id': account_payment_method.id
                 })
 
-            if x_identifier or created_by:
+            if x_identifier or x_created_by or payment_reference:
                 account_move.write({
                     'x_identifier': x_identifier,
-                    'created_by': created_by
+                    'x_created_by': x_created_by,
+                    'payment_reference': payment_reference,
                 })
 
             return account_move

@@ -6,14 +6,14 @@ class AccountMove(models.Model):
     _inherit = 'account.move'
 
     x_care_id = fields.Char(string='Care ID')
-    x_identifier = fields.Char(string='Identifier')
-    created_by = fields.Char(string='Created By')
+    x_identifier = fields.Char(string='Identifier in Care')
+    x_created_by = fields.Char(string='Created By in Care')
 
 
 class AccountMoveLines(models.Model):
     _inherit = 'account.move.line'
 
-    x_care_id = fields.Char(string='Care Ml ID')
+    x_care_id = fields.Char(string='Care Charge Item ID')
     received_qty = fields.Float(string='Quantity', store=True)
     free_qty = fields.Float(string='Free Quantity')
 
