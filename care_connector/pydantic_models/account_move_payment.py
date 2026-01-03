@@ -6,6 +6,7 @@ from . bill_counter import BillCounterData
 class JournalType(Enum):
     cash = 'cash'
     bank = 'bank'
+    card = 'card'
 
 class PaymentMode(Enum):
     send = 'send'
