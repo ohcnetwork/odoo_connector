@@ -14,7 +14,6 @@
         "views/account_payment_views.xml",
         "views/product_template_views.xml",
         "views/res_partner_views.xml",
-        "views/res_user_views.xml",
         "views/product_category_views.xml",
         "views/bill_counter_views.xml",
     ],
