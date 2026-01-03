@@ -1,3 +1,5 @@
+/** @odoo-module **/
+
 import publicWidget from "@web/legacy/js/public/public_widget";
 
 publicWidget.registry.DenominationView = publicWidget.Widget.extend({
@@ -7,44 +9,54 @@ publicWidget.registry.DenominationView = publicWidget.Widget.extend({
         'click .close-denomination-btn': '_closeDenominationBox',
     },
 
-    _toggleDenominationBox: function (ev) {
+    _toggleDenominationBox(ev) {
         ev.stopPropagation();
-        const $button = $(ev.currentTarget);
-        const hasLines = $button.data("has-lines");
-        const $box = $button.siblings('.denomination-box');
+        const button = ev.currentTarget;
+        const hasLines = button.dataset.hasLines === 'true';
+        const box = button.parentElement.querySelector('.denomination-box');
+        
+        if (!box) return;
+        
+        const msg = box.querySelector('.no-lines-message');
+        const table = box.querySelector('.denomination-table');
 
-        const $msg = $box.find('.no-lines-message');
-        const $table = $box.find('.denomination-table');
-
-        // -------- CLOSE ANY OPEN BOX BEFORE OPENING NEW ONE ----------
-        $(".denomination-box").not($box).slideUp();
-
-        if (!hasLines) {
-            $table.hide();
-            $msg.show();
-        } else {
-            $msg.hide();
-            $table.show();
-        }
-
-        $box.slideToggle();
-
-        $(document).off('click.denominationOutside').on('click.denominationOutside', function (e) {
-            if (
-                !$box.is(e.target) &&
-                $box.has(e.target).length === 0 &&
-                !$button.is(e.target)
-            ) {
-                $box.slideUp();
-                $(document).off('click.denominationOutside');
+        // Close any other open boxes
+        document.querySelectorAll('.denomination-box').forEach(otherBox => {
+            if (otherBox !== box) {
+                otherBox.style.display = 'none';
             }
         });
+
+        // Show appropriate content
+        if (!hasLines) {
+            if (table) table.style.display = 'none';
+            if (msg) msg.style.display = 'block';
+        } else {
+            if (msg) msg.style.display = 'none';
+            if (table) table.style.display = 'table';
+        }
+
+        // Toggle visibility
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+
+        // Close when clicking outside
+        const closeHandler = (e) => {
+            if (!box.contains(e.target) && e.target !== button) {
+                box.style.display = 'none';
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        
+        setTimeout(() => {
+            document.addEventListener('click', closeHandler);
+        }, 0);
     },
 
-    _closeDenominationBox: function (ev) {
+    _closeDenominationBox(ev) {
         ev.stopPropagation();
-        const $box = $(ev.currentTarget).closest('.denomination-box');
-        $box.slideUp();
-        $(document).off('click.denominationOutside');
+        const box = ev.currentTarget.closest('.denomination-box');
+        if (box) {
+            box.style.display = 'none';
+        }
     },
 });

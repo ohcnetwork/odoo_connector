@@ -1,21 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
+        <!-- Search View -->
+        <record id="view_cash_transfer_search" model="ir.ui.view">
+            <field name="name">cash.transfer.search</field>
+            <field name="model">cash.transfer</field>
+            <field name="arch" type="xml">
+                <search string="Cash Transfers">
+                    <field name="name"/>
+                    <field name="from_user"/>
+                    <field name="from_location"/>
+                    <field name="to_location"/>
+                    <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                    <filter string="Submitted" name="submitted" domain="[('state', '=', 'submit')]"/>
+                    <filter string="Accepted" name="accepted" domain="[('state', '=', 'accepted')]"/>
+                    <filter string="Rejected" name="rejected" domain="[('state', '=', 'rejected')]"/>
+                    <separator/>
+                    <filter string="Today" name="today" domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                    <separator/>
+                    <filter string="My Transfers" name="my_transfers" domain="[('from_user', '=', uid)]"/>
+                    <group expand="0" string="Group By">
+                        <filter string="From User" name="group_from_user" context="{'group_by': 'from_user'}"/>
+                        <filter string="From Counter" name="group_from_location" context="{'group_by': 'from_location'}"/>
+                        <filter string="To Counter" name="group_to_location" context="{'group_by': 'to_location'}"/>
+                        <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                        <filter string="Date" name="group_date" context="{'group_by': 'date:day'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- List View -->
         <record id="view_cash_transfer_list" model="ir.ui.view">
             <field name="name">cash.transfer.list</field>
             <field name="model">cash.transfer</field>
             <field name="arch" type="xml">
-                <list string="Cash Transfer">
+                <list string="Cash Transfers" default_order="date desc, id desc">
+                    <field name="name"/>
                     <field name="date"/>
                     <field name="from_user"/>
                     <field name="from_location"/>
                     <field name="to_location"/>
-                    <field name="grand_total"/>
-                    <field name="state"/>
+                    <field name="grand_total" sum="Total"/>
+                    <field name="state" widget="badge"
+                           decoration-info="state == 'draft'"
+                           decoration-warning="state == 'submit'"
+                           decoration-success="state == 'accepted'"
+                           decoration-danger="state == 'rejected'"
+                    />
                 </list>
             </field>
         </record>
 
+        <!-- Form View -->
         <record id="view_cash_transfer_form" model="ir.ui.view">
             <field name="name">cash.transfer.form</field>
             <field name="model">cash.transfer</field>
@@ -25,60 +62,84 @@
                         <field name="state" widget="statusbar" statusbar_visible="draft,submit,accepted,rejected"/>
                     </header>
                     <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="name" readonly="1"/>
+                            </h1>
+                        </div>
                         <group>
-                            <group>
-                                <field name="name"/>
-                                <field name="from_user"/>
-                                <field name="from_location"/>
-                            </group>
-                            <group>
+                            <group string="Transfer Details">
                                 <field name="date"/>
-                                <field name="to_location"/>
-                                <field name="denomination_id" invisible="1"/>
+                                <field name="from_user" string="From Cashier"/>
+                                <field name="from_location" string="From Counter"/>
+                                <field name="to_location" string="To Counter"/>
                             </group>
-                            <group>
-                                <group string="Approval Info" invisible="state != 'accepted'">
-                                    <field name="accepted_by" invisible="state != 'accepted'"/>
-                                </group>
-                                <group string="Rejected Info" invisible="state != 'rejected'">
-                                    <field name="rejected_by" invisible="state != 'rejected'"/>
-                                    <field name="reject_reason" invisible="state != 'rejected'"/>
-                                </group>
+                            <group string="Status">
+                                <field name="denomination_id" invisible="1"/>
+                                <field name="accepted_by" invisible="state != 'accepted'"/>
+                                <field name="rejected_by" invisible="state != 'rejected'"/>
+                                <field name="reject_reason" invisible="state != 'rejected'"/>
                             </group>
                         </group>
+                        
                         <notebook>
-                            <page string="Cash Denomination">
+                            <page string="Denomination Details" name="denomination">
                                 <field name="line_ids">
-                                    <list editable="top">
+                                    <list editable="bottom">
+                                        <field name="currency" string="Denomination"/>
                                         <field name="counts"/>
-                                        <field name="currency"/>
-                                        <field name="currency_id" invisible="1"/>
-                                        <field name="sub_total" sum="Sub Total"/>
+                                        <field name="currency_id" column_invisible="1"/>
+                                        <field name="sub_total" sum="Total"/>
                                     </list>
                                 </field>
+                                <group class="oe_subtotal_footer">
+                                    <field name="grand_total" class="oe_subtotal_footer_separator"/>
+                                </group>
                             </page>
                         </notebook>
-                        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 10px; gap: 8px; margin-left:1350px">
-                            <span style="font-weight: bold; font-size: 16px;">Total:</span>
-                            <field name="grand_total" readonly="1" class="o_field_number o_field_number_currency" style="font-weight: bold; font-size: 16px; width: 120px;"/>
-                        </div>
-
                     </sheet>
                 </form>
             </field>
         </record>
 
+        <!-- Actions -->
         <record id="action_cash_transfer" model="ir.actions.act_window">
-            <field name="name">Cash Transfer</field>
+            <field name="name">Cash Transfers</field>
             <field name="res_model">cash.transfer</field>
             <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_cash_transfer_search"/>
+            <field name="context">{'search_default_today': 1}</field>
             <field name="help" type="html">
                 <p class="o_view_nocontent_smiling_face">
-                Create your first cash Transfer record
+                    No cash transfers yet
+                </p>
+                <p>
+                    Cash transfers are created from the Cash Denomination portal
+                    when cashiers transfer money between counters.
                 </p>
             </field>
         </record>
 
-        <menuitem id="menu_cash_transfer" name="Cash Transfer Records" parent="care_connector.menu_main_cash_denomination" action="action_cash_transfer" sequence="1"/>
+        <!-- Pending Transfers Action -->
+        <record id="action_cash_transfer_pending" model="ir.actions.act_window">
+            <field name="name">Pending Transfers</field>
+            <field name="res_model">cash.transfer</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_cash_transfer_search"/>
+            <field name="domain">[('state', '=', 'submit')]</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    No pending transfers
+                </p>
+            </field>
+        </record>
+
+        <!-- Menu Items -->
+        <menuitem id="menu_cash_transfer" 
+                  name="Cash Transfers" 
+                  parent="care_connector.menu_main_cash_denomination" 
+                  action="action_cash_transfer" 
+                  sequence="3"/>
+
     </data>
 </odoo>

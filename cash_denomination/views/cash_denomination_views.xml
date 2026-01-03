@@ -1,108 +1,204 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <data>
-    <record id="view_cash_denomination_list" model="ir.ui.view">
-      <field name="name">cash.denomination.list</field>
-      <field name="model">cash.denomination</field>
-      <field name="arch" type="xml">
-        <list string="Cashier Denomination Entry">
-          <field name="date"/>
-          <field name="user"/>
-          <field name="counter"/>
-          <field name="pending_amount"/>
-          <field name="state" widget="badge"
-                 decoration-info="state == 'draft'"
-                 decoration-warning="state == 'submit'"
-                 decoration-success="state == 'approved'"
-                 decoration-danger="state == 'rejected'"
-          />
-        </list>
-      </field>
-    </record>
+    <data>
+        <!-- Search View -->
+        <record id="view_cash_denomination_search" model="ir.ui.view">
+            <field name="name">cash.denomination.search</field>
+            <field name="model">cash.denomination</field>
+            <field name="arch" type="xml">
+                <search string="Cash Denominations">
+                    <field name="user" string="Cashier"/>
+                    <field name="counter"/>
+                    <field name="date"/>
+                    <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                    <filter string="Submitted" name="submitted" domain="[('state', '=', 'submit')]"/>
+                    <filter string="Approved" name="approved" domain="[('state', '=', 'approved')]"/>
+                    <filter string="Rejected" name="rejected" domain="[('state', '=', 'rejected')]"/>
+                    <separator/>
+                    <filter string="Today" name="today" domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                    <filter string="This Week" name="this_week" domain="[('date', '&gt;=', (context_today() - relativedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                    <separator/>
+                    <filter string="My Denominations" name="my_denominations" domain="[('user', '=', uid)]"/>
+                    <group expand="0" string="Group By">
+                        <filter string="Cashier" name="group_user" context="{'group_by': 'user'}"/>
+                        <filter string="Counter" name="group_counter" context="{'group_by': 'counter'}"/>
+                        <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                        <filter string="Date" name="group_date" context="{'group_by': 'date:day'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
 
-    <record id="view_cash_denomination_form" model="ir.ui.view">
-      <field name="name">cash.denomination.form</field>
-      <field name="model">cash.denomination</field>
-      <field name="arch" type="xml">
-        <form string="Cashier Denomination Entry">
-          <header>
-            <button name="action_approve" string="Approve" type="object" class="btn-primary" invisible="state != 'submit'"/>
-            <button name="action_reject" string="Reject" type="object" class="btn-danger" invisible="state != 'submit'"/>
-            <field name="state" widget="statusbar" statusbar_visible="draft,submit,approved,rejected"/>
-          </header>
-          <sheet>
-            <div class="oe_button_box" name="button_box" groups="base.group_user">
-              <button name="open_journal_entry" type="object" class="oe_stat_button" icon="fa-book">
-                <span>Journal Entry</span>
-              </button>
-              <button name="action_open_cash_transfer" type="object" class="oe_stat_button" icon="fa-exchange">
-                <div class="o_stat_info">
-                  <span class="o_stat_value">
-                    <field name="cash_transfer_ids" widget="statinfo" string="Transfers"/>
-                  </span>
-                </div>
-              </button>
-            </div>
-            <group>
-              <group>
-                <field name="date"/>
-                <field name="user"/>
-              </group>
-              <group>
-                <field name="counter"/>
-                <field name="remark"/>
-                <field name="total_in_hand" invisible="1"/>
-                <field name="reject_reason" invisible = "state != 'rejected'"/>
-                <field name="pending_amount"/>
-              </group>
-            </group>
+        <!-- List View -->
+        <record id="view_cash_denomination_list" model="ir.ui.view">
+            <field name="name">cash.denomination.list</field>
+            <field name="model">cash.denomination</field>
+            <field name="arch" type="xml">
+                <list string="Cash Denomination Entries" default_order="date desc, id desc">
+                    <field name="date"/>
+                    <field name="user" string="Cashier"/>
+                    <field name="counter"/>
+                    <field name="total_in_hand" string="Total Amount"/>
+                    <field name="pending_amount"/>
+                    <field name="state" widget="badge"
+                           decoration-info="state == 'draft'"
+                           decoration-warning="state == 'submit'"
+                           decoration-success="state == 'approved'"
+                           decoration-danger="state == 'rejected'"
+                    />
+                </list>
+            </field>
+        </record>
 
-            <notebook>
-              <page string="Cash Denomination">
-                <field name="denomination_line_ids">
-                  <list editable="top">
-                    <field name="counts"/>
-                    <field name="currency"/>
-                    <field name="currency_id" invisible="1"/>
-                    <field name="sub_total" sum="Sub Total"/>
-                  </list>
-                </field>
-              </page>
-              <page string="Payments">
-                <field name="payment_ids">
-                  <list editable="bottom">
-                    <field name="payment_id"/>
-                    <field name="currency_id" invisible="1"/>
-                    <field name="amount" force_save="1" sum="Amount"/>
-                  </list>
-                </field>
-              </page>
-              <page string="Accepted Payments">
-                  <field name="accept_transfer_ids">
-                      <list editable="bottom">
-                        <field name="cash_transfer_id"/>
-                        <field name="amount" force_save="1"/>
-                      </list>
-                  </field>
-              </page>
-            </notebook>
-          </sheet>
-        </form>
-      </field>
-    </record>
+        <!-- Form View -->
+        <record id="view_cash_denomination_form" model="ir.ui.view">
+            <field name="name">cash.denomination.form</field>
+            <field name="model">cash.denomination</field>
+            <field name="arch" type="xml">
+                <form string="Cash Denomination Entry">
+                    <header>
+                        <button name="action_approve" 
+                                string="Approve" 
+                                type="object" 
+                                class="btn-primary" 
+                                invisible="state != 'submit'"
+                                groups="cash_denomination.group_cash_denomination_manager"/>
+                        <button name="action_reject" 
+                                string="Reject" 
+                                type="object" 
+                                class="btn-danger" 
+                                invisible="state != 'submit'"
+                                groups="cash_denomination.group_cash_denomination_manager"/>
+                        <button name="action_reset_to_draft" 
+                                string="Reset to Draft" 
+                                type="object" 
+                                class="btn-secondary" 
+                                invisible="state != 'rejected'"
+                                groups="cash_denomination.group_cash_denomination_manager"/>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,submit,approved,rejected"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <button name="open_journal_entry" 
+                                    type="object" 
+                                    class="oe_stat_button" 
+                                    icon="fa-book"
+                                    invisible="not journal_entry_id">
+                                <span>Journal Entry</span>
+                            </button>
+                            <button name="action_open_cash_transfer" 
+                                    type="object" 
+                                    class="oe_stat_button" 
+                                    icon="fa-exchange">
+                                <div class="o_stat_info">
+                                    <span class="o_stat_value">
+                                        <field name="cash_transfer_ids" widget="statinfo" string="Transfers"/>
+                                    </span>
+                                </div>
+                            </button>
+                        </div>
+                        
+                        <!-- Rejection Alert -->
+                        <div class="alert alert-danger" role="alert" invisible="state != 'rejected'">
+                            <strong>This denomination was rejected!</strong>
+                            <field name="reject_reason" nolabel="1" readonly="1"/>
+                        </div>
+                        
+                        <group>
+                            <group string="Basic Information">
+                                <field name="date"/>
+                                <field name="user" string="Cashier"/>
+                                <field name="counter"/>
+                            </group>
+                            <group string="Amounts">
+                                <field name="total_in_hand" string="Cash In Hand"/>
+                                <field name="pending_amount"/>
+                                <field name="remark"/>
+                            </group>
+                        </group>
 
-    <record id="action_cash_denomination" model="ir.actions.act_window">
-      <field name="name">Counter Denomination Entry</field>
-      <field name="res_model">cash.denomination</field>
-      <field name="view_mode">list,form</field>
-      <field name="help" type="html">
-        <p class="o_view_nocontent_smiling_face">
-                    Create your first cash denomination record
-        </p>
-      </field>
-    </record>
+                        <notebook>
+                            <page string="Cash Denomination" name="denomination">
+                                <field name="denomination_line_ids">
+                                    <list editable="bottom">
+                                        <field name="currency" string="Denomination"/>
+                                        <field name="counts"/>
+                                        <field name="currency_id" column_invisible="1"/>
+                                        <field name="sub_total" sum="Total"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Payments Received" name="payments">
+                                <field name="payment_ids">
+                                    <list>
+                                        <field name="payment_id"/>
+                                        <field name="currency_id" column_invisible="1"/>
+                                        <field name="amount" sum="Total Payments"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Accepted Transfers" name="transfers">
+                                <field name="accept_transfer_ids">
+                                    <list>
+                                        <field name="cash_transfer_id"/>
+                                        <field name="amount" sum="Total Transfers"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                        
+                        <field name="journal_entry_id" invisible="1"/>
+                    </sheet>
+                    <chatter/>
+                </form>
+            </field>
+        </record>
 
-    <menuitem id="menu_cash_denomination" name="Cash Denomination Register" parent="care_connector.menu_main_cash_denomination" action="action_cash_denomination" sequence="1"/>
+        <!-- Action -->
+        <record id="action_cash_denomination" model="ir.actions.act_window">
+            <field name="name">Cash Denominations</field>
+            <field name="res_model">cash.denomination</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_cash_denomination_search"/>
+            <field name="context">{'search_default_today': 1}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    No cash denomination records yet
+                </p>
+                <p>
+                    Cash denominations are created automatically when cashiers process payments.
+                    Go to the Cash Denomination portal to submit your daily cash count.
+                </p>
+            </field>
+        </record>
 
-  </data>
+        <!-- Action for pending approvals -->
+        <record id="action_cash_denomination_pending" model="ir.actions.act_window">
+            <field name="name">Pending Approvals</field>
+            <field name="res_model">cash.denomination</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_cash_denomination_search"/>
+            <field name="domain">[('state', '=', 'submit')]</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    No pending denominations to approve
+                </p>
+            </field>
+        </record>
+
+        <!-- Menu Items -->
+        <menuitem id="menu_cash_denomination" 
+                  name="Cash Denominations" 
+                  parent="care_connector.menu_main_cash_denomination" 
+                  action="action_cash_denomination" 
+                  sequence="1"/>
+        
+        <menuitem id="menu_cash_denomination_pending" 
+                  name="Pending Approvals" 
+                  parent="care_connector.menu_main_cash_denomination" 
+                  action="action_cash_denomination_pending" 
+                  sequence="2"
+                  groups="cash_denomination.group_cash_denomination_manager"/>
+
+    </data>
 </odoo>

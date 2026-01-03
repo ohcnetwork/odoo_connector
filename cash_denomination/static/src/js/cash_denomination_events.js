@@ -1,3 +1,5 @@
+/** @odoo-module **/
+
 import publicWidget from "@web/legacy/js/public/public_widget";
 import { rpc } from "@web/core/network/rpc";
 
@@ -13,184 +15,318 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
         'submit #cash_tranfer_form': '_onTransferSubmit',
     },
 
-    start: function () {
-        this._super.apply(this, arguments);
+    start() {
         this._setCurrentDate();
+        // Auto-select first counter if only one exists
+        const counterSelect = this.el.querySelector('#counter');
+        if (counterSelect && counterSelect.options.length === 2) {
+            counterSelect.selectedIndex = 1;
+            counterSelect.dispatchEvent(new Event('change'));
+        }
+        return this._super(...arguments);
     },
 
-    _setCurrentDate: function () {
+    _setCurrentDate() {
         const today = new Date();
         const formattedDate = today.toISOString().split('T')[0];
-        this.$('#date_field').val(formattedDate);
+        const dateField = this.el.querySelector('#date_field');
+        if (dateField) {
+            dateField.value = formattedDate;
+        }
     },
 
-    _onCounterChange: function (ev) {
+    async _onCounterChange(ev) {
         const counterId = parseInt(ev.currentTarget.value);
         if (!counterId) return;
-        const self = this;
-        rpc('/get/payment/amount/by/counter', { counter_id: counterId })
-            .then(function (result) {
-                if (result) {
-                    self.$('#total_cash_field').val(parseFloat(result.total_cash || 0).toFixed(2));
-                    let transferCash = parseFloat(result.transfer_amount || 0);
-                    const transfer = result.transfer_list[0];
-                    $('#counter_transfer_amount').text(transferCash);
-                    if (transfer) {
-                        const transfer_id = transfer.id
-                        $('#modal_total_transfer_cash').text(transfer.grand_total);
-                        $('#modal_from_user').text(transfer.from_user);
-                        $('#modal_from_counter').text(transfer.from_counter);
-                        $('#modal_date').text(transfer.date);
-                        $('#modal_amount').text(parseFloat(transfer.grand_total || 0).toFixed(2));
-                        $('#cashTransferReviewModal').modal('show');
-                    }
+
+        try {
+            const result = await rpc('/get/payment/amount/by/counter', { counter_id: counterId });
+            if (result) {
+                // Update cash in hand
+                const totalCashField = this.el.querySelector('#total_cash_field');
+                if (totalCashField) {
+                    totalCashField.value = parseFloat(result.total_cash || 0).toFixed(2);
                 }
 
-            })
-            .catch(function (err) {
-                console.error('Error fetching payment amount:', err);
-            });
+                // Update transfer amount display
+                const transferAmount = parseFloat(result.transfer_amount || 0);
+                const transferAmountSpan = this.el.querySelector('#counter_transfer_amount');
+                if (transferAmountSpan) {
+                    transferAmountSpan.textContent = transferAmount.toFixed(2);
+                }
+
+                // Show rejected denomination warning if applicable
+                if (result.has_rejected) {
+                    this._showRejectedWarning(result.reject_reason);
+                }
+
+                // Show pending transfer modal if there are transfers
+                if (result.transfer_list && result.transfer_list.length > 0) {
+                    const transfer = result.transfer_list[0];
+                    this._updateModalContent(transfer);
+                    const modal = bootstrap.Modal.getOrCreateInstance(
+                        this.el.querySelector('#cashTransferReviewModal')
+                    );
+                    if (modal) modal.show();
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching payment amount:', err);
+        }
     },
 
-    _OpenTransferCashModal: function (ev) {
-        ev.preventDefault();
-        const selectedCounterId = this.$('#counter').val();
+    _updateModalContent(transfer) {
+        const setTextContent = (selector, value) => {
+            const el = this.el.querySelector(selector);
+            if (el) el.textContent = value;
+        };
+        
+        setTextContent('#modal_total_transfer_cash', transfer.grand_total);
+        setTextContent('#modal_from_user', transfer.from_user);
+        setTextContent('#modal_from_counter', transfer.from_counter);
+        setTextContent('#modal_date', transfer.date);
+        setTextContent('#modal_amount', parseFloat(transfer.grand_total || 0).toFixed(2));
+    },
 
-        const LoggedUser = this.$('#person').val();
-        const CreatedDate = this.$('#date_field').val();
-        const cashInHand = parseFloat(this.$('#total_cash_field').val()) || 0;
-        if (cashInHand <= 0) {
-            $('#no-cash-modal-transfer').modal('show');
+    _showRejectedWarning(reason) {
+        const form = this.el.querySelector('#cash_denomination_form');
+        if (!form) return;
+        
+        // Remove existing warning if any
+        const existingWarning = form.querySelector('.alert-warning');
+        if (existingWarning) existingWarning.remove();
+        
+        const warningDiv = document.createElement('div');
+        warningDiv.className = 'alert alert-warning alert-dismissible fade show';
+        warningDiv.setAttribute('role', 'alert');
+        warningDiv.innerHTML = `
+            <strong>Previous submission was rejected!</strong>
+            <p>Reason: ${reason || 'No reason provided'}</p>
+            <p>Please review and resubmit your cash denomination.</p>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        form.insertBefore(warningDiv, form.firstChild);
+    },
+
+    _OpenTransferCashModal(ev) {
+        ev.preventDefault();
+
+        const counterSelect = this.el.querySelector('#counter');
+        const selectedCounterId = counterSelect ? counterSelect.value : null;
+        
+        if (!selectedCounterId) {
+            const selectModal = bootstrap.Modal.getOrCreateInstance(
+                this.el.querySelector('#select-counter-modal')
+            );
+            if (selectModal) selectModal.show();
             return;
         }
-        else {
-            $('#cash_transfer_modal').modal('show');
-        }
-        if (selectedCounterId) {
-            this._fetchAllCounter();
+
+        const totalCashField = this.el.querySelector('#total_cash_field');
+        const cashInHand = parseFloat(totalCashField?.value) || 0;
+
+        if (cashInHand <= 0) {
+            const noCashModal = bootstrap.Modal.getOrCreateInstance(
+                this.el.querySelector('#no-cash-modal-transfer')
+            );
+            if (noCashModal) noCashModal.show();
+            return;
         }
 
-        $('#from_selected_counter').val(selectedCounterId);
-        $('#logged_user').val(LoggedUser);
-        $('#created_date').val(CreatedDate);
+        const transferModal = bootstrap.Modal.getOrCreateInstance(
+            this.el.querySelector('#cash_transfer_modal')
+        );
+        if (transferModal) transferModal.show();
+        
+        this._fetchAllCounter(selectedCounterId);
+
+        // Set hidden fields
+        const fromCounter = this.el.querySelector('#from_selected_counter');
+        const loggedUser = this.el.querySelector('#logged_user');
+        const createdDate = this.el.querySelector('#created_date');
+        const personField = this.el.querySelector('#person');
+        const dateField = this.el.querySelector('#date_field');
+        
+        if (fromCounter) fromCounter.value = selectedCounterId;
+        if (loggedUser && personField) loggedUser.value = personField.value;
+        if (createdDate && dateField) createdDate.value = dateField.value;
     },
 
-    _fetchAllCounter: function () {
-        rpc('/get/all/counter').then(function (result) {
-            const counterSelect = self.$('#to_all_locations');
-            counterSelect.empty();
-            if (result && result.locations && result.locations.length > 0) {
-                const locations = result.locations
-                locations.forEach(location => {
-                    counterSelect.append(`<option value="${location.id}">${location.name}</option>`);
+    async _fetchAllCounter(currentCounterId) {
+        try {
+            const result = await rpc('/get/all/counter');
+            const counterSelect = this.el.querySelector('#to_all_locations');
+            if (!counterSelect) return;
+            
+            counterSelect.innerHTML = '<option value="" disabled selected>Select Counter</option>';
+
+            if (result?.locations?.length > 0) {
+                result.locations.forEach((location) => {
+                    if (location.id !== parseInt(currentCounterId)) {
+                        const option = document.createElement('option');
+                        option.value = location.id;
+                        option.textContent = location.name;
+                        counterSelect.appendChild(option);
+                    }
                 });
-
             } else {
-                counterSelect.append('<option disabled selected>No location found</option>');
+                const option = document.createElement('option');
+                option.disabled = true;
+                option.textContent = 'No locations available';
+                counterSelect.appendChild(option);
             }
-
-        }).catch(function (err) {
-            console.error('Error fetching petty users:', err);
-        });
+        } catch (err) {
+            console.error('Error fetching counters:', err);
+        }
     },
 
-    _onDenominationChange: function (ev) {
-        const $input = $(ev.currentTarget);
-        const count = parseInt($input.val()) || 0;
-        const currency = parseInt($input.data('value')) || 0;
+    _onDenominationChange(ev) {
+        const input = ev.currentTarget;
+        const count = parseInt(input.value) || 0;
+        const currency = parseInt(input.dataset.value) || 0;
         const total = count * currency;
 
-        const $row = $input.closest('tr');
-        $row.find('.total-field').val(total.toFixed(2));
+        const row = input.closest('tr');
+        const totalField = row?.querySelector('.total-field');
+        if (totalField) {
+            totalField.value = total.toFixed(2);
+        }
 
         this._updateGrandTotal();
     },
 
-    _updateGrandTotal: function () {
+    _updateGrandTotal() {
         let grandTotal = 0;
-        this.$('.total-field').each(function () {
-            const val = parseFloat($(this).val()) || 0;
-            grandTotal += val;
+        this.el.querySelectorAll('.total-field').forEach((field) => {
+            grandTotal += parseFloat(field.value) || 0;
         });
-
-        this.$('#grand_total').val(grandTotal.toFixed(2));
+        const grandTotalField = this.el.querySelector('#grand_total');
+        if (grandTotalField) {
+            grandTotalField.value = grandTotal.toFixed(2);
+        }
     },
 
-
-    _onTransferDenominationChange: function (ev) {
-        const $input = $(ev.currentTarget);
-        const count = parseInt($input.val()) || 0;
-        const currency = parseInt($input.data('value')) || 0;
+    _onTransferDenominationChange(ev) {
+        const input = ev.currentTarget;
+        const count = parseInt(input.value) || 0;
+        const currency = parseInt(input.dataset.value) || 0;
         const total = count * currency;
 
-        const $row = $input.closest('tr');
-        $row.find('.transfer-total-field').val(total.toFixed(2));
+        const row = input.closest('tr');
+        const totalField = row?.querySelector('.transfer-total-field');
+        if (totalField) {
+            totalField.value = total.toFixed(2);
+        }
 
         this._updateTransferGrandTotal();
     },
-    _updateTransferGrandTotal: function () {
+
+    _updateTransferGrandTotal() {
         let grandTotal = 0;
-        this.$('.transfer-total-field').each(function () {
-            const val = parseFloat($(this).val()) || 0;
-            grandTotal += val;
+        this.el.querySelectorAll('.transfer-total-field').forEach((field) => {
+            grandTotal += parseFloat(field.value) || 0;
         });
-        this.$('#transfer_grand_total').val(grandTotal.toFixed(2));
+        const transferGrandTotal = this.el.querySelector('#transfer_grand_total');
+        if (transferGrandTotal) {
+            transferGrandTotal.value = grandTotal.toFixed(2);
+        }
     },
 
-    _onTransferSubmit: function (ev) {
+    _onTransferSubmit(ev) {
         ev.preventDefault();
 
-        const grandTotal = parseFloat(this.$('#transfer_grand_total').val()) || 0;
-        const cashInHand = parseFloat(this.$('#total_cash_field').val()) || 0;
+        const grandTotalField = this.el.querySelector('#transfer_grand_total');
+        const totalCashField = this.el.querySelector('#total_cash_field');
+        const toLocationSelect = this.el.querySelector('#to_all_locations');
 
-        if (grandTotal === 0) {
-            $('#no-count-modal').modal('show');
+        const grandTotal = parseFloat(grandTotalField?.value) || 0;
+        const cashInHand = parseFloat(totalCashField?.value) || 0;
+        const toLocation = toLocationSelect?.value;
+
+        if (!toLocation) {
+            alert('Please select a destination counter.');
             return;
         }
+
+        if (grandTotal === 0) {
+            const noCountModal = bootstrap.Modal.getOrCreateInstance(
+                this.el.querySelector('#no-count-modal')
+            );
+            if (noCountModal) noCountModal.show();
+            return;
+        }
+
         if (grandTotal > cashInHand) {
-            $('#transfer-limit-modal').modal('show');
+            const limitModal = bootstrap.Modal.getOrCreateInstance(
+                this.el.querySelector('#transfer-limit-modal')
+            );
+            if (limitModal) limitModal.show();
             return;
         }
 
-        this.$('#cash_tranfer_form')[0].submit();
+        this.el.querySelector('#cash_tranfer_form')?.submit();
     },
-    _CashDenominationSubmit: function (ev) {
+
+    _CashDenominationSubmit(ev) {
         ev.preventDefault();
 
-        const cashInHand = parseFloat(this.$('#total_cash_field').val()) || 0;
-        const grandTotal = parseFloat(this.$('#grand_total').val()) || 0;
+        const counterSelect = this.el.querySelector('#counter');
+        if (!counterSelect?.value) {
+            const selectModal = bootstrap.Modal.getOrCreateInstance(
+                this.el.querySelector('#select-counter-modal')
+            );
+            if (selectModal) selectModal.show();
+            return;
+        }
+
+        const totalCashField = this.el.querySelector('#total_cash_field');
+        const grandTotalField = this.el.querySelector('#grand_total');
+        
+        const cashInHand = parseFloat(totalCashField?.value) || 0;
+        const grandTotal = parseFloat(grandTotalField?.value) || 0;
 
         if (grandTotal === 0) {
-            $('#no-count-modal').modal('show');
+            const noCountModal = bootstrap.Modal.getOrCreateInstance(
+                this.el.querySelector('#no-count-modal')
+            );
+            if (noCountModal) noCountModal.show();
             return;
         }
 
         if (grandTotal !== cashInHand) {
+            const mismatchModal = bootstrap.Modal.getOrCreateInstance(
+                this.el.querySelector('#mismatch-submit-modal')
+            );
+            if (mismatchModal) mismatchModal.show();
 
-            $('#mismatch-submit-modal').modal('show');
+            const confirmBtn = this.el.querySelector('#confirm_mismatch_submit');
+            if (confirmBtn) {
+                confirmBtn.onclick = () => {
+                    const remarkTextarea = this.el.querySelector('#mismatch_remark');
+                    const remarkField = this.el.querySelector('#remark');
+                    const remark = remarkTextarea?.value?.trim() || '';
+                    const difference = grandTotal - cashInHand;
+                    const fullRemark = remark
+                        ? `${remark} (Difference: ${difference.toFixed(2)})`
+                        : `Amount mismatch - Difference: ${difference.toFixed(2)}`;
 
-            $('#confirm_mismatch_submit').off('click').on('click', () => {
-                const remark = $('#mismatch_remark').val().trim();
-
-                $('#remark').val(remark);
-
-                $('#mismatch-submit-modal').modal('hide');
-                this._submitDenomination();
-            });
-
+                    if (remarkField) remarkField.value = fullRemark;
+                    mismatchModal.hide();
+                    this._submitDenomination();
+                };
+            }
             return;
         }
+
         this._submitDenomination();
-
-    },
-    _submitDenomination: function () {
-
-        this.$('#cash_denomination_form')[0].submit();
     },
 
-    _MismatchCashDenominationSubmit: function (ev) {
+    _submitDenomination() {
+        this.el.querySelector('#cash_denomination_form')?.submit();
+    },
+
+    _MismatchCashDenominationSubmit(ev) {
         ev.preventDefault();
         this._submitDenomination();
     }
-
 });

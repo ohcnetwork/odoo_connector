@@ -1,3 +1,5 @@
+/** @odoo-module **/
+
 import publicWidget from "@web/legacy/js/public/public_widget";
 
 publicWidget.registry.TransferView = publicWidget.Widget.extend({
@@ -7,44 +9,55 @@ publicWidget.registry.TransferView = publicWidget.Widget.extend({
         'click .close-transfer-btn': '_closeTransferBox',
     },
 
-    _toggleTransferBox: function (ev) {
+    _toggleTransferBox(ev) {
         ev.stopPropagation();
 
-        const $button = $(ev.currentTarget);
-        const $box = $button.siblings('.transfer-box');
-        const hasLines = $button.data("has-lines");
+        const button = ev.currentTarget;
+        const box = button.parentElement.querySelector('.transfer-box');
+        const hasLines = button.dataset.hasLines === 'true';
 
-        const $msg = $box.find('.no-transfer-lines');
-        const $table = $box.find('.transfer-table');
+        if (!box) return;
+
+        const msg = box.querySelector('.no-transfer-lines');
+        const table = box.querySelector('.transfer-table');
 
         // Hide all other open boxes
-        $(".transfer-box").not($box).slideUp();
+        document.querySelectorAll('.transfer-box').forEach(otherBox => {
+            if (otherBox !== box) {
+                otherBox.style.display = 'none';
+            }
+        });
 
         // Show only message or table
         if (!hasLines) {
-            $table.hide();
-            $msg.show();
+            if (table) table.style.display = 'none';
+            if (msg) msg.style.display = 'block';
         } else {
-            $msg.hide();
-            $table.show();
+            if (msg) msg.style.display = 'none';
+            if (table) table.style.display = 'table';
         }
 
         // Toggle the selected box
-        $box.slideToggle();
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
 
         // Close when clicking outside
-        $(document).off('click.transferOutside').on('click.transferOutside', function (e) {
-            if (!$box.is(e.target) && $box.has(e.target).length === 0) {
-                $box.slideUp();
-                $(document).off('click.transferOutside');
+        const closeHandler = (e) => {
+            if (!box.contains(e.target) && e.target !== button) {
+                box.style.display = 'none';
+                document.removeEventListener('click', closeHandler);
             }
-        });
+        };
+        
+        setTimeout(() => {
+            document.addEventListener('click', closeHandler);
+        }, 0);
     },
 
-    _closeTransferBox: function (ev) {
+    _closeTransferBox(ev) {
         ev.stopPropagation();
-        const $box = $(ev.currentTarget).closest('.transfer-box');
-        $box.slideUp();
-        $(document).off('click.transferOutside');
+        const box = ev.currentTarget.closest('.transfer-box');
+        if (box) {
+            box.style.display = 'none';
+        }
     },
 });

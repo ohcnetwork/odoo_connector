@@ -1,3 +1,5 @@
+/** @odoo-module **/
+
 import publicWidget from "@web/legacy/js/public/public_widget";
 import { rpc } from "@web/core/network/rpc";
 
@@ -11,87 +13,163 @@ publicWidget.registry.PendingCashTransfer = publicWidget.Widget.extend({
         'change #all_counter': '_onCounterChange',
     },
 
-    _openRejectModal: function (ev) {
+    _openRejectModal(ev) {
         ev.preventDefault();
         ev.stopPropagation();
-        $('#rejectReasonModal').modal('show');
+        const modal = bootstrap.Modal.getOrCreateInstance(
+            document.getElementById('rejectReasonModal')
+        );
+        if (modal) modal.show();
     },
 
-    _rejectTransferAmount: function (ev) {
+    async _rejectTransferAmount(ev) {
         ev.preventDefault();
         ev.stopPropagation();
 
-        const ctNumber = $('#ct_number').text().trim();
-        const reason = $('.reject-reason').val().trim();
+        const ctNumberEl = document.getElementById('ct_number');
+        const reasonEl = document.querySelector('.reject-reason');
+        
+        const ctNumber = ctNumberEl?.textContent?.trim();
+        const reason = reasonEl?.value?.trim();
 
-        rpc('/cash/transfer/amount/reject', {
-            transfer_number: ctNumber,
-            reject_reason: reason,
-        }).then((result) => {
-            $('#rejectReasonModal').modal('hide');
+        if (!ctNumber) {
+            alert('No transfer selected');
+            return;
+        }
+
+        try {
+            await rpc('/cash/transfer/amount/reject', {
+                transfer_number: ctNumber,
+                reject_reason: reason || 'No reason provided',
+            });
+            
+            const modal = bootstrap.Modal.getInstance(
+                document.getElementById('rejectReasonModal')
+            );
+            if (modal) modal.hide();
+            
             window.location.href = '/pending/cash/transfer';
-        });
-    },
-
-
-    _onCounterChange: function (ev) {
-        ev.preventDefault();
-        ev.stopPropagation();
-        const counterId = parseInt(ev.currentTarget.value);
-        rpc('/check/cash/transfer/by/counter', {
-            counter_id: counterId,
-        }).then((result) => {
-            $('#ct_date').text('');
-            $('#ct_number').text('');
-            $('#ct_from_user').text('');
-            $('#ct_from_counter').text('');
-            $('#ct_to_counter').text('');
-            $('#denomination_tbody').empty();
-            $('#denomination_total').text('0.00');
-            const transfer_data = result.transfer_list
-            transfer_data.forEach(data => {
-                $('#ct_date').text(data.date);
-                $('#ct_number').text(data.name);
-                $('#ct_from_user').text(data.from_user);
-                $('#ct_from_counter').text(data.from_counter);
-                $('#ct_to_counter').text(data.to_counter);
-                const denominations = data.denomination_list || [];
-
-                const $tbody = $('#denomination_tbody');
-                const $total = $('#denomination_total');
-
-                $tbody.empty();
-                let grandTotal = 0;
-
-                denominations.forEach(den => {
-                    grandTotal += den.total;
-
-                    $tbody.append(`
-                        <tr>
-                            <td>INR</td>
-                            <td>${den.amount}</td>
-                            <td>${den.counts}</td>
-                            <td>${den.total.toFixed(2)}</td>
-                        </tr>
-                    `);
-                });
-
-                $total.text(grandTotal.toFixed(2));
-            });
-        });
-    },
-
-    _acceptTransferAmount: function (ev) {
-        ev.preventDefault();
-        ev.stopPropagation();
-        const ctNumber = $('#ct_number').text().trim();
-        if (ctNumber) {
-            rpc('/cash/transfer/amount/accept', {
-                counter_name: ctNumber,
-            }).then((result) => {
-                window.location.href = '/cash/transfer/accepted';
-            });
+        } catch (err) {
+            console.error('Error rejecting transfer:', err);
+            alert('Failed to reject transfer. Please try again.');
         }
     },
 
+    async _onCounterChange(ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        
+        const counterId = parseInt(ev.currentTarget.value);
+        if (!counterId) return;
+
+        try {
+            const result = await rpc('/check/cash/transfer/by/counter', {
+                counter_id: counterId,
+            });
+
+            // Clear previous data
+            this._clearTransferDetails();
+
+            const transferData = result.transfer_list || [];
+            if (transferData.length === 0) {
+                this._showNoTransfersMessage();
+                return;
+            }
+
+            // Display first transfer (or could iterate for multiple)
+            transferData.forEach(data => {
+                this._displayTransferDetails(data);
+            });
+        } catch (err) {
+            console.error('Error fetching transfers:', err);
+        }
+    },
+
+    _clearTransferDetails() {
+        const fields = ['ct_date', 'ct_number', 'ct_from_user', 'ct_from_counter', 'ct_to_counter'];
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = '';
+        });
+        
+        const tbody = document.getElementById('denomination_tbody');
+        if (tbody) tbody.innerHTML = '';
+        
+        const total = document.getElementById('denomination_total');
+        if (total) total.textContent = '0.00';
+    },
+
+    _showNoTransfersMessage() {
+        const tbody = document.getElementById('denomination_tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No pending transfers for this counter</td></tr>';
+        }
+    },
+
+    _displayTransferDetails(data) {
+        const setTextContent = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
+
+        setTextContent('ct_date', data.date);
+        setTextContent('ct_number', data.name);
+        setTextContent('ct_from_user', data.from_user);
+        setTextContent('ct_from_counter', data.from_counter);
+        setTextContent('ct_to_counter', data.to_counter);
+
+        const denominations = data.denomination_list || [];
+        const tbody = document.getElementById('denomination_tbody');
+        const totalEl = document.getElementById('denomination_total');
+
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+        let grandTotal = 0;
+
+        denominations.forEach(den => {
+            grandTotal += den.total;
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>INR</td>
+                <td>${den.amount}</td>
+                <td>${den.counts}</td>
+                <td>${den.total.toFixed(2)}</td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        if (totalEl) {
+            totalEl.textContent = grandTotal.toFixed(2);
+        }
+    },
+
+    async _acceptTransferAmount(ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        
+        const ctNumberEl = document.getElementById('ct_number');
+        const ctNumber = ctNumberEl?.textContent?.trim();
+        
+        if (!ctNumber) {
+            alert('No transfer selected. Please select a counter first.');
+            return;
+        }
+
+        try {
+            const result = await rpc('/cash/transfer/amount/accept', {
+                counter_name: ctNumber,
+            });
+            
+            if (result.error) {
+                alert(result.error);
+                return;
+            }
+            
+            window.location.href = '/cash/transfer/accepted';
+        } catch (err) {
+            console.error('Error accepting transfer:', err);
+            alert('Failed to accept transfer. Please try again.');
+        }
+    },
 });
