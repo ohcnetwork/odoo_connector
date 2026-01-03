@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 
+        Override OCA Journal Ledger Taxes Summary to show DR/CR columns instead of Balance columns.
+        The Taxes Summary section has base_balance and tax_balance fields that can show negative figures.
+        This template replaces those with DR/CR columns.
+    -->
+
+    <!-- Override the taxes summary section to show DR/CR instead of Balance -->
+    <template id="journal_ledger_taxes_dr_cr" 
+              inherit_id="account_financial_report.report_journal_ledger_journal_taxes">
+        
+        <!-- Replace "Balance" header for base_balance with DR/CR (header has no 'amount' class) -->
+        <xpath expr="//div[@class='act_as_row labels']//div[@name='base_balance']" position="replace">
+            <div class="act_as_cell" name="base_dr" style="width: 4.65%;">
+                DR
+            </div>
+            <div class="act_as_cell" name="base_cr" style="width: 4.65%;">
+                CR
+            </div>
+        </xpath>
+        
+        <!-- Replace "Balance" header for tax_balance with DR/CR -->
+        <xpath expr="//div[@class='act_as_row labels']//div[@name='tax_balance']" position="replace">
+            <div class="act_as_cell" name="tax_dr" style="width: 4.65%;">
+                DR
+            </div>
+            <div class="act_as_cell" name="tax_cr" style="width: 4.65%;">
+                CR
+            </div>
+        </xpath>
+        
+        <!-- Replace base_balance data cell with DR/CR (data rows have 'amount' class) -->
+        <xpath expr="//div[@class='act_as_cell amount'][@name='base_balance']" position="replace">
+            <div class="act_as_cell amount" name="base_dr">
+                <t t-if="tax_line['base_balance'] >= 0">
+                    <span t-esc="tax_line['base_balance']" t-options="{'widget': 'float', 'precision': 2}"/>
+                </t>
+                <t t-else="">
+                    <span>-</span>
+                </t>
+            </div>
+            <div class="act_as_cell amount" name="base_cr">
+                <t t-if="tax_line['base_balance'] &lt; 0">
+                    <span t-esc="abs(tax_line['base_balance'])" t-options="{'widget': 'float', 'precision': 2}"/>
+                </t>
+                <t t-else="">
+                    <span>-</span>
+                </t>
+            </div>
+        </xpath>
+        
+        <!-- Replace tax_balance data cell with DR/CR -->
+        <xpath expr="//div[@class='act_as_cell amount'][@name='tax_balance']" position="replace">
+            <div class="act_as_cell amount" name="tax_dr">
+                <t t-if="tax_line['tax_balance'] >= 0">
+                    <span t-esc="tax_line['tax_balance']" t-options="{'widget': 'float', 'precision': 2}"/>
+                </t>
+                <t t-else="">
+                    <span>-</span>
+                </t>
+            </div>
+            <div class="act_as_cell amount" name="tax_cr">
+                <t t-if="tax_line['tax_balance'] &lt; 0">
+                    <span t-esc="abs(tax_line['tax_balance'])" t-options="{'widget': 'float', 'precision': 2}"/>
+                </t>
+                <t t-else="">
+                    <span>-</span>
+                </t>
+            </div>
+        </xpath>
+    </template>
+</odoo>
