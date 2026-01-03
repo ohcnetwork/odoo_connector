@@ -335,19 +335,19 @@ class AccountUtility:
             raise Exception(f"{str(e)}")
 
     @classmethod
-    def _calculate_quantities(cls, received_qty, free_qty, move_type):
+    def _calculate_quantities(cls, received_qty, free_quantity, move_type):
         """
         Calculate billed and free quantities based on move type.
-        For vendor bills (in_invoice), billed_qty = received_qty - free_qty.
-        For other types, free_qty is ignored.
+        For vendor bills (in_invoice), billed_qty = received_qty - free_quantity.
+        For other types, free_quantity is ignored.
         """
-        if move_type != "in_invoice" or free_qty <= 0:
+        if move_type != "in_invoice" or free_quantity <= 0:
             return received_qty, 0.0
 
-        if free_qty > received_qty:
+        if free_quantity > received_qty:
             return received_qty, 0.0
 
-        return received_qty - free_qty, free_qty
+        return received_qty - free_quantity, free_quantity
 
     @classmethod
     def _cancel_account_move(cls, user_env, request_data):
