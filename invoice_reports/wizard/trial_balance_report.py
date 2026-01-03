@@ -138,9 +138,9 @@ class TrialBalanceExcelWizard(models.TransientModel):
         # Fetch account details
         accounts = self.env['account.account'].browse(list(account_data.keys()))
         
-        # Build final result with account info
+        # Build final result with account info (sorted by account code)
         result = []
-        for account in accounts.sorted(key=lambda a: a.name or ''):
+        for account in accounts.sorted(key=lambda a: a.code or ''):
             data = account_data[account.id]
             closing_debit = data['opening_debit'] + data['period_debit']
             closing_credit = data['opening_credit'] + data['period_credit']
@@ -236,34 +236,35 @@ class TrialBalanceExcelWizard(models.TransientModel):
         })
 
         # Title section
-        sheet.write('A1', company_name, title_format)
-        sheet.write('A2', 'SCHEDULE WISE TRIAL BALANCE', title_format)
-        sheet.write('A3', f"From {self._format_date(self.date_from)} To {self._format_date(self.date_to)}", title_format)
-        sheet.write('A4', '(Including Opening Balance)', title_format)
+        sheet.merge_range('A1:H1', company_name, title_format)
+        sheet.merge_range('A2:H2', 'SCHEDULE WISE TRIAL BALANCE', title_format)
+        sheet.merge_range('A3:H3', f"From {self._format_date(self.date_from)} To {self._format_date(self.date_to)}", title_format)
+        sheet.merge_range('A4:H4', '(Including Opening Balance)', title_format)
         
         # Filter info
         target_move_label = "Posted Entries" if self.target_move == 'posted' else "All Entries"
-        sheet.write('A5', f"Target Moves: {target_move_label}", info_format)
+        sheet.merge_range('A5:H5', f"Target Moves: {target_move_label}", info_format)
 
         # Header row
         row = 7
-        sheet.merge_range(row, 0, row + 1, 0, "ACCOUNT", header_format)
-        sheet.merge_range(row, 1, row, 2, f"As On {self._format_date(opening_date)}", header_format)
-        sheet.merge_range(row, 3, row, 4, f"From {self._format_date(self.date_from)} To {self._format_date(self.date_to)}", header_format)
-        sheet.merge_range(row, 5, row, 6, f"As On {self._format_date(self.date_to)}", header_format)
+        sheet.merge_range(row, 0, row + 1, 0, "CODE", header_format)
+        sheet.merge_range(row, 1, row + 1, 1, "ACCOUNT", header_format)
+        sheet.merge_range(row, 2, row, 3, f"As On {self._format_date(opening_date)}", header_format)
+        sheet.merge_range(row, 4, row, 5, f"From {self._format_date(self.date_from)} To {self._format_date(self.date_to)}", header_format)
+        sheet.merge_range(row, 6, row, 7, f"As On {self._format_date(self.date_to)}", header_format)
 
         # Sub-header row
         row += 1
-        sheet.write(row, 1, "DEBIT", sub_header_format)
-        sheet.write(row, 2, "CREDIT", sub_header_format)
-        sheet.write(row, 3, "DEBIT", sub_header_format)
-        sheet.write(row, 4, "CREDIT", sub_header_format)
-        sheet.write(row, 5, "DEBIT", sub_header_format)
-        sheet.write(row, 6, "CREDIT", sub_header_format)
+        sheet.write(row, 2, "DEBIT", sub_header_format)
+        sheet.write(row, 3, "CREDIT", sub_header_format)
+        sheet.write(row, 4, "DEBIT", sub_header_format)
+        sheet.write(row, 5, "CREDIT", sub_header_format)
+        sheet.write(row, 6, "DEBIT", sub_header_format)
+        sheet.write(row, 7, "CREDIT", sub_header_format)
         row += 1
 
-        # Freeze panes - freeze header rows
-        sheet.freeze_panes(row, 1)
+        # Freeze panes - freeze header rows and first two columns (Code + Account)
+        sheet.freeze_panes(row, 2)
 
         # Initialize totals
         totals = {
@@ -279,13 +280,14 @@ class TrialBalanceExcelWizard(models.TransientModel):
         for item in report_data:
             account = item['account']
             
-            sheet.write(row, 0, account.name or '', text_format)
-            sheet.write_number(row, 1, item['opening_debit'], number_format)
-            sheet.write_number(row, 2, item['opening_credit'], number_format)
-            sheet.write_number(row, 3, item['period_debit'], number_format)
-            sheet.write_number(row, 4, item['period_credit'], number_format)
-            sheet.write_number(row, 5, item['closing_debit'], number_format)
-            sheet.write_number(row, 6, item['closing_credit'], number_format)
+            sheet.write(row, 0, account.code or '', text_format)
+            sheet.write(row, 1, account.name or '', text_format)
+            sheet.write_number(row, 2, item['opening_debit'], number_format)
+            sheet.write_number(row, 3, item['opening_credit'], number_format)
+            sheet.write_number(row, 4, item['period_debit'], number_format)
+            sheet.write_number(row, 5, item['period_credit'], number_format)
+            sheet.write_number(row, 6, item['closing_debit'], number_format)
+            sheet.write_number(row, 7, item['closing_credit'], number_format)
             row += 1
 
             # Accumulate totals
@@ -293,17 +295,19 @@ class TrialBalanceExcelWizard(models.TransientModel):
                 totals[key] += item[key]
 
         # Write totals row
-        sheet.write(row, 0, "Total", total_text_format)
-        sheet.write_number(row, 1, totals['opening_debit'], total_number_format)
-        sheet.write_number(row, 2, totals['opening_credit'], total_number_format)
-        sheet.write_number(row, 3, totals['period_debit'], total_number_format)
-        sheet.write_number(row, 4, totals['period_credit'], total_number_format)
-        sheet.write_number(row, 5, totals['closing_debit'], total_number_format)
-        sheet.write_number(row, 6, totals['closing_credit'], total_number_format)
+        sheet.write(row, 0, "", total_text_format)
+        sheet.write(row, 1, "Total", total_text_format)
+        sheet.write_number(row, 2, totals['opening_debit'], total_number_format)
+        sheet.write_number(row, 3, totals['opening_credit'], total_number_format)
+        sheet.write_number(row, 4, totals['period_debit'], total_number_format)
+        sheet.write_number(row, 5, totals['period_credit'], total_number_format)
+        sheet.write_number(row, 6, totals['closing_debit'], total_number_format)
+        sheet.write_number(row, 7, totals['closing_credit'], total_number_format)
 
         # Set column widths
-        sheet.set_column('A:A', 45)
-        sheet.set_column('B:G', 18)
+        sheet.set_column('A:A', 15)  # Code
+        sheet.set_column('B:B', 40)  # Account Name
+        sheet.set_column('C:H', 18)  # Numeric columns
 
         workbook.close()
 
