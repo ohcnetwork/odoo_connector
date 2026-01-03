@@ -13,7 +13,7 @@ class InvoiceItem(BaseModel):
     x_care_id: str
     agent_id: str | None = None
     discounts: list[InvoiceDiscounts] | None = None
-    free_quantity: float = 0.0
+    free_qty: float = 0.0
 
 
 class BillType(Enum):
