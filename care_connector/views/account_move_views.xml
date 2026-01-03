@@ -16,7 +16,7 @@
             </xpath>
             <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='quantity']" position="after">
                 <field name="received_qty"/>
-                <field name="free_qty"/>
+                <field name="free_quantity"/>
             </xpath>
             <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='quantity']" position="attributes">
                 <attribute name="column_invisible">True</attribute>
