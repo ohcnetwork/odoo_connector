@@ -138,13 +138,31 @@ class CashDenominationPageController(http.Controller):
             cash_denomination.sudo().write({
                 'denomination_line_ids': line_values,
                 'remark': remark,
-                'state': 'submit'
             })
-            payments = cash_denomination.payment_ids.mapped('payment_id')
-            if payments:
-                payments.sudo().write({'is_denomination': True})
-            
         return request.redirect('/cash/denomination?success=1')
+
+    @http.route('/submit/to/accounts/by/counter', type='json', auth='user')
+    def submit_to_accounts_by_counter(self, counter_id):
+        """Change the denomination record state to submit"""
+        user = request.env.user
+        cash_denomination_model = request.env['cash.denomination']
+        cash_denomination = cash_denomination_model.sudo().search([
+            ('user', '=', user.id),
+            ('counter', '=', int(counter_id)),
+            ('state', '=', 'draft')
+        ])
+        submit_status = False
+        if cash_denomination:
+            if cash_denomination.denomination_line_ids:
+                cash_denomination.sudo().write({
+                    'state': 'submit'
+                })
+
+                payments = cash_denomination.payment_ids.mapped('payment_id')
+                if payments:
+                    payments.sudo().write({'is_denomination': True})
+                submit_status = True
+        return {'status': submit_status}
 
 
     @http.route('/cash/transfer/submit', type='http', auth='user', methods=['POST'], csrf=False, website=True)
