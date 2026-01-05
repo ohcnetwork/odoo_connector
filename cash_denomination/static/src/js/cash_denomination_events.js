@@ -6,6 +6,7 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
     events: {
         'change #counter': '_onCounterChange',
         'click #cash_transfer_btn': '_OpenTransferCashModal',
+        'click #submit_account_btn': '_submit_to_accounts',
         'input .counts-input': '_onDenominationChange',
         'input .transfer-counts-input': '_onTransferDenominationChange',
         'submit #cash_denomination_form': '_CashDenominationSubmit',
@@ -73,6 +74,25 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
         $('#from_selected_counter').val(selectedCounterId);
         $('#logged_user').val(LoggedUser);
         $('#created_date').val(CreatedDate);
+    },
+
+    _submit_to_accounts: function () {
+
+        const selectedCounterId = this.$('#counter').val();
+        console.log("helloww button mownu",selectedCounterId);
+        if (!selectedCounterId) return;
+        const self = this;
+        rpc('/submit/to/accounts/by/counter', { counter_id: selectedCounterId })
+            .then(function (result) {
+                if (result.status == false) {
+                    $('#AccountSubmitFailedModal').modal('show');
+                    return;
+                }
+                window.location.href = '/cash/denomination?success=1';
+            })
+            .catch(function (err) {
+                console.error('Error when submitting to accounts:', err);
+            });
     },
 
     _fetchAllCounter: function () {
