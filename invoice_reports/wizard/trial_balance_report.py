@@ -46,6 +46,16 @@ class TrialBalanceExcelWizard(models.TransientModel):
         default=True,
         help="Hide accounts where closing debit and credit are both zero"
     )
+    include_opening_balance = fields.Boolean(
+        string="Include Opening Balance",
+        default=True,
+        help="Uncheck to exclude opening balance columns from the report"
+    )
+    group_by_account_group = fields.Boolean(
+        string="Group by Account Group",
+        default=False,
+        help="Group accounts by their account group with subtotals"
+    )
     journal_ids = fields.Many2many(
         'account.journal',
         string="Journals",
@@ -152,6 +162,7 @@ class TrialBalanceExcelWizard(models.TransientModel):
             
             result.append({
                 'account': account,
+                'account_group': account.group_id if account.group_id else False,
                 'opening_debit': data['opening_debit'],
                 'opening_credit': data['opening_credit'],
                 'period_debit': data['period_debit'],
@@ -164,6 +175,68 @@ class TrialBalanceExcelWizard(models.TransientModel):
             raise UserError("No accounts with balances found for the selected criteria.")
         
         return result
+    
+    def _get_grouped_trial_balance_data(self):
+        """
+        Get trial balance data grouped by account groups.
+        Returns dict with group names as keys and list of account data as values.
+        """
+        data = self._get_trial_balance_data()
+        
+        # Group by account group
+        grouped_data = {}
+        ungrouped_accounts = []
+        
+        for item in data:
+            group = item.get('account_group')
+            if group:
+                group_key = (group.id, group.name, group.code_prefix_start or '')
+                if group_key not in grouped_data:
+                    grouped_data[group_key] = {
+                        'group': group,
+                        'accounts': [],
+                        'totals': {
+                            'opening_debit': 0.0,
+                            'opening_credit': 0.0,
+                            'period_debit': 0.0,
+                            'period_credit': 0.0,
+                            'closing_debit': 0.0,
+                            'closing_credit': 0.0,
+                        }
+                    }
+                grouped_data[group_key]['accounts'].append(item)
+                for key in grouped_data[group_key]['totals']:
+                    grouped_data[group_key]['totals'][key] += item[key]
+            else:
+                ungrouped_accounts.append(item)
+        
+        # Sort groups by code prefix
+        sorted_groups = sorted(grouped_data.items(), key=lambda x: x[0][2])
+        
+        # Add ungrouped accounts at the end if any
+        if ungrouped_accounts:
+            ungrouped_totals = {
+                'opening_debit': 0.0,
+                'opening_credit': 0.0,
+                'period_debit': 0.0,
+                'period_credit': 0.0,
+                'closing_debit': 0.0,
+                'closing_credit': 0.0,
+            }
+            for item in ungrouped_accounts:
+                for key in ungrouped_totals:
+                    ungrouped_totals[key] += item[key]
+            
+            sorted_groups.append((
+                (0, 'Ungrouped Accounts', 'ZZZZ'),
+                {
+                    'group': None,
+                    'accounts': ungrouped_accounts,
+                    'totals': ungrouped_totals
+                }
+            ))
+        
+        return sorted_groups
 
     def action_export_excel(self):
         """Export trial balance report to Excel"""
@@ -172,9 +245,6 @@ class TrialBalanceExcelWizard(models.TransientModel):
         if self.date_from > self.date_to:
             raise UserError("Start date cannot be after end date!")
 
-        # Get report data
-        report_data = self._get_trial_balance_data()
-        
         # Create Excel workbook
         output = io.BytesIO()
         workbook = xlsxwriter.Workbook(output, {'in_memory': True})
@@ -185,6 +255,15 @@ class TrialBalanceExcelWizard(models.TransientModel):
 
         # Calculate opening balance date (day before date_from)
         opening_date = self.date_from - timedelta(days=1)
+        
+        # Determine column layout based on options
+        include_opening = self.include_opening_balance
+        
+        # Calculate last column index for merging
+        if include_opening:
+            last_col = 7  # 8 columns: Code, Account, Open Dr, Open Cr, Period Dr, Period Cr, Close Dr, Close Cr
+        else:
+            last_col = 5  # 6 columns: Code, Account, Period Dr, Period Cr, Close Dr, Close Cr
 
         # Define formats
         title_format = workbook.add_format({
@@ -234,40 +313,83 @@ class TrialBalanceExcelWizard(models.TransientModel):
             'num_format': '#,##0.00',
             'align': 'right',
         })
+        group_header_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#2F75B5',
+            'font_color': 'white',
+            'border': 1,
+            'align': 'left',
+            'font_size': 11,
+        })
+        group_total_text_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#BDD7EE',
+            'border': 1,
+            'align': 'left',
+            'italic': True,
+        })
+        group_total_number_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#BDD7EE',
+            'border': 1,
+            'num_format': '#,##0.00',
+            'align': 'right',
+            'italic': True,
+        })
 
         # Title section
-        sheet.merge_range('A1:H1', company_name, title_format)
-        sheet.merge_range('A2:H2', 'SCHEDULE WISE TRIAL BALANCE', title_format)
-        sheet.merge_range('A3:H3', f"From {self._format_date(self.date_from)} To {self._format_date(self.date_to)}", title_format)
-        sheet.merge_range('A4:H4', '(Including Opening Balance)', title_format)
+        sheet.merge_range(0, 0, 0, last_col, company_name, title_format)
+        sheet.merge_range(1, 0, 1, last_col, 'SCHEDULE WISE TRIAL BALANCE', title_format)
+        sheet.merge_range(2, 0, 2, last_col, f"From {self._format_date(self.date_from)} To {self._format_date(self.date_to)}", title_format)
+        
+        opening_text = '(Including Opening Balance)' if include_opening else '(Excluding Opening Balance)'
+        sheet.merge_range(3, 0, 3, last_col, opening_text, title_format)
         
         # Filter info
         target_move_label = "Posted Entries" if self.target_move == 'posted' else "All Entries"
-        sheet.merge_range('A5:H5', f"Target Moves: {target_move_label}", info_format)
+        group_label = " | Grouped by Account Group" if self.group_by_account_group else ""
+        sheet.merge_range(4, 0, 4, last_col, f"Target Moves: {target_move_label}{group_label}", info_format)
 
         # Header row
-        row = 7
-        sheet.merge_range(row, 0, row + 1, 0, "CODE", header_format)
-        sheet.merge_range(row, 1, row + 1, 1, "ACCOUNT", header_format)
-        sheet.merge_range(row, 2, row, 3, f"As On {self._format_date(opening_date)}", header_format)
-        sheet.merge_range(row, 4, row, 5, f"From {self._format_date(self.date_from)} To {self._format_date(self.date_to)}", header_format)
-        sheet.merge_range(row, 6, row, 7, f"As On {self._format_date(self.date_to)}", header_format)
+        row = 6
+        
+        if include_opening:
+            # Full layout with opening balance
+            sheet.merge_range(row, 0, row + 1, 0, "CODE", header_format)
+            sheet.merge_range(row, 1, row + 1, 1, "ACCOUNT", header_format)
+            sheet.merge_range(row, 2, row, 3, f"As On {self._format_date(opening_date)}", header_format)
+            sheet.merge_range(row, 4, row, 5, f"From {self._format_date(self.date_from)} To {self._format_date(self.date_to)}", header_format)
+            sheet.merge_range(row, 6, row, 7, f"As On {self._format_date(self.date_to)}", header_format)
 
-        # Sub-header row
-        row += 1
-        sheet.write(row, 2, "DEBIT", sub_header_format)
-        sheet.write(row, 3, "CREDIT", sub_header_format)
-        sheet.write(row, 4, "DEBIT", sub_header_format)
-        sheet.write(row, 5, "CREDIT", sub_header_format)
-        sheet.write(row, 6, "DEBIT", sub_header_format)
-        sheet.write(row, 7, "CREDIT", sub_header_format)
+            # Sub-header row
+            row += 1
+            sheet.write(row, 2, "DEBIT", sub_header_format)
+            sheet.write(row, 3, "CREDIT", sub_header_format)
+            sheet.write(row, 4, "DEBIT", sub_header_format)
+            sheet.write(row, 5, "CREDIT", sub_header_format)
+            sheet.write(row, 6, "DEBIT", sub_header_format)
+            sheet.write(row, 7, "CREDIT", sub_header_format)
+        else:
+            # Layout without opening balance
+            sheet.merge_range(row, 0, row + 1, 0, "CODE", header_format)
+            sheet.merge_range(row, 1, row + 1, 1, "ACCOUNT", header_format)
+            sheet.merge_range(row, 2, row, 3, f"From {self._format_date(self.date_from)} To {self._format_date(self.date_to)}", header_format)
+            sheet.merge_range(row, 4, row, 5, f"As On {self._format_date(self.date_to)}", header_format)
+
+            # Sub-header row
+            row += 1
+            sheet.write(row, 2, "DEBIT", sub_header_format)
+            sheet.write(row, 3, "CREDIT", sub_header_format)
+            sheet.write(row, 4, "DEBIT", sub_header_format)
+            sheet.write(row, 5, "CREDIT", sub_header_format)
+        
         row += 1
 
         # Freeze panes - freeze header rows and first two columns (Code + Account)
         sheet.freeze_panes(row, 2)
 
-        # Initialize totals
-        totals = {
+        # Initialize grand totals
+        grand_totals = {
             'opening_debit': 0.0,
             'opening_credit': 0.0,
             'period_debit': 0.0,
@@ -276,38 +398,99 @@ class TrialBalanceExcelWizard(models.TransientModel):
             'closing_credit': 0.0,
         }
 
-        # Write data rows
-        for item in report_data:
+        def write_data_row(row_num, item):
+            """Helper to write a data row based on column layout"""
             account = item['account']
+            sheet.write(row_num, 0, account.code or '', text_format)
+            sheet.write(row_num, 1, account.name or '', text_format)
             
-            sheet.write(row, 0, account.code or '', text_format)
-            sheet.write(row, 1, account.name or '', text_format)
-            sheet.write_number(row, 2, item['opening_debit'], number_format)
-            sheet.write_number(row, 3, item['opening_credit'], number_format)
-            sheet.write_number(row, 4, item['period_debit'], number_format)
-            sheet.write_number(row, 5, item['period_credit'], number_format)
-            sheet.write_number(row, 6, item['closing_debit'], number_format)
-            sheet.write_number(row, 7, item['closing_credit'], number_format)
-            row += 1
+            if include_opening:
+                sheet.write_number(row_num, 2, item['opening_debit'], number_format)
+                sheet.write_number(row_num, 3, item['opening_credit'], number_format)
+                sheet.write_number(row_num, 4, item['period_debit'], number_format)
+                sheet.write_number(row_num, 5, item['period_credit'], number_format)
+                sheet.write_number(row_num, 6, item['closing_debit'], number_format)
+                sheet.write_number(row_num, 7, item['closing_credit'], number_format)
+            else:
+                sheet.write_number(row_num, 2, item['period_debit'], number_format)
+                sheet.write_number(row_num, 3, item['period_credit'], number_format)
+                sheet.write_number(row_num, 4, item['closing_debit'], number_format)
+                sheet.write_number(row_num, 5, item['closing_credit'], number_format)
 
-            # Accumulate totals
-            for key in totals:
-                totals[key] += item[key]
+        def write_totals_row(row_num, label, totals_dict, text_fmt, num_fmt):
+            """Helper to write a totals row based on column layout"""
+            sheet.write(row_num, 0, "", text_fmt)
+            sheet.write(row_num, 1, label, text_fmt)
+            
+            if include_opening:
+                sheet.write_number(row_num, 2, totals_dict['opening_debit'], num_fmt)
+                sheet.write_number(row_num, 3, totals_dict['opening_credit'], num_fmt)
+                sheet.write_number(row_num, 4, totals_dict['period_debit'], num_fmt)
+                sheet.write_number(row_num, 5, totals_dict['period_credit'], num_fmt)
+                sheet.write_number(row_num, 6, totals_dict['closing_debit'], num_fmt)
+                sheet.write_number(row_num, 7, totals_dict['closing_credit'], num_fmt)
+            else:
+                sheet.write_number(row_num, 2, totals_dict['period_debit'], num_fmt)
+                sheet.write_number(row_num, 3, totals_dict['period_credit'], num_fmt)
+                sheet.write_number(row_num, 4, totals_dict['closing_debit'], num_fmt)
+                sheet.write_number(row_num, 5, totals_dict['closing_credit'], num_fmt)
 
-        # Write totals row
-        sheet.write(row, 0, "", total_text_format)
-        sheet.write(row, 1, "Total", total_text_format)
-        sheet.write_number(row, 2, totals['opening_debit'], total_number_format)
-        sheet.write_number(row, 3, totals['opening_credit'], total_number_format)
-        sheet.write_number(row, 4, totals['period_debit'], total_number_format)
-        sheet.write_number(row, 5, totals['period_credit'], total_number_format)
-        sheet.write_number(row, 6, totals['closing_debit'], total_number_format)
-        sheet.write_number(row, 7, totals['closing_credit'], total_number_format)
+        if self.group_by_account_group:
+            # Grouped report
+            grouped_data = self._get_grouped_trial_balance_data()
+            
+            for group_key, group_info in grouped_data:
+                group = group_info['group']
+                accounts = group_info['accounts']
+                group_totals = group_info['totals']
+                
+                # Write group header
+                group_name = group.name if group else "Ungrouped Accounts"
+                group_code = group.code_prefix_start if group else ""
+                group_label = f"{group_code} - {group_name}" if group_code else group_name
+                
+                sheet.merge_range(row, 0, row, last_col, group_label, group_header_format)
+                row += 1
+                
+                # Write account rows for this group
+                for item in accounts:
+                    write_data_row(row, item)
+                    row += 1
+                
+                # Write group subtotal
+                write_totals_row(row, f"Subtotal: {group_name}", group_totals, 
+                               group_total_text_format, group_total_number_format)
+                row += 1
+                
+                # Add blank row between groups
+                row += 1
+                
+                # Accumulate grand totals
+                for key in grand_totals:
+                    grand_totals[key] += group_totals[key]
+        else:
+            # Non-grouped report
+            report_data = self._get_trial_balance_data()
+            
+            for item in report_data:
+                write_data_row(row, item)
+                row += 1
+                
+                # Accumulate totals
+                for key in grand_totals:
+                    grand_totals[key] += item[key]
+
+        # Write grand totals row
+        write_totals_row(row, "Grand Total" if self.group_by_account_group else "Total", 
+                        grand_totals, total_text_format, total_number_format)
 
         # Set column widths
         sheet.set_column('A:A', 15)  # Code
         sheet.set_column('B:B', 40)  # Account Name
-        sheet.set_column('C:H', 18)  # Numeric columns
+        if include_opening:
+            sheet.set_column('C:H', 18)  # Numeric columns
+        else:
+            sheet.set_column('C:F', 18)  # Numeric columns
 
         workbook.close()
 
@@ -315,7 +498,8 @@ class TrialBalanceExcelWizard(models.TransientModel):
         file_data = base64.b64encode(output.getvalue())
         output.close()
 
-        file_name = f"Trial_Balance_{self.date_from}_to_{self.date_to}.xlsx"
+        suffix = "_grouped" if self.group_by_account_group else ""
+        file_name = f"Trial_Balance_{self.date_from}_to_{self.date_to}{suffix}.xlsx"
 
         attachment = self.env['ir.attachment'].create({
             'name': file_name,
