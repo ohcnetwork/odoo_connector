@@ -166,6 +166,8 @@ class InvoicePaymentUtility:
                     'name': [(6, 0, [res_user.id])] if res_user else [],
                     'bill_counter': counter_name,
                 })
+            else:
+                bill_counter.bill_counter = counter_name
 
             if res_user and res_user.id not in bill_counter.name.ids:
                 bill_counter.sudo().write({
