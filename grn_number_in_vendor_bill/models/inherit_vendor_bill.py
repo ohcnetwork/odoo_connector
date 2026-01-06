@@ -15,14 +15,17 @@ class AccountMove(models.Model):
         for move in self:
             # Only assign GRN for vendor bills from Care system (has x_care_id)
             if move.move_type == 'in_invoice' and move.x_care_id and not move.grn_number:
-                next_number = self.env['ir.sequence'].next_by_code('grn.number.sequence')
+                # Use invoice date for sequence date range
+                sequence_date = move.invoice_date or fields.Date.today()
+                
+                next_number = self.env['ir.sequence'].with_context(
+                    ir_sequence_date=sequence_date
+                ).next_by_code('grn.number.sequence')
                 
                 if next_number:
                     move.grn_number = next_number
-                    _logger.info("Assigned GRN %s to Care invoice %s (x_care_id: %s)", 
-                                move.grn_number, move.name or move.id, move.x_care_id)
+                    _logger.info("Assigned GRN %s to invoice %s", move.grn_number, move.name or move.id)
                 else:
-                    _logger.error("GRN sequence 'grn.number.sequence' not found")
                     raise UserError("GRN sequence not configured. Please contact administrator.")
 
         return super().action_post()
