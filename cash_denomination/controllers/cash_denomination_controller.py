@@ -67,11 +67,11 @@ class CashDenominationPageController(http.Controller):
         user = request.env.user
         cash_denomination_model = request.env['cash.denomination']
         cash_transfer_model = request.env['cash.transfer']
-        cash_denomination = cash_denomination_model.sudo().search([
-            ('user', '=', user.id),
-            ('counter', '=', int(counter_id)),
-            ('state', '=', 'draft')
-        ])
+        domain = [  ('user', '=', user.id),
+                    ('counter', '=', int(counter_id)),
+                    ('state', '=', 'draft')
+                  ]
+        cash_denomination = cash_denomination_model.sudo().search(domain)
         transfer_amount = sum(cash_denomination.cash_transfer_ids.mapped('grand_total'))
         cash_in_hand = cash_denomination.total_in_hand
         cash_transfer_list = cash_transfer_model.sudo().search([
@@ -94,7 +94,13 @@ class CashDenominationPageController(http.Controller):
                     'date': str(transfer.date),
                     'grand_total': transfer.grand_total,
                 })
-
+        pending_domain = [('user', '=', user.id),
+                  ('counter', '=', int(counter_id)),
+                  ('state', '=', 'submit')
+                  ]
+        pending_denominations = cash_denomination_model.sudo().search(pending_domain)
+        pending_amount = sum(pending_denominations.mapped('pending_amount'))
+        cash_in_hand = float(cash_in_hand) + pending_amount
         return {
             'total_cash': cash_in_hand,
             'transfer_cash': transfer_cash,
@@ -106,12 +112,19 @@ class CashDenominationPageController(http.Controller):
     def get_all_counters(self):
         """Return users assigned to selected counter"""
         bill_counter_model = request.env['bill.counter']
+        res_user_model = request.env['res.users']
         bill_counter_list = bill_counter_model.sudo().search([])
         location_list = []
         for location in bill_counter_list:
             location_list.append({'id': location.id, 'name': location.bill_counter})
-
-        return {'locations': location_list}
+        res_user_list = res_user_model.sudo().search([])
+        cashier_list = []
+        for cashier in res_user_list:
+            cashier_list.append({'id': cashier.id, 'name': cashier.name})
+        return {
+            'locations': location_list,
+            'cashiers':cashier_list
+        }
 
     @http.route(['/cash/denomination/submit'], type='http', auth='user', methods=['POST'], website=True, csrf=False)
     def cash_denomination_submit(self, **post):
@@ -171,6 +184,7 @@ class CashDenominationPageController(http.Controller):
         user = request.env.user
         from_counter = int(post.get('from_selected_counter'))
         to_counter = int(post.get('to_all_locations'))
+        to_cashier = int(post.get('cashier_id'))
         date_str = post.get('created_date')
         cash_transfer_model = request.env['cash.transfer']
         cash_denomination_model = request.env['cash.denomination']
@@ -191,6 +205,7 @@ class CashDenominationPageController(http.Controller):
         cash_transfer = cash_transfer_model.sudo().create({
             'date': date_str,
             'from_user': user.id,
+            'to_user': int(to_cashier),
             'from_location': from_counter,
             'to_location': to_counter,
             'denomination_id': cash_denomination.id,
