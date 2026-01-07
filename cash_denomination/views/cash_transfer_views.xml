@@ -33,6 +33,7 @@
                             </group>
                             <group>
                                 <field name="date"/>
+                                <field name="to_user"/>
                                 <field name="to_location"/>
                                 <field name="denomination_id" invisible="1"/>
                             </group>

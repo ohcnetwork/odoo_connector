@@ -18,9 +18,14 @@ class pendingCashTransferPageController(http.Controller):
 
     @http.route('/pending/cash/transfer', type="http", auth="user", website=True)
     def view_pending_cash_transfer_records(self):
-
-        counters = request.env['bill.counter'].sudo().search([])
-
+        user = request.env.user
+        cash_transfer_model = request.env['cash.transfer']
+        cash_transfer_list = cash_transfer_model.sudo().search([
+            ('state', '=', 'submit'),
+            ('to_user', '=', user.id),
+        ])
+        counter_ids = list(set(cash_transfer_list.mapped('to_location').ids))
+        counters = request.env['bill.counter'].sudo().search([('id', 'in', counter_ids)])
         return request.render('cash_denomination.pending_cash_transfer_page',
             {
                 'counters': counters,

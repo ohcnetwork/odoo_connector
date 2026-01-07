@@ -79,7 +79,6 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
     _submit_to_accounts: function () {
 
         const selectedCounterId = this.$('#counter').val();
-        console.log("helloww button mownu",selectedCounterId);
         if (!selectedCounterId) return;
         const self = this;
         rpc('/submit/to/accounts/by/counter', { counter_id: selectedCounterId })
@@ -107,6 +106,18 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
 
             } else {
                 counterSelect.append('<option disabled selected>No location found</option>');
+            }
+
+            const cashierSelect = self.$('#cashier_id');
+            cashierSelect.empty();
+            if (result && result.cashiers && result.cashiers.length > 0) {
+                const cashiers = result.cashiers;
+                cashiers.forEach(cashier => {
+                    cashierSelect.append(`<option value="${cashier.id}">${cashier.name}</option>`);
+                });
+
+            } else {
+                cashierSelect.append('<option disabled selected>No cashier found</option>');
             }
 
         }).catch(function (err) {

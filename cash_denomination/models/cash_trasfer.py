@@ -9,6 +9,7 @@ class CashTransfer(models.Model):
     name = fields.Char(string='Transfer Number', required=True,readonly=True, copy=False)
     date = fields.Date(string='Date', readonly=True)
     from_user = fields.Many2one('res.users', string='From User', readonly=True)
+    to_user = fields.Many2one('res.users', string='To User', readonly=True)
     from_location = fields.Many2one('bill.counter', string='From Counter', readonly=True)
     to_location = fields.Many2one('bill.counter', string='To Counter', readonly=True)
     line_ids = fields.One2many('cash.transfer.line', 'transfer_id', string='Denomination Lines', readonly=True)
