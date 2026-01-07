@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <record id="view_partner_form_view_DL_number" model="ir.ui.view">
-            <field name="name">res.partner.form.view</field>
+        <record id="view_partner_form_drug_license" model="ir.ui.view">
+            <field name="name">res.partner.form.drug.license</field>
             <field name="model">res.partner</field>
             <field name="inherit_id" ref="base.view_partner_form"/>
             <field name="arch" type="xml">

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Sequence definition - can be updated on upgrade -->
+    <data noupdate="0">
+        <record id="seq_grn_number" model="ir.sequence">
+            <field name="name">GRN Number Sequence</field>
+            <field name="code">grn.number.sequence</field>
+            <field name="padding">4</field>
+            <field name="number_increment">1</field>
+            <field name="implementation">no_gap</field>
+            <field name="use_date_range">True</field>
+        </record>
+    </data>
+    
+    <!-- 
+        Fiscal Year Date Ranges (Indian FY: April 1 - March 31)
+        noupdate="1" ensures number_next is NOT reset on module upgrade
+        
+        To add new fiscal years, copy a record and update:
+        - id: seq_grn_fy_YYYY_YY (e.g., seq_grn_fy_2027_28)
+        - date_from: YYYY-04-01
+        - date_to: YYYY+1-03-31
+    -->
+    <data noupdate="1">
+        <!-- FY 2024-25: April 1, 2024 to March 31, 2025 -->
+        <record id="seq_grn_fy_2024_25" model="ir.sequence.date_range">
+            <field name="sequence_id" ref="seq_grn_number"/>
+            <field name="date_from">2024-04-01</field>
+            <field name="date_to">2025-03-31</field>
+            <field name="number_next">1</field>
+        </record>
+        
+        <!-- FY 2025-26: April 1, 2025 to March 31, 2026 (Current) -->
+        <record id="seq_grn_fy_2025_26" model="ir.sequence.date_range">
+            <field name="sequence_id" ref="seq_grn_number"/>
+            <field name="date_from">2025-04-01</field>
+            <field name="date_to">2026-03-31</field>
+            <field name="number_next">1</field>
+        </record>
+        
+        <!-- FY 2026-27: April 1, 2026 to March 31, 2027 -->
+        <record id="seq_grn_fy_2026_27" model="ir.sequence.date_range">
+            <field name="sequence_id" ref="seq_grn_number"/>
+            <field name="date_from">2026-04-01</field>
+            <field name="date_to">2027-03-31</field>
+            <field name="number_next">1</field>
+        </record>
+        
+        <!-- FY 2027-28: April 1, 2027 to March 31, 2028 -->
+        <record id="seq_grn_fy_2027_28" model="ir.sequence.date_range">
+            <field name="sequence_id" ref="seq_grn_number"/>
+            <field name="date_from">2027-04-01</field>
+            <field name="date_to">2028-03-31</field>
+            <field name="number_next">1</field>
+        </record>
+
+        <!-- FY 2028-29: April 1, 2028 to March 31, 2029 -->    
+        <record id="seq_grn_fy_2028_29" model="ir.sequence.date_range">
+            <field name="sequence_id" ref="seq_grn_number"/>
+            <field name="date_from">2028-04-01</field>
+            <field name="date_to">2029-03-31</field>
+            <field name="number_next">1</field>
+        </record>
+
+        <!-- FY 2029-30: April 1, 2029 to March 31, 2030 -->
+        <record id="seq_grn_fy_2029_30" model="ir.sequence.date_range">
+            <field name="sequence_id" ref="seq_grn_number"/>
+            <field name="date_from">2029-04-01</field>
+            <field name="date_to">2030-03-31</field>
+            <field name="number_next">1</field>
+        </record>
+    </data>
+</odoo>
