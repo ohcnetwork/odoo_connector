@@ -14,7 +14,10 @@
                     </div>
 
                     <div style="text-align:left; margin-top:5px; font-size:15px; font-weight:bold;">
-                        CASH PAYMENT: <t t-esc="o.journal_id.name"/>
+                        <t t-if="o.journal_id.type == 'cash'">CASH PAYMENT</t>
+                        <t t-elif="o.journal_id.type == 'bank'">BANK PAYMENT</t>
+                        <t t-else="">PAYMENT</t>
+                        : <t t-esc="o.journal_id.name"/>
                     </div>
 
                     <table style="width:100%; margin-top:5px;">
@@ -51,25 +54,9 @@
 
                             <!-- ACCOUNT HEAD -->
                             <td style="padding-left:5px;">
-
-                                <!-- Inbound → get Debit line account -->
-                                <t t-if="o.payment_type == 'inbound'">
-                                    <t t-foreach="o.move_id.line_ids" t-as="l">
-                                        <t t-if="l.debit &gt; 0">
-                                            <t t-esc="(l.account_id.code or '') + ' - ' + (l.account_id.name or '')"/>
-                                        </t>
-                                    </t>
+                                <t t-if="o.destination_account_id">
+                                    <t t-esc="(o.destination_account_id.code or '') + ' - ' + (o.destination_account_id.name or '')"/>
                                 </t>
-
-                                <!-- Outbound → get Credit line account -->
-                                <t t-if="o.payment_type == 'outbound'">
-                                    <t t-foreach="o.move_id.line_ids" t-as="l">
-                                        <t t-if="l.credit &gt; 0">
-                                            <t t-esc="(l.account_id.code or '') + ' - ' + (l.account_id.name or '')"/>
-                                        </t>
-                                    </t>
-                                </t>
-
                             </td>
 
 
@@ -115,7 +102,7 @@
                                 Total
                             </td>
                             <td style="padding-left:5px; font-weight:bold;">
-                                <t t-esc="o.amount"/>
+                                <t t-esc="'%.2f' % o.amount"/>
                             </td>
                         </tr>
 
