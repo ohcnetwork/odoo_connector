@@ -38,13 +38,16 @@
                     </table>
 
                     <strong style="font-size:1.2rem">Payee:</strong>
+                    <span style="font-size:1.2rem; margin-left:10px;">
+                        <t t-esc="o.payment_method_line_id.name or o.payment_method_id.name or ''"/>
+                    </span>
                     <br/>
 
                     <table border="1" style="width:100%; border-collapse:collapse; margin-top:15px;">
 
                         <tr style="height:50px; text-align:center; font-weight:bold;">
                             <td style="width:30%;">Account</td>
-                            <td style="width:30%;">Narration</td>
+                            <td style="width:30%;">Memo</td>
                             <td style="width:25%;">Bill No</td>
                             <td style="width:15%;">Amount</td>
                         </tr>
@@ -52,23 +55,31 @@
                         <!-- DATA ROW -->
                         <tr style="height:150px;">
 
-                            <!-- ACCOUNT HEAD -->
+                            <!-- PARTNER NAME -->
                             <td style="padding-left:5px;">
-                                <t t-if="o.destination_account_id">
-                                    <t t-esc="(o.destination_account_id.code or '') + ' - ' + (o.destination_account_id.name or '')"/>
-                                </t>
+                                <t t-esc="o.partner_id.name or ''"/>
                             </td>
 
-
-                            <!-- PAYEE NAME -->
+                            <!-- MEMO -->
                             <td style="padding-left:5px;">
-                                <t t-esc="o.partner_id.name"/>
+                                <t t-if="o.memo">
+                                    <t t-esc="o.memo"/>
+                                </t>
                             </td>
 
                             <!-- BILL NUMBERS -->
                             <td style="padding-left:5px;">
-                                <t t-if="o.memo">
-                                    <t t-esc="o.memo"/>
+                                <!-- For outbound payments (vendor bills) -->
+                                <t t-if="o.payment_type == 'outbound' and o.reconciled_bill_ids">
+                                    <t t-foreach="o.reconciled_bill_ids" t-as="bill">
+                                        <t t-esc="bill.name"/><br t-if="not bill_last"/>
+                                    </t>
+                                </t>
+                                <!-- For inbound payments (customer invoices) -->
+                                <t t-if="o.payment_type == 'inbound' and o.reconciled_invoice_ids">
+                                    <t t-foreach="o.reconciled_invoice_ids" t-as="inv">
+                                        <t t-esc="inv.name"/><br t-if="not inv_last"/>
+                                    </t>
                                 </t>
                             </td>
 
