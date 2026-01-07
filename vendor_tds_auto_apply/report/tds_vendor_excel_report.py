@@ -9,8 +9,8 @@ class TDSVendorExcelReport(models.AbstractModel):
 
     def _get_data(self, data):
         domain = [
-            ("date", ">=", data["date_from"]),
-            ("date", "<=", data["date_to"]),
+            ("invoice_date", ">=", data["date_from"]),
+            ("invoice_date", "<=", data["date_to"]),
             ('vendor_tds', '>', 0),
             ("move_type", "=", "in_invoice")
         ]
@@ -20,7 +20,7 @@ class TDSVendorExcelReport(models.AbstractModel):
         account_move_recs = self.env["account.move"].search(domain)
         tds_list = []
         for move in account_move_recs:
-            tds_move_recs = self.env["account.move"].search([('l10n_in_withholding_ref_move_id','=',move.id)])
+            tds_move_recs = self.env["account.move"].search([('l10n_in_withholding_ref_move_id', '=', move.id)])
             if tds_move_recs:
                 for tds_move in tds_move_recs:
                     tds_lines = tds_move.line_ids.filtered(lambda l: l.tax_ids)
@@ -28,7 +28,7 @@ class TDSVendorExcelReport(models.AbstractModel):
                         tds_list.append({
                             "inv_name": move.name,
                             "vendor": move.partner_id.name,
-                            "tds_tax_name": line.tax_ids.name,
+                            "tds_tax_name": ', '.join(line.tax_ids.mapped('name')),
                             "tds_tax_amount": abs(line.l10n_in_withhold_tax_amount),
                             "tds_date": tds_move.date,
                         })

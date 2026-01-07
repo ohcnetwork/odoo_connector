@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 
+        Override OCA Journal Ledger Taxes Summary to show Balance with Dr/Cr suffix
+        instead of negative numbers.
+        Example: -500.00 becomes "500.00 Cr", 200.00 becomes "200.00 Dr"
+    -->
+
+    <!-- Override the taxes summary section to show Balance with Dr/Cr suffix -->
+    <template id="journal_ledger_taxes_dr_cr" 
+              inherit_id="account_financial_report.report_journal_ledger_journal_taxes">
+        
+        <!-- Replace base_balance data cell to show Dr/Cr suffix -->
+        <xpath expr="//div[@class='act_as_cell amount'][@name='base_balance']" position="replace">
+            <div class="act_as_cell amount" name="base_balance">
+                <t t-if="tax_line['base_balance'] >= 0">
+                    <span t-esc="tax_line['base_balance']" t-options="{'widget': 'float', 'precision': 2}"/>
+                    <span t-if="tax_line['base_balance'] != 0"> Dr</span>
+                </t>
+                <t t-else="">
+                    <span t-esc="abs(tax_line['base_balance'])" t-options="{'widget': 'float', 'precision': 2}"/>
+                    <span> Cr</span>
+                </t>
+            </div>
+        </xpath>
+        
+        <!-- Replace tax_balance data cell to show Dr/Cr suffix -->
+        <xpath expr="//div[@class='act_as_cell amount'][@name='tax_balance']" position="replace">
+            <div class="act_as_cell amount" name="tax_balance">
+                <t t-if="tax_line['tax_balance'] >= 0">
+                    <span t-esc="tax_line['tax_balance']" t-options="{'widget': 'float', 'precision': 2}"/>
+                    <span t-if="tax_line['tax_balance'] != 0"> Dr</span>
+                </t>
+                <t t-else="">
+                    <span t-esc="abs(tax_line['tax_balance'])" t-options="{'widget': 'float', 'precision': 2}"/>
+                    <span> Cr</span>
+                </t>
+            </div>
+        </xpath>
+    </template>
+</odoo>

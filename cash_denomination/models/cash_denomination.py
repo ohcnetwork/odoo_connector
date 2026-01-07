@@ -258,7 +258,7 @@ class DenominationPaymentLines(models.Model):
     payment_id = fields.Many2one('account.payment', string='Payment', readonly=True)
     amount = fields.Monetary(
         string="Amount",
-        related="payment_id.amount_signed",
+        related="payment_id.amount",
         readonly=True,
         store=True
     )

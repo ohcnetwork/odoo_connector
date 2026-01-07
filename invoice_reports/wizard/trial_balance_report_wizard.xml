@@ -13,6 +13,8 @@
                     <group string="Options">
                         <field name="target_move" widget="radio"/>
                         <field name="hide_zero_balance"/>
+                        <field name="include_opening_balance"/>
+                        <field name="group_by_account_group"/>
                     </group>
                 </group>
                 <group string="Filters" col="4">

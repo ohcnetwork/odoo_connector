@@ -8,6 +8,7 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
     events: {
         'change #counter': '_onCounterChange',
         'click #cash_transfer_btn': '_OpenTransferCashModal',
+        'click #submit_account_btn': '_submit_to_accounts',
         'input .counts-input': '_onDenominationChange',
         'input .transfer-counts-input': '_onTransferDenominationChange',
         'submit #cash_denomination_form': '_CashDenominationSubmit',
@@ -150,6 +151,25 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
         if (fromCounter) fromCounter.value = selectedCounterId;
         if (loggedUser && personField) loggedUser.value = personField.value;
         if (createdDate && dateField) createdDate.value = dateField.value;
+    },
+
+    async _submit_to_accounts() {
+        const selectedCounterId = this.el.querySelector('#counter')?.value;
+        if (!selectedCounterId) return;
+
+        try {
+            const result = await rpc('/submit/to/accounts/by/counter', { counter_id: selectedCounterId });
+            if (result.status === false) {
+                const failModal = bootstrap.Modal.getOrCreateInstance(
+                    this.el.querySelector('#AccountSubmitFailedModal')
+                );
+                if (failModal) failModal.show();
+                return;
+            }
+            window.location.href = '/cash/denomination?success=1';
+        } catch (err) {
+            console.error('Error when submitting to accounts:', err);
+        }
     },
 
     async _fetchAllCounter(currentCounterId) {

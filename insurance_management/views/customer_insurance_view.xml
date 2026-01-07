@@ -64,7 +64,7 @@
                         <group>
                             <field name="journal_id" readonly="state != 'draft'"/>
                             <field name="journal_ref" readonly="state != 'draft'"/>
-                            <field name="insurance_tag" readonly="state != 'draft'"/>
+                            <field name="insurance_tag" readonly="1"/>
                             <field name="insurance_company_id" readonly="state != 'draft'"/>
                             <field name="approved_date" readonly="state != 'draft'"/>
                             <field name="admission_date" readonly="state != 'draft'"/>
