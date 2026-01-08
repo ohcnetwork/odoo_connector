@@ -19,6 +19,8 @@ class CashDenomination(models.Model):
                                   readonly=True)
     accept_transfer_ids = fields.One2many('cash.transfer.accept', 'denomination_id', string='Accepted Payments',
                                           readonly=True)
+    pending_amount_ids = fields.One2many('denomination.payment.pending.lines', 'denomination_id',string='Pending Payments',
+                                         readonly=True)
     state = fields.Selection([
         ('draft', 'Draft'),
         ('submit', 'Submitted'),
@@ -42,8 +44,9 @@ class CashDenomination(models.Model):
             total_accepted_transfer = sum(rec.accept_transfer_ids.mapped('amount'))
             total_denomination = sum(rec.denomination_line_ids.mapped('sub_total'))
             total_transfer = sum(rec.cash_transfer_ids.mapped('grand_total'))
+            total_pending = sum(rec.pending_amount_ids.mapped('amount'))
             total_spend = total_denomination + total_transfer
-            total_accept = total_payment + total_accepted_transfer
+            total_accept = total_payment + total_accepted_transfer + total_pending
             total = total_accept - total_spend
             if total<=0:
                 rec.total_in_hand = 0
@@ -201,3 +204,13 @@ class CashTransferAccept(models.Model):
     def _compute_total_transfer_amount(self):
         for rec in self:
             rec.amount = sum(rec.cash_transfer_id.line_ids.mapped('sub_total'))
+
+
+
+class DenominationPaymentPendingLines(models.Model):
+    _name = 'denomination.payment.pending.lines'
+    _description = 'Cash Denomination Payment Pending Lines'
+
+    denomination_id = fields.Many2one('cash.denomination', string='Cash Denomination', ondelete='cascade')
+    pending_denomination_id = fields.Many2one('cash.denomination', string='Pending Denominations', readonly=True)
+    amount = fields.Float(string='Amount', store=True)

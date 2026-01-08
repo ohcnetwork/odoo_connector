@@ -55,6 +55,14 @@ class CashDenominationPageController(http.Controller):
             if denomination.counter not in counter_list:
                 counter_list.append(denomination.counter)
 
+        pending_denominations = cash_denomination_model.sudo().search([
+            ('user', '=', user.id),
+            ('state', '=', 'draft'),
+            ('pending_amount', '>', 0)
+        ])
+        for pending in pending_denominations:
+            if pending.counter not in counter_list:
+                counter_list.append(pending.counter)
         denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1]
         return request.render("cash_denomination.website_cash_denomination", {
             'counters': counter_list,
@@ -78,12 +86,11 @@ class CashDenominationPageController(http.Controller):
             ('state', '=', 'submit'),
             ('to_location', '=', int(counter_id)),
         ],limit=1)
-        #
+
         transfer_cash = sum(cash_transfer_list.mapped('grand_total'))
         transfer_list=[]
         for transfer in cash_transfer_list:
             if transfer.from_user != user:
-
                 transfer_list.append({
                     'id': transfer.id,
                     'from_user': transfer.from_user.name,
@@ -94,13 +101,7 @@ class CashDenominationPageController(http.Controller):
                     'date': str(transfer.date),
                     'grand_total': transfer.grand_total,
                 })
-        pending_domain = [('user', '=', user.id),
-                  ('counter', '=', int(counter_id)),
-                  ('state', '=', 'submit')
-                  ]
-        pending_denominations = cash_denomination_model.sudo().search(pending_domain)
-        pending_amount = sum(pending_denominations.mapped('pending_amount'))
-        cash_in_hand = float(cash_in_hand) + pending_amount
+
         return {
             'total_cash': cash_in_hand,
             'transfer_cash': transfer_cash,
@@ -112,15 +113,14 @@ class CashDenominationPageController(http.Controller):
     def get_all_counters(self):
         """Return users assigned to selected counter"""
         bill_counter_model = request.env['bill.counter']
-        res_user_model = request.env['res.users']
         bill_counter_list = bill_counter_model.sudo().search([])
         location_list = []
+        cashier_list = []
         for location in bill_counter_list:
             location_list.append({'id': location.id, 'name': location.bill_counter})
-        res_user_list = res_user_model.sudo().search([])
-        cashier_list = []
-        for cashier in res_user_list:
-            cashier_list.append({'id': cashier.id, 'name': cashier.name})
+            for user in location.name:
+                cashier_list.append({'id': user.id,'name': user.name,})
+
         return {
             'locations': location_list,
             'cashiers':cashier_list
@@ -159,6 +159,7 @@ class CashDenominationPageController(http.Controller):
         """Change the denomination record state to submit"""
         user = request.env.user
         cash_denomination_model = request.env['cash.denomination']
+        denomination_pending_model = request.env['denomination.payment.pending.lines']
         cash_denomination = cash_denomination_model.sudo().search([
             ('user', '=', user.id),
             ('counter', '=', int(counter_id)),
@@ -175,6 +176,20 @@ class CashDenominationPageController(http.Controller):
                 if payments:
                     payments.sudo().write({'is_denomination': True})
                 submit_status = True
+            if cash_denomination.pending_amount > 0:
+                new_denomination = cash_denomination_model.sudo().create({
+                    'date': fields.Date.today(),
+                    'user': user.id,
+                    'counter': cash_denomination.counter.id,
+                    'state': 'draft'
+                })
+                if new_denomination:
+                    denomination_pending_model.sudo().create({
+                        'denomination_id': new_denomination.id,
+                        'pending_denomination_id': cash_denomination.id,
+                        'amount':cash_denomination.pending_amount
+                    })
+
         return {'status': submit_status}
 
 
