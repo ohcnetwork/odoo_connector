@@ -13,6 +13,7 @@
                 <field name="x_care_id" readonly="1"/>
                 <field name="location"/>
                 <field name="cashier"/>
+                <field name="cash_session_id" readonly="1"/>
             </xpath>
         </field>
     </record>

@@ -1,12 +1,12 @@
 from datetime import datetime
-from odoo import http,registry, fields
+from odoo import http, registry, fields
 from .res_partner import PartnerUtility
 
 
 class InvoicePaymentUtility:
 
     @classmethod
-    def get_or_create_invoice_payment(cls,user_env,request_data):
+    def get_or_create_invoice_payment(cls, user_env, request_data):
         try:
             x_care_id = request_data.x_care_id
             journal_x_care_id = request_data.journal_x_care_id
@@ -29,14 +29,29 @@ class InvoicePaymentUtility:
                 raise ValueError(f"'{x_care_id}' already paid")
 
             account_journal = account_journal_model.sudo().search([
-                '|', '|',
-                ('name', 'ilike', journal_input),
-                ('code', 'ilike', journal_input),
-                ('type', '=', journal_input.lower())
+                ('x_care_journal_code', '=', journal_input.lower())
             ], limit=1)
 
             if not account_journal:
-                raise ValueError(f"No journal found for '{journal_input}'")
+                raise ValueError(
+                    f"No journal configured for Care Connector code '{journal_input}'. "
+                    f"Please set the 'Care Connector Code' field on the appropriate journal."
+                )
+
+            # Find cash session if this is a cash payment
+            cash_session = None
+            if account_journal.type == 'cash':
+                cash_session = cls._find_open_cash_session(
+                    user_env,
+                    counter_data.cashier_id,
+                    counter_data.x_care_id
+                )
+                if not cash_session:
+                    raise ValueError(
+                        f"No open cash session for user {counter_data.cashier_id} "
+                        f"at counter {counter_data.x_care_id}. Please open a session first."
+                    )
+
             existing_invoice = None
             if journal_x_care_id:
                 existing_invoice = account_move_model.search([('x_care_id', '=', journal_x_care_id)], limit=1)
@@ -64,6 +79,8 @@ class InvoicePaymentUtility:
                 account_payment.x_care_id = x_care_id
                 account_payment.location = bill_counter.get('bill_counter_id')
                 account_payment.cashier = bill_counter.get('user_id')
+                if cash_session:
+                    account_payment.cash_session_id = cash_session.id
 
                 return account_payment
 
@@ -92,8 +109,10 @@ class InvoicePaymentUtility:
                         'cashier': bill_counter.get('user_id'),
                         'bank_reference': bank_reference
                     }
+                    if cash_session:
+                        payment_vals['cash_session_id'] = cash_session.id
                 except Exception as e:
-                    raise ValueError(str(e))                
+                    raise ValueError(str(e))
                 account_payment = account_payment_model.create(payment_vals)
                 if not account_payment:
                     raise ValueError(f"Payment creation failed")
@@ -103,7 +122,26 @@ class InvoicePaymentUtility:
         except Exception as e:
             raise ValueError(str(e))
 
+    @classmethod
+    def _find_open_cash_session(cls, user_env, external_user_id, counter_x_care_id):
+        """Find an open cash session for the given user and counter."""
+        cash_session_model = user_env['cash.session']
+        bill_counter_model = user_env['bill.counter']
 
+        # Find the counter
+        counter = bill_counter_model.search([
+            ('x_care_id', '=', counter_x_care_id)
+        ], limit=1)
+
+        if not counter:
+            return None
+
+        # Find open session
+        return cash_session_model.search([
+            ('external_user_id', '=', external_user_id),
+            ('counter_id', '=', counter.id),
+            ('status', '=', 'open')
+        ], limit=1)
 
     @classmethod
     def _cancel_invoice_payment(cls, user_env, request_data):
@@ -147,7 +185,6 @@ class InvoicePaymentUtility:
         except Exception as e:
             raise ValueError(str(e))
 
-
     @classmethod
     def get_or_create_bill_counter(cls, user_env, counter_data):
         try:
@@ -177,7 +214,6 @@ class InvoicePaymentUtility:
                 'bill_counter_id': bill_counter.id if bill_counter else False,
                 'user_id': res_user.id if res_user else False
             }
-
 
         except Exception as e:
             raise ValueError(str(e))

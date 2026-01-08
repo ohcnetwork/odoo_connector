@@ -6,6 +6,11 @@ class BillCounter(models.Model):
     _rec_name = "bill_counter"
     _order = 'id desc'
 
-    name = fields.Many2many('res.users',string='Cashier')
-    bill_counter = fields.Char(string='Bill Counter',required=True)
+    name = fields.Many2many('res.users', string='Cashier')
+    bill_counter = fields.Char(string='Bill Counter', required=True)
     x_care_id = fields.Char(string='Care ID')
+    is_main_cash = fields.Boolean(
+        string='Is Main Cash',
+        default=False,
+        help='Check if this counter is the Main Cash location'
+    )

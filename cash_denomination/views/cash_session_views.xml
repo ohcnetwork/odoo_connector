@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Cash Session List View -->
+    <record id="view_cash_session_list" model="ir.ui.view">
+        <field name="name">cash.session.list</field>
+        <field name="model">cash.session</field>
+        <field name="arch" type="xml">
+            <list string="Cash Sessions" decoration-success="status == 'open'" decoration-muted="status == 'closed'">
+                <field name="external_user_name"/>
+                <field name="counter_id"/>
+                <field name="status" widget="badge" decoration-success="status == 'open'" decoration-info="status == 'closed'"/>
+                <field name="opening_balance"/>
+                <field name="expected_amount"/>
+                <field name="opened_at"/>
+                <field name="closed_at" optional="hide"/>
+                <field name="closing_difference" optional="hide"/>
+                <field name="difference_status" widget="badge" 
+                    decoration-danger="difference_status == 'open'"
+                    decoration-warning="difference_status == 'recoverable'"
+                    decoration-muted="difference_status == 'written_off'"
+                    invisible="difference_status == 'none'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Cash Session Form View -->
+    <record id="view_cash_session_form" model="ir.ui.view">
+        <field name="name">cash.session.form</field>
+        <field name="model">cash.session</field>
+        <field name="arch" type="xml">
+            <form string="Cash Session">
+                <header>
+                    <field name="status" widget="statusbar" statusbar_visible="open,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_outgoing_transfers" type="object" class="oe_stat_button" icon="fa-exchange">
+                            <field name="pending_outgoing_count" string="Outgoing" widget="statinfo"/>
+                        </button>
+                        <button name="action_view_incoming_transfers" type="object" class="oe_stat_button" icon="fa-inbox">
+                            <field name="pending_incoming_count" string="Incoming" widget="statinfo"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="external_user_name" readonly="1"/>
+                        </h1>
+                        <h3>
+                            <field name="counter_id" readonly="1"/>
+                        </h3>
+                    </div>
+                    <group>
+                        <group string="Session Info">
+                            <field name="external_user_id" readonly="1"/>
+                            <field name="opened_at" readonly="1"/>
+                            <field name="closed_at" readonly="1" invisible="status != 'closed'"/>
+                        </group>
+                        <group string="Balance">
+                            <field name="opening_balance" readonly="1"/>
+                            <field name="expected_amount" readonly="1"/>
+                            <field name="payment_count" readonly="1"/>
+                        </group>
+                    </group>
+                    
+                    <!-- Closing Section (visible when closed) -->
+                    <group string="Closing Details" invisible="status != 'closed'">
+                        <group>
+                            <field name="closing_expected" readonly="1"/>
+                            <field name="closing_declared" readonly="1"/>
+                            <field name="closing_difference" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="closed_by_name" readonly="1"/>
+                            <field name="closing_denominations" readonly="1" widget="json"/>
+                        </group>
+                    </group>
+                    
+                    <!-- Variance Resolution (visible when variance exists) -->
+                    <group string="Variance Resolution" invisible="difference_status == 'none'">
+                        <group>
+                            <field name="difference_status"/>
+                            <field name="difference_note"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Payments" name="payments">
+                            <field name="payment_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="partner_id"/>
+                                    <field name="amount"/>
+                                    <field name="payment_type"/>
+                                    <field name="date"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Outgoing Transfers" name="outgoing">
+                            <field name="outgoing_transfer_ids" readonly="1">
+                                <list>
+                                    <field name="to_user_name"/>
+                                    <field name="to_counter_name"/>
+                                    <field name="amount"/>
+                                    <field name="status" widget="badge"/>
+                                    <field name="created_at"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Incoming Transfers" name="incoming">
+                            <field name="incoming_transfer_ids" readonly="1">
+                                <list>
+                                    <field name="from_user_name"/>
+                                    <field name="from_counter_name"/>
+                                    <field name="amount"/>
+                                    <field name="status" widget="badge"/>
+                                    <field name="created_at"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Cash Session Search View -->
+    <record id="view_cash_session_search" model="ir.ui.view">
+        <field name="name">cash.session.search</field>
+        <field name="model">cash.session</field>
+        <field name="arch" type="xml">
+            <search string="Search Sessions">
+                <field name="external_user_name"/>
+                <field name="external_user_id"/>
+                <field name="counter_id"/>
+                <filter name="open" string="Open" domain="[('status', '=', 'open')]"/>
+                <filter name="closed" string="Closed" domain="[('status', '=', 'closed')]"/>
+                <separator/>
+                <filter name="has_variance" string="Has Variance" domain="[('difference_status', '!=', 'none')]"/>
+                <filter name="open_variance" string="Open Variance" domain="[('difference_status', '=', 'open')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_counter" string="Counter" context="{'group_by': 'counter_id'}"/>
+                    <filter name="group_status" string="Status" context="{'group_by': 'status'}"/>
+                    <filter name="group_user" string="User" context="{'group_by': 'external_user_name'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Cash Session Action -->
+    <record id="action_cash_session" model="ir.actions.act_window">
+        <field name="name">Cash Sessions</field>
+        <field name="res_model">cash.session</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_cash_session_search"/>
+        <field name="context">{'search_default_open': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No cash sessions found
+            </p>
+            <p>
+                Cash sessions are created from the Care system when a cashier starts their shift.
+            </p>
+        </field>
+    </record>
+
+    <!-- Pending Review Sessions Action -->
+    <record id="action_cash_session_pending_review" model="ir.actions.act_window">
+        <field name="name">Pending Review</field>
+        <field name="res_model">cash.session</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('difference_status', '=', 'open')]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No sessions pending review
+            </p>
+            <p>
+                Sessions with unresolved variances will appear here.
+            </p>
+        </field>
+    </record>
+</odoo>

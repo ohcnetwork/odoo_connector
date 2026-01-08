@@ -9,6 +9,7 @@
                     <field name="bill_counter"/>
                     <field name="name"/>
                     <field name="x_care_id"/>
+                    <field name="is_main_cash" widget="boolean_toggle"/>
                 </list>
             </field>
         </record>
@@ -19,6 +20,10 @@
             <field name="arch" type="xml">
                 <form string="Bill Counter">
                     <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <field name="is_main_cash" widget="boolean_button"
+                                button_title="Is Main Cash"/>
+                        </div>
                         <group>
                             <group>
                                 <field name="bill_counter"/>
@@ -44,7 +49,6 @@
             </field>
         </record>
 
-        <menuitem id="menu_main_cash_denomination" name="Cash Denomination" parent="account.menu_finance" sequence="9"/>
-        <menuitem id="menu_bill_counter" name="Bill Counter" parent="menu_main_cash_denomination" action="action_bill_counter" sequence="2"/>
+        <!-- Bill Counter menu moved to cash_denomination module under Cash Management -->
     </data>
 </odoo>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Inherit Company Form to add Cash Session config -->
+    <record id="view_company_form_cash_session" model="ir.ui.view">
+        <field name="name">res.company.form.inherit.cash.session</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Cash Session Config" name="cash_session_config">
+                    <group>
+                        <group string="Cash Journals">
+                            <field name="counter_cash_journal_id" 
+                                options="{'no_create': True}"/>
+                            <field name="main_cash_journal_id"
+                                options="{'no_create': True}"/>
+                        </group>
+                        <group string="Info">
+                            <div class="text-muted">
+                                <p>Configure the cash journals for your counters and main cash.</p>
+                                <p><strong>Counter Cash Journal:</strong> Used for customer collections at billing counters.</p>
+                                <p><strong>Main Cash Journal:</strong> Used for main cash operations (transfers from counters, bank deposits, etc.)</p>
+                                <p>The default account of each journal will be used for accounting entries.</p>
+                            </div>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Menu Structure -->
+    <menuitem id="menu_cash_management_root" 
+        name="Cash Management" 
+        parent="account.menu_finance" 
+        sequence="9"/>
+
+    <menuitem id="menu_cash_sessions" 
+        name="Cash Sessions" 
+        parent="menu_cash_management_root" 
+        action="action_cash_session" 
+        sequence="1"/>
+
+    <menuitem id="menu_cash_sessions_pending" 
+        name="Pending Review" 
+        parent="menu_cash_management_root" 
+        action="action_cash_session_pending_review" 
+        sequence="2"/>
+
+    <menuitem id="menu_cash_transfers" 
+        name="Cash Transfers" 
+        parent="menu_cash_management_root" 
+        action="action_cash_transfer_list" 
+        sequence="3"/>
+
+    <menuitem id="menu_cash_transfers_pending" 
+        name="Pending Transfers" 
+        parent="menu_cash_management_root" 
+        action="action_cash_transfer_pending" 
+        sequence="4"/>
+
+    <menuitem id="menu_bill_counter" 
+        name="Bill Counters" 
+        parent="menu_cash_management_root" 
+        action="care_connector.action_bill_counter" 
+        sequence="10"/>
+</odoo>
