@@ -76,10 +76,8 @@ class CashSessionUtility:
 
             # Close the session
             session.action_close(
-                declared_amount=request_data.declared_amount,
                 closed_by_ext_id=request_data.closed_by_ext_id,
-                closed_by_name=request_data.closed_by_name,
-                denominations=request_data.denominations
+                closed_by_name=request_data.closed_by_name
             )
 
             return cls._session_to_dict(session)
@@ -177,21 +175,14 @@ class CashSessionUtility:
                     f"at counter {request_data.from_counter_x_care_id}"
                 )
 
-            # Find to session
-            to_counter = bill_counter_model.search([
-                ('x_care_id', '=', request_data.to_counter_x_care_id)
-            ], limit=1)
-            if not to_counter:
-                raise ValueError(f"To counter not found: {request_data.to_counter_x_care_id}")
-
-            to_session = cash_session_model.search([
-                ('counter_id', '=', to_counter.id),
-                ('status', '=', 'open')
-            ], limit=1)
-            if not to_session:
+            # Find to session by ID
+            to_session = cash_session_model.browse(request_data.to_session_id)
+            if not to_session.exists():
+                raise ValueError(f"Target session not found: {request_data.to_session_id}")
+            if to_session.status != 'open':
                 raise ValueError(
-                    f"No open session at counter {request_data.to_counter_x_care_id}"
-                    f"at counter {request_data.to_counter_x_care_id}"
+                    f"Target session {request_data.to_session_id} is not open "
+                    f"(status: {to_session.status})"
                 )
 
             # Create transfer
@@ -345,20 +336,28 @@ class CashSessionUtility:
 
             result = []
             for counter in counters:
-                # Check if there's an open session at this counter
-                open_session = cash_session_model.search([
+                # Get all open sessions at this counter (one per user)
+                open_sessions = cash_session_model.search([
                     ('counter_id', '=', counter.id),
                     ('status', '=', 'open')
-                ], limit=1)
+                ])
+
+                open_sessions_info = [
+                    {
+                        'session_id': session.id,
+                        'external_user_id': session.external_user_id,
+                        'external_user_name': session.external_user_name,
+                    }
+                    for session in open_sessions
+                ]
 
                 result.append({
                     'id': counter.id,
                     'name': counter.bill_counter,
                     'x_care_id': counter.x_care_id or '',
                     'is_main_cash': counter.is_main_cash,
-                    'has_open_session': bool(open_session),
-                    'open_session_user': open_session.external_user_name if open_session else None,
-                    'open_session_user_id': open_session.external_user_id if open_session else None,
+                    'open_sessions': open_sessions_info,
+                    'open_session_count': len(open_sessions),
                 })
 
             return result

@@ -221,17 +221,17 @@ class CashSession(models.Model):
             ('status', '=', 'open')
         ], limit=1)
 
-    def action_close(self, declared_amount, closed_by_ext_id, closed_by_name, denominations=None):
-        """Close the session with declared amount.
+    def action_close(self, closed_by_ext_id, closed_by_name):
+        """Close the session.
         
         Close flow:
-        1. User counts their drawer → declared_amount
-        2. System calculates expected_amount
-        3. difference = declared_amount - expected_amount
-        4. If difference ≠ 0, flag as variance for accounts team to resolve
+        1. Check for pending transfers
+        2. For non-main-cash counters: if expected_amount != 0, flag as variance
+           (cash should have been transferred to main cash)
+        3. Main cash counters can close with any balance
         
-        Note: Sessions can close with +ve or -ve variance. The variance is
-        flagged and must be resolved by accounts team (recoverable/written_off).
+        Note: Non-zero balance at non-main-cash counters represents untransferred
+        cash (a liability) and is flagged for the accounts team to resolve.
         """
         self.ensure_one()
 
@@ -260,26 +260,23 @@ class CashSession(models.Model):
 
         # Snapshot expected amount before closing
         expected = self.expected_amount
+        is_main_cash = self.counter_id.is_main_cash
         
-        # Calculate difference: declared - expected
-        # +ve difference = excess cash (user has more than expected)
-        # -ve difference = shortage (user has less than expected)
-        difference = declared_amount - expected
-
         # Determine variance status
-        if abs(difference) < 0.01:
+        # For non-main-cash: flag if balance is not zero (untransferred cash)
+        # For main cash: no variance check needed (it's where cash accumulates)
+        if is_main_cash or abs(expected) < 0.01:
             diff_status = 'none'
         else:
-            # There's a variance - flag it for accounts team to resolve
+            # Non-zero balance at non-main-cash counter - flag for review
             diff_status = 'open'
 
         self.write({
             'status': 'closed',
             'closed_at': fields.Datetime.now(),
             'closing_expected': expected,
-            'closing_declared': declared_amount,
-            'closing_difference': difference,
-            'closing_denominations': denominations,
+            'closing_declared': 0.0,  # No longer tracking declared amount
+            'closing_difference': -expected if not is_main_cash else 0.0,  # Difference from zero
             'closed_by_ext_id': closed_by_ext_id,
             'closed_by_name': closed_by_name,
             'difference_status': diff_status,

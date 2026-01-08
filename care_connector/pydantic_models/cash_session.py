@@ -17,13 +17,8 @@ class CloseSessionRequest(BaseModel):
     """Request to close an existing cash session."""
     external_user_id: str = Field(..., description="Care user ID")
     counter_x_care_id: str = Field(..., description="Counter Care ID")
-    declared_amount: float = Field(..., ge=0, description="Declared cash amount")
     closed_by_ext_id: str = Field(..., description="Who is closing the session")
     closed_by_name: str = Field(..., description="Name of person closing")
-    denominations: Optional[Dict[str, int]] = Field(
-        default=None,
-        description="Optional denomination breakdown"
-    )
 
 
 class SessionResponse(BaseModel):
@@ -62,7 +57,7 @@ class CreateTransferRequest(BaseModel):
     """Request to create a cash transfer."""
     from_user_id: str = Field(..., description="From session user ID")
     from_counter_x_care_id: str = Field(..., description="From counter Care ID")
-    to_counter_x_care_id: str = Field(..., description="To counter Care ID")
+    to_session_id: int = Field(..., description="Target session ID")
     amount: float = Field(..., gt=0, description="Transfer amount")
     created_by_ext_id: str = Field(..., description="Creator user ID")
     created_by_name: str = Field(..., description="Creator name")
@@ -129,11 +124,18 @@ class PendingTransfersRequest(BaseModel):
 
 # === COUNTER MODELS ===
 
+class OpenSessionInfo(BaseModel):
+    """Info about an open session at a counter."""
+    session_id: int
+    external_user_id: str
+    external_user_name: str
+
+
 class CounterResponse(BaseModel):
     """Response containing counter details."""
     id: int
     name: str
     x_care_id: str
     is_main_cash: bool = False
-    has_open_session: bool = False
-    open_session_user: Optional[str] = None
+    open_sessions: List[OpenSessionInfo] = Field(default_factory=list)
+    open_session_count: int = 0
