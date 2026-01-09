@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record model="ir.ui.view" id="view_account_payment_form_cash_session">
+        <field name="name">account.payment.view.form.inherit.cash.session</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="care_connector.view_account_payment_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='cashier']" position="after">
+                <field name="cash_session_id" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

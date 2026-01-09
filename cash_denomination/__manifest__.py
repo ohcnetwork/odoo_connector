@@ -20,6 +20,7 @@
         'views/cash_transfer_views.xml',
         'views/cash_session_views.xml',
         'views/res_company_views.xml',
+        'views/account_payment_views.xml',
     ],
     'installable': True,
     'auto_install': False,
