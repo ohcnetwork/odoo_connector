@@ -119,8 +119,7 @@
                                                     <label for="cashier_id" class="form-label me-2 mb-0" style="min-width:90px;">
                                                         Cashier
                                                     </label>
-                                                    <select id="cashier_id" name="cashier_id"
-                                                            class="form-select" style="width:250px;" required="required">
+                                                    <select id="cashier_id" name="cashier_id" class="form-select" style="width:250px;" required="required">
                                                         <option value="" disabled="disabled" selected="selected">Select Cashier</option>
                                                     </select>
                                                 </div>
@@ -171,40 +170,101 @@
                 </div>
                 <!-- view transfer details  -->
                 <div class="modal fade" id="transfer-details-modal" tabindex="-1" aria-labelledby="transfer-details-modal-label" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-dialog modal-dialog-centered modal-md">
                         <div class="modal-content">
-                            <div class="modal-header">
-                                <h4 class="modal-title" id="transfer-details-modal-label">Transfer Details</h4>
+                            <div class="modal-header bg-primary text-white justify-content-center">
+                                <h4 class="modal-title text-center w-100" id="transfer-details-modal-label">Denomination Details</h4>
                                 <button type="button" class="btn-close btn-close-black" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
+                                <form id="submit_to_account_form" action="/cash/denomination/submit/to/accounts" method="post">
+                                    <div class="mb-3 row align-items-center">
+                                        <label class="col-4 col-form-label fw-bold">Counter</label>
+                                        <div class="col-8">
+                                            <select class="form-control" name="counter_id" id="denomination_counter" required="required">
+                                                <t t-foreach="counters" t-as="counter">
+                                                    <option t-att-value="counter.id">
+                                                        <t t-esc="counter.bill_counter"/>
+                                                    </option>
+                                                </t>
+                                            </select>
+                                        </div>
+                                    </div>
 
-                                <h5>Transfers by You</h5>
-                                <table class="table table-bordered table-striped text-center mb-4">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>To Counter</th>
-                                            <th>Amount</th>
-                                            <th>Date</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="outgoing"></tbody>
-                                </table>
 
-                                <h5>Transfers to You</h5>
-                                <table class="table table-bordered table-striped text-center">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>From Counter</th>
-                                            <th>From User</th>
-                                            <th>Amount</th>
-                                            <th>Date</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="incoming"></tbody>
-                                </table>
+                                    <div class="mb-3 row align-items-center">
+                                        <label class="col-4 col-form-label fw-bold">Cashier</label>
+                                        <div class="col-8">
+                                            <select class="form-control" name="cashier_name" id="cashier_name" required="required">
+                                                <option t-att-value="cashier_name">
+                                                    <t t-esc="cashier_name"/>
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row align-items-center">
+                                        <label class="col-4 col-form-label fw-bold">Date</label>
+                                        <div class="col-8">
+                                            <select class="form-control" name="denomination_date" id="denomination_date" required="required">
+                                                <option t-att-value="denomination_date">
+                                                    <t t-esc="denomination_date"/>
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row align-items-center">
+                                        <label class="col-4 col-form-label fw-bold">Total Cash Received</label>
+                                        <div class="col-8">
+                                            <select class="form-control" name="total_amount" id="total_amount" required="required">
+                                                <option t-att-value="total_amount">
+                                                    <t t-esc="total_amount"/>
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row align-items-center">
+                                        <label class="col-4 col-form-label fw-bold">Total Denomination</label>
+                                        <div class="col-8">
+                                            <select class="form-control" name="total_denomination" id="total_denomination" required="required">
+                                                <option t-att-value="total_denomination">
+                                                    <t t-esc="total_denomination"/>
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row align-items-center">
+                                        <label class="col-4 col-form-label fw-bold">Transferred Amount</label>
+                                        <div class="col-8">
+                                            <select class="form-control" name="total_transfer" id="total_transfer" required="required">
+                                                <option t-att-value="total_transfer">
+                                                    <t t-esc="total_transfer"/>
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row align-items-center">
+                                        <label class="col-4 col-form-label fw-bold">Pending Amount</label>
+                                        <div class="col-8">
+                                            <select class="form-control" name="total_pending" id="total_pending" required="required">
+                                                <option t-att-value="total_pending">
+                                                    <t t-esc="total_pending"/>
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex justify-content-center align-items-center mt-4 position-relative" style="margin-bottom:30px;">
+                                        <div class="mx-auto">
+                                            <button type="button" id="edit_denomination_btn" class="btn" style="background-color: #f53823ff;color:white">Cancel Denomination</button>
+                                            <button type="submit" class="btn btn-primary me-2">Submit</button>
+                                        </div>
+                                    </div>
+                                </form>
 
                             </div>
                         </div>
@@ -321,6 +381,7 @@
                     </div>
                 </div>
 
+                <!-- Submit to account failed modal -->
                 <div class="modal fade" id="AccountSubmitFailedModal" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
@@ -344,6 +405,35 @@
                     </div>
                 </div>
 
+                <!-- Denomination Entry Edit modal -->
+                <div class="modal fade" id="DenominationEditModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-md">
+                        <div class="modal-content shadow-lg rounded-3">
+
+                            <div class="modal-header border-0 bg-light">
+                                <div class="text-center w-100">
+                                    <i class="fa fa-exclamation-triangle text-warning fs-3 mb-2"></i>
+                                    <h5 class="modal-title fw-semibold">Cancel Current Activity
+                                    </h5>
+                                    <p class="text-muted mb-0 small">Choose what you want to cancel
+                                    </p>
+                                </div>
+                                <button type="button" class="btn-close position-absolute end-0 me-3" data-bs-dismiss="modal"></button>
+                            </div>
+
+                            <div class="modal-body px-4 pb-4">
+                                <button type="button" id="cancel_denomination_amount" class="btn btn-outline-danger w-100 py-3 mb-3 rounded-3">
+                                    <i class="fa fa-ban me-2"></i>ancel Denomination Amount
+                                </button>
+
+                                <button type="button" id="cancel_transferred_amount" class="btn btn-outline-warning w-100 py-3 rounded-3">
+                                    <i class="fa fa-undo me-2"></i>Cancel Transferred Amount
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Transfer exceeds cash in hand modal -->
                 <div class="modal fade" id="transfer-limit-modal" tabindex="-1">
                     <div class="modal-dialog modal-dialog-centered">
@@ -353,9 +443,7 @@
                                 <h5 class="modal-title w-100 text-center m-0">
                                     Transfer Amount Exceeded!
                                 </h5>
-
-                                <button type="button" class="btn-close btn-close-white position-absolute end-0 me-2" data-bs-dismiss="modal">
-                                </button>
+                                <button type="button" class="btn-close btn-close-white position-absolute end-0 me-2" data-bs-dismiss="modal"/>
                             </div>
 
                             <div class="modal-body">

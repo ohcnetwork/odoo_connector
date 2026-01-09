@@ -57,7 +57,7 @@ class CashDenominationPageController(http.Controller):
 
         pending_denominations = cash_denomination_model.sudo().search([
             ('user', '=', user.id),
-            ('state', '=', 'draft'),
+            ('state', '=', 'submit'),
             ('pending_amount', '>', 0)
         ])
         for pending in pending_denominations:
@@ -84,8 +84,9 @@ class CashDenominationPageController(http.Controller):
         cash_in_hand = cash_denomination.total_in_hand
         cash_transfer_list = cash_transfer_model.sudo().search([
             ('state', '=', 'submit'),
-            ('to_location', '=', int(counter_id)),
-        ],limit=1)
+            ('from_location', '=', int(counter_id)),
+            ('from_user', '=', user.id),
+        ])
 
         transfer_cash = sum(cash_transfer_list.mapped('grand_total'))
         transfer_list=[]
@@ -154,43 +155,31 @@ class CashDenominationPageController(http.Controller):
             })
         return request.redirect('/cash/denomination?success=1')
 
-    @http.route('/submit/to/accounts/by/counter', type='json', auth='user')
-    def submit_to_accounts_by_counter(self, counter_id):
-        """Change the denomination record state to submit"""
+    @http.route('/get/denomination/details/by/counter', type='json', auth='user')
+    def denomination_details_by_counter(self, counter_id):
         user = request.env.user
-        cash_denomination_model = request.env['cash.denomination']
-        denomination_pending_model = request.env['denomination.payment.pending.lines']
-        cash_denomination = cash_denomination_model.sudo().search([
+        cash_denomination_model = request.env['cash.denomination'].sudo()
+        cash_denomination = cash_denomination_model.search([
             ('user', '=', user.id),
             ('counter', '=', int(counter_id)),
             ('state', '=', 'draft')
         ])
-        submit_status = False
+        denomination_details_dict = {}
         if cash_denomination:
-            if cash_denomination.denomination_line_ids:
-                cash_denomination.sudo().write({
-                    'state': 'submit'
-                })
-
-                payments = cash_denomination.payment_ids.mapped('payment_id')
-                if payments:
-                    payments.sudo().write({'is_denomination': True})
-                submit_status = True
-            if cash_denomination.pending_amount > 0:
-                new_denomination = cash_denomination_model.sudo().create({
-                    'date': fields.Date.today(),
-                    'user': user.id,
-                    'counter': cash_denomination.counter.id,
-                    'state': 'draft'
-                })
-                if new_denomination:
-                    denomination_pending_model.sudo().create({
-                        'denomination_id': new_denomination.id,
-                        'pending_denomination_id': cash_denomination.id,
-                        'amount':cash_denomination.pending_amount
-                    })
-
-        return {'status': submit_status}
+            total_payment = sum(cash_denomination.payment_ids.mapped('amount'))
+            total_accepted_transfer = sum(cash_denomination.accept_transfer_ids.mapped('amount'))
+            total_pending_amount = sum(cash_denomination.pending_amount_ids.mapped('amount'))
+            total_amount = total_payment + total_accepted_transfer + total_pending_amount
+            denomination_details_dict = {
+                "total_amount": total_amount,
+                "total_denomination": sum(cash_denomination.denomination_line_ids.mapped('sub_total')),
+                "total_transfer": sum(cash_denomination.cash_transfer_ids.mapped('grand_total')),
+                "total_pending": cash_denomination.pending_amount,
+                "counter": cash_denomination.counter.bill_counter,
+                "date": cash_denomination.date,
+                "cashier": user.name,
+            }
+        return denomination_details_dict
 
 
     @http.route('/cash/transfer/submit', type='http', auth='user', methods=['POST'], csrf=False, website=True)
@@ -229,3 +218,70 @@ class CashDenominationPageController(http.Controller):
         cash_transfer.write({'state': 'submit'})
 
         return request.redirect('/cash/denomination?transfer_success=1')
+
+
+    @http.route('/cash/denomination/submit/to/accounts', type='http', auth='user', methods=['POST'], csrf=False, website=True)
+    def cash_denomination_submit_to_accounts(self, **post):
+        user = request.env.user
+        counter_id = int(post.get('counter_id'))
+        cash_denomination_model = request.env['cash.denomination']
+        denomination_pending_model = request.env['denomination.payment.pending.lines']
+        cash_denomination = cash_denomination_model.sudo().search([
+            ('user', '=', user.id),
+            ('counter', '=', int(counter_id)),
+            ('state', '=', 'draft')
+        ])
+
+        if cash_denomination:
+            if cash_denomination.denomination_line_ids:
+                cash_denomination.sudo().write({
+                    'state': 'submit'
+                })
+
+                payments = cash_denomination.payment_ids.mapped('payment_id')
+                if payments:
+                    payments.sudo().write({'is_denomination': True})
+
+            if cash_denomination.pending_amount > 0:
+                new_denomination = cash_denomination_model.sudo().create({
+                    'date': fields.Date.today(),
+                    'user': user.id,
+                    'counter': cash_denomination.counter.id,
+                    'state': 'draft'
+                })
+                if new_denomination:
+                    denomination_pending_model.sudo().create({
+                        'denomination_id': new_denomination.id,
+                        'pending_denomination_id': cash_denomination.id,
+                        'amount': cash_denomination.pending_amount
+                    })
+
+        return request.redirect('/cash/denomination?success=1')
+
+    @http.route('/cancel/denomination/amount', type='json', auth='user')
+    def cancel_denomination_entry(self, counter_id):
+        user = request.env.user
+        cash_denomination_model = request.env['cash.denomination']
+        cash_denomination = cash_denomination_model.sudo().search([
+            ('user', '=', user.id),
+            ('counter', '=', int(counter_id)),
+            ('state', '=', 'draft')
+        ])
+
+        if cash_denomination:
+            cash_denomination.denomination_line_ids.unlink()
+        return True
+
+    @http.route('/cancel/transfer/amount', type='json', auth='user')
+    def cancel_transfer_entry(self, counter_id):
+        user = request.env.user
+        cash_denomination_model = request.env['cash.denomination']
+        cash_denomination = cash_denomination_model.sudo().search([
+            ('user', '=', user.id),
+            ('counter', '=', int(counter_id)),
+            ('state', '=', 'draft')
+        ])
+
+        if cash_denomination:
+            cash_denomination.cash_transfer_ids.unlink()
+        return True
