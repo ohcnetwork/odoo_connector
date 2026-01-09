@@ -9,7 +9,7 @@
     </record>
 
     <record id="website_menu_pending_cash_transfer" model="website.menu">
-        <field name="name">Pending Cash Tranfer</field>
+        <field name="name">Pending Cash Transfer</field>
         <field name="url">/pending/cash/transfer</field>
         <field name="sequence" type="int">10</field>
         <field name="parent_id" ref="cash_denomination.website_menu_denomination_history"/>

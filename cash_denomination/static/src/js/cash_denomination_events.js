@@ -17,6 +17,19 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
     start: function () {
         this._super.apply(this, arguments);
         this._setCurrentDate();
+
+        $(document).on(
+            'click',
+            '#cancel_denomination_amount',
+            this._onCancelDenominationAmount.bind(this)
+        );
+
+        $(document).on(
+            'click',
+            '#cancel_transferred_amount',
+            this._onCancelTransferAmount.bind(this)
+        );
+
     },
 
     _setCurrentDate: function () {
@@ -33,7 +46,7 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
             .then(function (result) {
                 if (result) {
                     self.$('#total_cash_field').val(parseFloat(result.total_cash || 0).toFixed(2));
-                    let transferCash = parseFloat(result.transfer_amount || 0);
+                    let transferCash = parseFloat(result.transfer_cash || 0);
                     const transfer = result.transfer_list[0];
                     $('#counter_transfer_amount').text(transferCash);
                     if (transfer) {
@@ -77,21 +90,88 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
     },
 
     _submit_to_accounts: function () {
-
         const selectedCounterId = this.$('#counter').val();
         if (!selectedCounterId) return;
         const self = this;
-        rpc('/submit/to/accounts/by/counter', { counter_id: selectedCounterId })
+        rpc('/get/denomination/details/by/counter', { counter_id: selectedCounterId })
             .then(function (result) {
-                if (result.status == false) {
+                if (result && result.total_denomination) {
+                    $('#denomination_counter').val(selectedCounterId);
+                    const cashierSelect = $('#cashier_name');
+                    cashierSelect.empty();
+                    cashierSelect.append(
+                        $('<option>', {
+                            value: result.cashier,
+                            text: result.cashier,
+                            selected: true
+                        })
+                    );
+                    const dateSelect = $('#denomination_date');
+                    dateSelect.empty();
+                    dateSelect.append(
+                        $('<option>', {
+                            value: result.date,
+                            text: result.date,
+                            selected: true
+                        })
+                    );
+
+                    const totalAmountSelect = $('#total_amount');
+                    totalAmountSelect.empty();
+                    totalAmountSelect.append(
+                        $('<option>', {
+                             value: result.total_amount,
+                             text: result.total_amount,
+                            selected: true
+                        })
+                    );
+
+                    const denominationSelect = $('#total_denomination');
+                    denominationSelect.empty();
+                    denominationSelect.append(
+                        $('<option>', {
+                            value: result.total_denomination,
+                            text: result.total_denomination,
+                            selected: true
+                        })
+                    );
+
+                    const transferSelect = $('#total_transfer');
+                    transferSelect.empty();
+                    transferSelect.append(
+                        $('<option>', {
+                            value: result.total_transfer,
+                            text: result.total_transfer,
+                            selected: true
+                        })
+                    );
+
+                    const pendingSelect = $('#total_pending');
+                    pendingSelect.empty();
+                    pendingSelect.append(
+                        $('<option>', {
+                            value: result.total_pending,
+                            text: result.total_pending,
+                            selected: true
+                        })
+                    );
+
+
+                    $('#transfer-details-modal').modal('show');
+                } else {
                     $('#AccountSubmitFailedModal').modal('show');
                     return;
                 }
-                window.location.href = '/cash/denomination?success=1';
             })
             .catch(function (err) {
                 console.error('Error when submitting to accounts:', err);
             });
+        $('#edit_denomination_btn').off('click').on('click', () => {
+                $('#transfer-details-modal').modal('hide');
+                $('#transfer-details-modal').one('hidden.bs.modal', function () {
+                    $('#DenominationEditModal').modal('show');
+                });
+        });
     },
 
     _fetchAllCounter: function () {
@@ -126,6 +206,12 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
     },
 
     _onDenominationChange: function (ev) {
+
+        const cashInHand = parseFloat(this.$('#total_cash_field').val()) || 0;
+        if (cashInHand <= 0) {
+            $('#no-cash-modal-transfer').modal('show');
+            return;
+        }
         const $input = $(ev.currentTarget);
         const count = parseInt($input.val()) || 0;
         const currency = parseInt($input.data('value')) || 0;
@@ -217,6 +303,33 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
     _submitDenomination: function () {
 
         this.$('#cash_denomination_form')[0].submit();
+    },
+
+
+     _onCancelDenominationAmount: function (ev) {
+        ev.preventDefault();
+        const counterId = parseInt(this.$('#counter').val());
+        rpc('/cancel/denomination/amount', {
+            counter_id: counterId,
+        }).then((result) => {
+            $('#DenominationEditModal').modal('hide');
+            window.location.href = '/cash/denomination?success=1';
+        }).catch((err) => {
+            console.error('RPC error:', err);
+        });
+    },
+
+    _onCancelTransferAmount: function (ev) {
+        ev.preventDefault();
+        const counterId = parseInt(this.$('#counter').val());
+        rpc('/cancel/transfer/amount', {
+            counter_id: counterId,
+        }).then((result) => {
+            $('#DenominationEditModal').modal('hide');
+            window.location.href = '/cash/denomination?success=1';
+        }).catch((err) => {
+            console.error('RPC error:', err);
+        });
     },
 
     _MismatchCashDenominationSubmit: function (ev) {
