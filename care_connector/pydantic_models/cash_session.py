@@ -69,12 +69,14 @@ class CreateTransferRequest(BaseModel):
 
 class AcceptTransferRequest(BaseModel):
     """Request to accept a pending transfer."""
+    session_id: int = Field(..., description="Session ID of the acceptor (must match transfer destination)")
     resolved_by_ext_id: str = Field(..., description="Who is accepting")
     resolved_by_name: str = Field(..., description="Name of acceptor")
 
 
 class RejectTransferRequest(BaseModel):
     """Request to reject a pending transfer."""
+    session_id: int = Field(..., description="Session ID of the rejector (must match transfer destination)")
     resolved_by_ext_id: str = Field(..., description="Who is rejecting")
     resolved_by_name: str = Field(..., description="Name of rejector")
     reason: Optional[str] = Field(default=None, description="Rejection reason")

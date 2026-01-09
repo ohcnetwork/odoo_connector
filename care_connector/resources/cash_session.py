@@ -210,6 +210,12 @@ class CashSessionUtility:
             if not transfer.exists():
                 raise ValueError(f"Transfer not found: {transfer_id}")
 
+            # Validate session_id matches the transfer's destination session
+            if transfer.to_session_id.id != request_data.session_id:
+                raise ValueError(
+                    f"Session ID mismatch. Only the destination session can accept this transfer."
+                )
+
             transfer.action_accept(
                 resolved_by_ext_id=request_data.resolved_by_ext_id,
                 resolved_by_name=request_data.resolved_by_name
@@ -229,6 +235,12 @@ class CashSessionUtility:
             transfer = cash_transfer_model.browse(transfer_id)
             if not transfer.exists():
                 raise ValueError(f"Transfer not found: {transfer_id}")
+
+            # Validate session_id matches the transfer's destination session
+            if transfer.to_session_id.id != request_data.session_id:
+                raise ValueError(
+                    f"Session ID mismatch. Only the destination session can reject this transfer."
+                )
 
             transfer.action_reject(
                 resolved_by_ext_id=request_data.resolved_by_ext_id,
