@@ -7,6 +7,7 @@ from .res_partner import PartnerData
 class UserType(str, Enum):
     portal = "portal"
     internal = "internal"
+    public = "public"
 
 
 class UserData(BaseModel):

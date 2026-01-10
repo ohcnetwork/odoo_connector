@@ -15,9 +15,13 @@ class UserUtility:
             if existing_user:
                 cls._update_partner_details(user_env, existing_user,partner_data)
                 return existing_user
-            group_xml_id = (
-                "base.group_portal" if user_type == "portal" else "base.group_user"
-            )
+
+            if user_type == "public":
+                group_xml_id = "base.group_public"
+            elif user_type == "portal":
+                group_xml_id = "base.group_portal"
+            else:
+                group_xml_id = "base.group_user"
 
             user_vals = {
                 "name": user_data.name,

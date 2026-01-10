@@ -1,10 +1,10 @@
 {
-    "name": "Care Connector",
-    "summary": "Integration with OHC software",
+    "name": "Open Helathcare Network Care Connector",
+    "summary": "Integration with Care software to manage invoices and payments",
     "version": "0.0.1",
-    "category": "Uncategorized",
+    "category": "Healthcare",
     "installable": True,
-    "depends": ["base", "stock", "web", "contacts", "account"],
+    "depends": ["base", "stock", "contacts", "account"],
     "external_dependencies": {
         "python": ["pydantic", "email-validator"],
     },
