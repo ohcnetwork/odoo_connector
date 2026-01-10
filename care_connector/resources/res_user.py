@@ -31,6 +31,9 @@ class UserUtility:
             }
             if user_data.password:
                 user_vals["password"] = user_data.password
+            # Set x_care_id on user if available in partner_data
+            if partner_data and partner_data.x_care_id:
+                user_vals["x_care_id"] = partner_data.x_care_id
 
             res_user = res_users_model.create(user_vals)
             if not res_user:
@@ -78,6 +81,10 @@ class UserUtility:
             }
 
             res_partner.write(partner_vals)
+            
+            # Also update x_care_id on the user for direct lookup
+            if partner_data.x_care_id:
+                res_user.write({'x_care_id': partner_data.x_care_id})
             if status:
                 if status == 'retired' and res_partner.active:
                     res_partner.active = False

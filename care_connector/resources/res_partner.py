@@ -32,7 +32,6 @@ class PartnerUtility:
                         "company_type": partner_data.partner_type.value,
                         "email": partner_data.email,
                         "vat": partner_data.pan,
-                        "agent": is_agent,
                         "phone": partner_data.phone,
                         "country_id": country.id if country else False,
                         "state_id": state.id if state else False,
@@ -44,7 +43,6 @@ class PartnerUtility:
                 res_partner.email = partner_data.email
                 res_partner.vat = partner_data.pan
                 res_partner.phone = partner_data.phone
-                res_partner.agent = is_agent
 
             if status:
                 if status == "retired" and res_partner.active:

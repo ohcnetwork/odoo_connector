@@ -27,6 +27,8 @@ class AccountUtility:
                 raise ValueError("Invoice already exists")
 
             res_partner = PartnerUtility.get_or_create_partner(user_env, partner_data)
+            if isinstance(res_partner, dict) and "error" in res_partner:
+                raise ValueError(res_partner["error"])
             bill_type = request_data.bill_type.value
             invoice_date = request_data.invoice_date
             due_date = request_data.due_date
@@ -143,6 +145,8 @@ class AccountUtility:
                 res_partner = PartnerUtility.get_or_create_partner(
                     user_env, partner_data
                 )
+                if isinstance(res_partner, dict) and "error" in res_partner:
+                    raise ValueError(res_partner["error"])
                 bill_type = request_data.bill_type.value
                 invoice_date = request_data.invoice_date
                 due_date = request_data.due_date
@@ -203,24 +207,15 @@ class AccountUtility:
                         f"Product with id {product_data.x_care_id} is not exists"
                     )
 
-                agent_ids = []
+                commission_user_id = False
                 if item.agent_id:
-                    agent_res_partner = res_partner_model.search(
+                    # Look up user directly by x_care_id (added to res.users via sale_commission_line_level module)
+                    res_users_model = user_env["res.users"]
+                    commission_user = res_users_model.search(
                         [("x_care_id", "=", item.agent_id)], limit=1
                     )
-                    if agent_res_partner and agent_res_partner.agent:
-                        agent_ids = [
-                            (
-                                0,
-                                0,
-                                {
-                                    "agent_id": agent_res_partner.id,
-                                    "commission_id": agent_res_partner.commission_id.id
-                                    if agent_res_partner.commission_id
-                                    else False,
-                                },
-                            )
-                        ]
+                    if commission_user:
+                        commission_user_id = commission_user.id
 
                 billed_qty, free_qty = cls._calculate_quantities(
                     item.quantity, item.free_qty, move_type
@@ -233,9 +228,11 @@ class AccountUtility:
                     "free_qty": free_qty,
                     "price_unit": item.sale_price,
                     "x_care_id": item.x_care_id,
-                    "agent_ids": agent_ids,
-                    "account_discount": discount_ids,
+                    # "account_discount": discount_ids,
                 }
+
+                if commission_user_id:
+                    invoice_line_vals['commission_user_id'] = commission_user_id
 
                 move_line_model = user_env["account.move.line"]
                 missing_fields = [
