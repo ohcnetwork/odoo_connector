@@ -1,7 +1,7 @@
 {
-    "name": "Account Discounts",
+    "name": "Care: Account Discounts",
     "summary": "Track discount groups on invoices using native Odoo discounts",
-    "version": "18.0.2.0.0",
+    "version": "19.0.1.0.0",
     "category": "Accounting",
     "license": "LGPL-3",
     "author": "Custom",

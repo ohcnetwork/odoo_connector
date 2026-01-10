@@ -1,5 +1,5 @@
 import json
-from odoo import http,registry, fields
+from odoo import http, fields
 from odoo.http import request, Response
 from ..authentication.authenticate_user import UserAuthentication
 from ..pydantic_models.product_category import CategoryData

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "Vendor TDS Auto Apply",
+    'name': "Care: Vendor TDS Auto Apply",
     'summary': "If a vendor's total bills in a financial year exceed ₹50 lakhs, TDS applies to the excess amount",
     'description': "This module is automatically adding TDS to the vendor bill",
     'category': 'Accounting',
-    'version': '0.1',
+    'version': '19.0.1.0.0',
     'depends': ['base','account', 'l10n_in_withholding','report_xlsx'],
     'data': [
         'security/ir.model.access.csv',

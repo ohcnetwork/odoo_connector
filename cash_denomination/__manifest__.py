@@ -1,5 +1,5 @@
 {
-    'name': "Cash Session",
+    'name': "Care: Cash Session",
     'summary': "Cash Session Management",
     'description': """
         Cash Session Management System
@@ -13,7 +13,7 @@
         - Integration with Care system
     """,
     'category': 'Accounting',
-    'version': '1.0',
+    'version': '19.0.1.0.0',
     'depends': ['base', 'account', 'care_connector'],
     'data': [
         'security/ir.model.access.csv',

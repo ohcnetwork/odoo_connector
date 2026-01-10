@@ -1,5 +1,5 @@
 {
-    'name': "Sales Journal Tax Auto-Selection",
+    'name': "Care: Sales Journal Tax Auto-Selection",
     'summary': "Auto-select sales journal based on invoice tax presence",
     'description': """
 Automatically selects the appropriate sales journal based on whether 
@@ -11,7 +11,7 @@ the invoice contains taxes:
 Compatible with Odoo Enterprise.
     """,
     'category': 'Accounting/Accounting',
-    'version': '18.0.1.0.0',
+    'version': '19.0.1.0.0',
     'depends': [
         'account',
     ],

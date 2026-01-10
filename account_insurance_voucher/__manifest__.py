@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "Account Insurance Voucher",
+    'name': "Care: Account Insurance Voucher",
 
     'summary': "Generate The Account Insurance Voucher for each invoices",
 
     'description': """ """,
 
     'category': 'Account',
-    'version': '18.1',
+    'version': '19.0.1.0.0',
 
     'depends': ['base','account','insurance_management'],
 

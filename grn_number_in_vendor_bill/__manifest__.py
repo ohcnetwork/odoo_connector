@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "GRN Number in Vendor Bill",
+    'name': "Care: GRN Number in Vendor Bill",
     'summary': "Auto-generate GRN numbers for Care vendor bills",
     'description': """
         Automatically generates sequential GRN numbers when posting vendor bills 
@@ -13,7 +13,7 @@
     """,
     'author': "Your Company",
     'category': 'Accounting',
-    'version': '18.0.2.0.0',
+    'version': '19.0.1.0.0',
     'license': 'LGPL-3',
     'depends': ['account', 'care_connector'],
     'data': [

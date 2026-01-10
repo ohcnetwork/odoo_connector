@@ -1,5 +1,5 @@
 from datetime import datetime
-from odoo import http, registry, fields
+from odoo import http, fields
 from .res_partner import PartnerUtility
 
 

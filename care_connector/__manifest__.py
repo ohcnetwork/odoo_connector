@@ -1,7 +1,7 @@
 {
-    "name": "Open Helathcare Network Care Connector",
+    "name": "Care: Open Healthcare Network Connector",
     "summary": "Integration with Care software to manage invoices and payments",
-    "version": "0.0.1",
+    "version": "19.0.1.0.0",
     "category": "Healthcare",
     "installable": True,
     "depends": ["base", "stock", "contacts", "account"],

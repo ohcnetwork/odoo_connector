@@ -1,7 +1,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 {
-    'name': 'Sale Commission Line Level',
-    'version': '18.0.1.0.0',
+    'name': 'Care: Sale Commission Line Level',
+    'version': '19.0.1.0.0',
     'category': 'Sales/Commission',
     'summary': 'Allow multiple salespeople commissions per invoice at line level',
     'description': """

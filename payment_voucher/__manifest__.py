@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "Payment Voucher",
+    'name': "Care: Payment Voucher",
 
     'summary': "Generate The Payment Voucher for each Payments",
 
     'description': """ """,
 
     'category': 'Account',
-    'version': '18.1',
+    'version': '19.0.1.0.0',
 
     'depends': ['base','account'],
 

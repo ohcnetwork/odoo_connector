@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "Insurance Management",
+    'name': "Care: Insurance Management",
     'summary': "Customer Insurance Management",
     'description': """
     """,
     'category': 'Accounting',
-    'version': '1.0',
+    'version': '19.0.1.0.0',
     'depends': [
         'base','account',],
     'data': [
