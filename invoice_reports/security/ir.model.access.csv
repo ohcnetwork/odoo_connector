@@ -1,8 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_invoice_hsn_excel_wizard,invoice.hsn.excel.wizard,model_invoice_hsn_excel_wizard,base.group_user,1,1,1,1
-access_hsn_gst_rate,hsn.gst.rate,model_hsn_gst_rate,base.group_user,1,1,1,1
-access_sales_invoice_excel_wizard,sales.invoice.excel.wizard,model_sales_invoice_excel_wizard,base.group_user,1,1,1,1
-access_vendor_bill_excel_wizard,vendor.bill.excel.wizard,model_vendor_bill_excel_wizard,base.group_user,1,1,1,1
-access_general_ledger_excel_wizard,general.ledger.excel.wizard,model_general_ledger_excel_wizard,base.group_user,1,1,1,1
-access_trial_balance_excel_wizard,trial.balance.excel.wizard,model_trial_balance_excel_wizard,base.group_user,1,1,1,1
-access_partner_aging_excel_wizard,partner.aged.excel.wizard,model_partner_aged_excel_wizard,base.group_user,1,1,1,1
