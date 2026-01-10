@@ -13,7 +13,7 @@ class UserUtility:
             partner_data = user_data.partner_data
 
             if existing_user:
-                cls._update_partner_details(user_env, existing_user,partner_data)
+                cls._update_partner_details(user_env, existing_user, partner_data)
                 return existing_user
 
             if user_type == "public":
