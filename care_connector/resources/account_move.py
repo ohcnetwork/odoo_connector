@@ -192,11 +192,9 @@ class AccountUtility:
 
             invoice_line_list = []
             for item in invoice_items:
-                discount_ids = []
-                if item.discounts:
-                    discount_ids = cls._get_or_create_discounts(
-                        user_env, item.discounts
-                    )
+                # Calculate discount info using native discount field
+                discount_info = cls._calculate_discount(user_env, item.discounts, item.sale_price)
+
                 product_data = item.product_data
                 product_product_model = user_env["product.product"]
                 product = product_product_model.search(
@@ -209,7 +207,6 @@ class AccountUtility:
 
                 commission_user_id = False
                 if item.agent_id:
-                    # Look up user directly by x_care_id (added to res.users via sale_commission_line_level module)
                     res_users_model = user_env["res.users"]
                     commission_user = res_users_model.search(
                         [("x_care_id", "=", item.agent_id)], limit=1
@@ -228,8 +225,12 @@ class AccountUtility:
                     "free_qty": free_qty,
                     "price_unit": item.sale_price,
                     "x_care_id": item.x_care_id,
-                    # "account_discount": discount_ids,
+                    "discount": discount_info.get("discount_percent", 0.0),  # Native Odoo discount field
                 }
+
+                # Add discount group if available
+                if discount_info.get("discount_group_id"):
+                    invoice_line_vals["discount_group_id"] = discount_info["discount_group_id"]
 
                 if commission_user_id:
                     invoice_line_vals['commission_user_id'] = commission_user_id
@@ -277,14 +278,30 @@ class AccountUtility:
             raise Exception(f"{str(e)}")
 
     @classmethod
-    def _get_or_create_discounts(cls, user_env, discount_data):
+    def _calculate_discount(cls, user_env, discount_data, price_unit):
+        """
+        Calculate total discount percentage for native Odoo discount field.
+        
+        Args:
+            user_env: Odoo environment
+            discount_data: List of discount objects from Care
+            price_unit: Unit price of the product (for converting fixed amounts to %)
+            
+        Returns:
+            dict with 'discount_percent' and optionally 'discount_group_id'
+        """
+        if not discount_data:
+            return {"discount_percent": 0.0}
+
         try:
-            discount_group_model = user_env["account.discount.groups"]
-            product_template_model = user_env["product.template"]
+            discount_group_model = user_env["account.discount.group"]
+            total_discount_percent = 0.0
             group_id = None
-            disc_product_ids = []
+
             for disc in discount_data:
                 disc_type = disc.discount_type.value
+
+                # Get or create discount group for tracking
                 if disc.discount_group:
                     group = disc.discount_group
                     discount_group = discount_group_model.search(
@@ -299,39 +316,27 @@ class AccountUtility:
                         discount_group.name = group.name
 
                     group_id = discount_group.id
-                domain = [
-                    ("is_disc_item", "=", True),
-                    ("discount_group", "=", group_id),
-                ]
 
-                if disc_type == "amount":
-                    domain.append(("disc_amount", "=", disc.rate))
-                else:
-                    domain.append(("disc_percent", "=", disc.rate))
+                # Calculate discount percentage
+                if disc_type == "factor":
+                    # Already a percentage
+                    total_discount_percent += disc.rate
+                elif disc_type == "amount" and price_unit > 0:
+                    # Convert fixed amount to percentage
+                    percent = (disc.rate / price_unit) * 100
+                    total_discount_percent += percent
 
-                discount_product = product_template_model.search(domain, limit=1)
+            # Cap at 100%
+            total_discount_percent = min(total_discount_percent, 100.0)
 
-                if not discount_product:
-                    vals = {
-                        "name": disc.name,
-                        "is_disc_item": True,
-                        "discount_group": group_id,
-                        "list_price": disc.disc_amt,
-                    }
-                    if disc_type == "amount":
-                        vals["disc_amount"] = disc.rate
-                    else:
-                        vals["disc_percent"] = disc.rate
-                    discount_product = product_template_model.create(vals)
+            result = {"discount_percent": round(total_discount_percent, 2)}
+            if group_id:
+                result["discount_group_id"] = group_id
 
-                if discount_product.list_price != disc.disc_amt:
-                    discount_product.list_price = disc.disc_amt
-                disc_product_ids.append(discount_product.id)
-
-            return disc_product_ids
+            return result
 
         except Exception as e:
-            raise Exception(f"{str(e)}")
+            raise Exception(f"Error calculating discount: {str(e)}")
 
     @classmethod
     def _calculate_quantities(cls, received_qty, free_qty, move_type):

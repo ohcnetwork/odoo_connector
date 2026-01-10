@@ -1,1 +1,2 @@
-from . import account_move,discount_groups, product_template
+from . import discount_group
+from . import account_move
