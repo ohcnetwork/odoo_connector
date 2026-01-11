@@ -30,38 +30,45 @@
     </record>
 
     <!-- Menu Structure -->
+    <!-- Cash Management as top-level menu item in Accounting app (between Review and Reporting) -->
     <menuitem id="menu_cash_management_root" 
         name="Cash Management" 
-        parent="account.menu_finance" 
-        sequence="9"/>
+        parent="accountant.menu_accounting" 
+        sequence="10"
+        groups="account.group_account_readonly,account.group_account_invoice"/>
 
     <menuitem id="menu_cash_sessions" 
         name="Cash Sessions" 
         parent="menu_cash_management_root" 
         action="action_cash_session" 
-        sequence="1"/>
+        sequence="1"
+        groups="account.group_account_readonly,account.group_account_invoice"/>
 
     <menuitem id="menu_cash_sessions_pending" 
         name="Pending Review" 
         parent="menu_cash_management_root" 
         action="action_cash_session_pending_review" 
-        sequence="2"/>
+        sequence="2"
+        groups="account.group_account_readonly,account.group_account_invoice"/>
 
     <menuitem id="menu_cash_transfers" 
         name="Cash Transfers" 
         parent="menu_cash_management_root" 
         action="action_cash_transfer_list" 
-        sequence="3"/>
+        sequence="3"
+        groups="account.group_account_readonly,account.group_account_invoice"/>
 
     <menuitem id="menu_cash_transfers_pending" 
         name="Pending Transfers" 
         parent="menu_cash_management_root" 
         action="action_cash_transfer_pending" 
-        sequence="4"/>
+        sequence="4"
+        groups="account.group_account_readonly,account.group_account_invoice"/>
 
     <menuitem id="menu_bill_counter" 
         name="Bill Counters" 
         parent="menu_cash_management_root" 
         action="care_connector.action_bill_counter" 
-        sequence="10"/>
+        sequence="10"
+        groups="account.group_account_readonly,account.group_account_invoice"/>
 </odoo>

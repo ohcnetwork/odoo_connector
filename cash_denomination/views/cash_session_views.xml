@@ -129,20 +129,8 @@
         <field name="name">cash.session.search</field>
         <field name="model">cash.session</field>
         <field name="arch" type="xml">
-            <search string="Search Sessions">
+            <search>
                 <field name="external_user_name"/>
-                <field name="external_user_id"/>
-                <field name="counter_id"/>
-                <filter name="open" string="Open" domain="[('status', '=', 'open')]"/>
-                <filter name="closed" string="Closed" domain="[('status', '=', 'closed')]"/>
-                <separator/>
-                <filter name="has_variance" string="Has Variance" domain="[('difference_status', '!=', 'none')]"/>
-                <filter name="open_variance" string="Open Variance" domain="[('difference_status', '=', 'open')]"/>
-                <group expand="0" string="Group By">
-                    <filter name="group_counter" string="Counter" context="{'group_by': 'counter_id'}"/>
-                    <filter name="group_status" string="Status" context="{'group_by': 'status'}"/>
-                    <filter name="group_user" string="User" context="{'group_by': 'external_user_name'}"/>
-                </group>
             </search>
         </field>
     </record>
@@ -153,7 +141,7 @@
         <field name="res_model">cash.session</field>
         <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_cash_session_search"/>
-        <field name="context">{'search_default_open': 1}</field>
+        <field name="context">{}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 No cash sessions found

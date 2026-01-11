@@ -14,7 +14,7 @@
     """,
     'category': 'Accounting',
     'version': '19.0.1.0.0',
-    'depends': ['base', 'account', 'care_connector'],
+    'depends': ['base', 'account', 'accountant', 'care_connector'],
     'data': [
         'security/ir.model.access.csv',
         'views/cash_transfer_views.xml',

@@ -88,21 +88,8 @@
         <field name="name">cash.transfer.search</field>
         <field name="model">cash.transfer</field>
         <field name="arch" type="xml">
-            <search string="Search Transfers">
-                <field name="from_user_name"/>
-                <field name="to_user_name"/>
-                <field name="from_session_id"/>
-                <field name="to_session_id"/>
-                <filter name="pending" string="Pending" domain="[('status', '=', 'pending')]"/>
-                <filter name="accepted" string="Accepted" domain="[('status', '=', 'accepted')]"/>
-                <filter name="rejected" string="Rejected" domain="[('status', '=', 'rejected')]"/>
-                <separator/>
-                <filter name="today" string="Today" domain="[('created_at', '>=', context_today().strftime('%Y-%m-%d'))]"/>
-                <group expand="0" string="Group By">
-                    <filter name="group_status" string="Status" context="{'group_by': 'status'}"/>
-                    <filter name="group_from" string="From User" context="{'group_by': 'from_user_name'}"/>
-                    <filter name="group_to" string="To User" context="{'group_by': 'to_user_name'}"/>
-                </group>
+            <search>
+                <field name="amount"/>
             </search>
         </field>
     </record>
@@ -129,7 +116,7 @@
         <field name="res_model">cash.transfer</field>
         <field name="view_mode">list,form</field>
         <field name="domain">[('status', '=', 'pending')]</field>
-        <field name="context">{'search_default_pending': 1}</field>
+        <field name="context">{}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 No pending transfers
