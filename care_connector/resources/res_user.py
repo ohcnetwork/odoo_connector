@@ -27,7 +27,7 @@ class UserUtility:
                 "name": user_data.name,
                 "login": user_data.login,
                 "email": user_data.email,
-                "groups_id": [(6, 0, [request.env.ref(group_xml_id).id])],
+                "group_ids": [(6, 0, [user_env.ref(group_xml_id).id])],
             }
             if user_data.password:
                 user_vals["password"] = user_data.password

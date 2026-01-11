@@ -12,18 +12,22 @@ class UserAuthentication:
                 raise ValueError("Missing or invalid Authorization header")
             auth_decoded = base64.b64decode(auth_header.split(" ")[1]).decode("utf-8")
             username, password = auth_decoded.split(":", 1)
-            credential = {'login': username, 'password': password, 'type': 'password'}
-            session_data = request.session.authenticate(
-                request.session.db, credential
-            )
-            if not session_data:
+            credential = {
+                'type': 'password',
+                'login': username,
+                'password': password
+            }
+            auth_info = request.session.authenticate(request.env, credential)
+            if not auth_info or not auth_info.get('uid'):
                 raise ValueError("Invalid username or password")
 
-            user_env = request.env(user=session_data["uid"], su=False)
+            user_env = request.env(user=auth_info['uid'], su=False)
 
             if not user_env.user.exists():
                 raise ValueError("user not found")
             return user_env
 
+        except ValueError:
+            raise
         except Exception as e:
-            raise Exception(f"Authentication failed: {str(e)}")
+            raise ValueError(f"Authentication failed: {str(e)}")
