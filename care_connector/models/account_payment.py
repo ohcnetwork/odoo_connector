@@ -8,5 +8,18 @@ class AccountPayment(models.Model):
     cancel_status = fields.Boolean(string="Cancelled", default=False)
     location = fields.Many2one('bill.counter', string='Location')
     cashier = fields.Many2one('res.users', string='Cashier')
+    bank_reference = fields.Char(string='Reference No', help='Card last 4 digits or other reference')
     # Note: cash_session_id field is defined in cash_denomination module
     # to avoid circular dependency (cash.session model is defined there)
+
+
+class AccountPaymentRegister(models.TransientModel):
+    _inherit = 'account.payment.register'
+
+    bank_reference = fields.Char(string='Reference No', help='Card last 4 digits or other reference')
+
+    def _create_payment_vals_from_wizard(self, batch_result):
+        vals = super()._create_payment_vals_from_wizard(batch_result)
+        if self.bank_reference:
+            vals['bank_reference'] = self.bank_reference
+        return vals

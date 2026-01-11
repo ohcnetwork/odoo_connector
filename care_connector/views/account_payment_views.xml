@@ -11,6 +11,7 @@
             </xpath>
             <xpath expr="//field[@name='payment_method_line_id']" position="after">
                 <field name="x_care_id" readonly="1"/>
+                <field name="bank_reference"/>
                 <field name="location"/>
                 <field name="cashier"/>
                 <!-- cash_session_id field is added by cash_denomination module -->
