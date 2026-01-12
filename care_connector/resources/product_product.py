@@ -1,7 +1,6 @@
 from odoo.http import request
 from .product_category import CategoryUtility
 
-
 class ProductUtility:
 
     @classmethod
@@ -58,30 +57,25 @@ class ProductUtility:
             account_tax_model = user_env['account.tax']
             sale_tax_ids = []
             purchase_tax_ids = []
-            for tax_data in tax_list:
-                tax_name = f"{tax_data.tax_name} ({tax_data.tax_percentage}%)"
-                for tax_type in ['sale', 'purchase']:
-                    name = f"{tax_name} - {tax_type.capitalize()}"
-                    existing_tax = account_tax_model.search([
-                        ('name', '=', name),
-                        ('amount', '=', tax_data.tax_percentage),
-                        ('type_tax_use', '=', tax_type)
-                    ], limit=1)
-                    if not existing_tax:
-                        existing_tax = account_tax_model.create({
-                            'name': name,
-                            'amount': tax_data.tax_percentage,
-                            'type_tax_use': tax_type,
-                        })
+            tax_percentage_total = int(sum(tax_data.tax_percentage for tax_data in tax_list))
+            # TODO: Handle multiple taxes properly in future if required
+            tax_name = "IGST" if len(tax_list) == 1 else "GST"
+            for tax_type in ['sale', 'purchase']:
+                name = f"{tax_percentage_total}% {tax_name} {tax_type[0].upper()}"
+                existing_tax = account_tax_model.search([
+                    ('name', '=', name),
+                    ('amount', '=', tax_percentage_total),
+                    ('type_tax_use', '=', tax_type)
+                ], limit=1)
 
-                    if tax_type == 'sale':
-                        sale_tax_ids.append(existing_tax.id)
-                    else:
-                        purchase_tax_ids.append(existing_tax.id)
+                if tax_type == 'sale':
+                    sale_tax_ids.append(existing_tax.id)
+                else:
+                    purchase_tax_ids.append(existing_tax.id)
 
             return {
                 "purchase_tax": purchase_tax_ids,
-                "sale_tax": sale_tax_ids,
+                "sale_tax": sale_tax_ids, 
             }
 
         except Exception as e:
