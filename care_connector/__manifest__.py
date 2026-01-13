@@ -4,7 +4,7 @@
     "version": "0.0.1",
     "category": "Uncategorized",
     "installable": True,
-    "depends": ["base", "stock", "web", "contacts", "account"],
+    "depends": ["base", "stock", "web", "contacts", "account","hr"],
     "external_dependencies": {
         "python": ["pydantic", "email-validator"],
     },
@@ -16,5 +16,6 @@
         "views/res_partner_views.xml",
         "views/product_category_views.xml",
         "views/bill_counter_views.xml",
+        "views/hr_employee_views.xml",
     ],
 }

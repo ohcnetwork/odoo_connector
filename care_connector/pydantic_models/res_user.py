@@ -2,6 +2,7 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 from enum import Enum
 from .res_partner import PartnerData
+from .hr_employee import EmployeeData
 
 
 class UserType(str, Enum):
@@ -16,3 +17,4 @@ class UserData(BaseModel):
     email: EmailStr
     user_type: UserType
     partner_data: PartnerData
+    employee_data: EmployeeData
