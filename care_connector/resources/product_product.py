@@ -81,6 +81,12 @@ class ProductUtility:
                     limit=1,
                 )
 
+                if not existing_tax:
+                    return {
+                        "purchase_tax": [],
+                        "sale_tax": [],
+                    }
+
                 if tax_type == "sale":
                     sale_tax_ids.append(existing_tax.id)
                 else:
