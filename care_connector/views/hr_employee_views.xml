@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record model="ir.ui.view" id="view_move_form">
+        <field name="name">hr.employee.view.form.inherit.care.connector</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='mobile_phone']" position="after">
+                <field name="x_care_id" readonly="1" />
+            </xpath>
+        </field>
+    </record>
+</odoo>

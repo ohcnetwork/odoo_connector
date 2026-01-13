@@ -11,6 +11,7 @@ class UserUtility:
 
             user_type = user_data.user_type.value
             partner_data = user_data.partner_data
+            employee_data = user_data.employee_data
 
             if existing_user:
                 cls._update_partner_details(user_env, existing_user,partner_data)
@@ -34,12 +35,13 @@ class UserUtility:
 
             status = partner_data.status.value if partner_data.status else None
             res_partner = res_user.partner_id
+            cls._create_or_update_employee(user_env, res_user, employee_data)
+
             if status:
                 if status == 'retired' and res_partner.active:
                     res_user.active = False
                 elif status in ['draft', 'active'] and not res_partner.active:
                     res_user.active = True
-
             return res_user
 
         except Exception as e:
@@ -83,3 +85,44 @@ class UserUtility:
 
         except Exception as e:
             raise {str(e)}
+
+
+    @classmethod
+    def _create_or_update_employee(cls, user_env, res_user, employee_data):
+        try:
+            hr_employee_model = user_env["hr.employee"]
+            name = employee_data.name
+            x_care_id = employee_data.x_care_id
+            phone = employee_data.phone
+            job_title = employee_data.job_title
+            email = employee_data.email
+            status = employee_data.status.value if employee_data.status else None
+
+            hr_employee = hr_employee_model.with_context(active_test=False).search(
+                [("x_care_id", "=", x_care_id)], limit=1
+            )
+            if not hr_employee:
+                hr_employee = hr_employee_model.create({
+                    'name': name,
+                    'job_title': job_title,
+                    'x_care_id': x_care_id,
+                    'work_email': email,
+                    'mobile_phone': phone,
+                    'user_id': res_user.id,
+                })
+            else:
+                hr_employee.name = name
+                hr_employee.job_title = job_title
+                hr_employee.work_email = email
+                hr_employee.mobile_phone = phone
+                hr_employee.user_id = res_user.id
+
+            if status:
+                if status == "retired" and hr_employee.active:
+                    hr_employee.active = False
+                elif status in ["draft", "active"] and not hr_employee.active:
+                    hr_employee.active = True
+            return hr_employee
+
+        except Exception as e:
+            return {str(e)}
