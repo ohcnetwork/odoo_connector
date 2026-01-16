@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Extend achievement report list view to show line_amount and product -->
+    <record id="sale_achievement_report_view_list_line_level" model="ir.ui.view">
+        <field name="name">sale.commission.achievement.report.view.list.line.level</field>
+        <field name="model">sale.commission.achievement.report</field>
+        <field name="inherit_id" ref="sale_commission.sale_achievement_report_view_list"/>
+        <field name="arch" type="xml">
+            <!-- Add line_amount before achieved -->
+            <xpath expr="//field[@name='achieved']" position="before">
+                <field name="line_amount" string="Invoice Amount" sum="Total Amount" optional="show"/>
+                <field name="product_id" string="Product" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Extend achievement report pivot view to include line_amount -->
+    <record id="sale_achievement_report_view_pivot_line_level" model="ir.ui.view">
+        <field name="name">sale.commission.achievement.report.view.pivot.line.level</field>
+        <field name="model">sale.commission.achievement.report</field>
+        <field name="inherit_id" ref="sale_commission.sale_achievement_report_view_pivot"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='achieved'][@type='measure']" position="after">
+                <field name="line_amount" type="measure"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Extend achievement report graph view to include line_amount -->
+    <record id="sale_achievement_report_view_graph_line_level" model="ir.ui.view">
+        <field name="name">sale.commission.achievement.report.view.graph.line.level</field>
+        <field name="model">sale.commission.achievement.report</field>
+        <field name="inherit_id" ref="sale_commission.sale_achievement_report_view_graph"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='achieved'][@type='measure']" position="after">
+                <field name="line_amount" type="measure"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Extend search view to allow grouping by product -->
+    <record id="sale_achievement_report_view_search_line_level" model="ir.ui.view">
+        <field name="name">sale.commission.achievement.report.view.search.line.level</field>
+        <field name="model">sale.commission.achievement.report</field>
+        <field name="inherit_id" ref="sale_commission.sale_achievement_report_view_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='company_id']" position="after">
+                <field name="product_id" string="Product"/>
+            </xpath>
+            <xpath expr="//filter[@name='company']" position="after">
+                <filter string="Product" name="product" context="{'group_by':'product_id'}"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
