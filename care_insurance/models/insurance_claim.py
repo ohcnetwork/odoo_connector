@@ -76,10 +76,12 @@ class InsuranceClaim(models.Model):
     # Hospital specific fields
     age = fields.Char(string="Customer Age")
     doctor = fields.Char(string="Doctor")
+    claim_number = fields.Char(string="Claim Number")
     bill_number = fields.Char(string="Bill Number")
     ip_number = fields.Char(string="I.P. No")
     op_number = fields.Char(string="O.P. No")
     room_number = fields.Char(string="Room No")
+    room_category = fields.Char(string="Room Category")
     admission_date = fields.Datetime(string="Admission Date")
     as_on = fields.Datetime(string="As On")
     narration = fields.Text(string="Notes")
@@ -158,14 +160,21 @@ class InsuranceClaim(models.Model):
     # Compute Methods
     # -------------------------------------------------------------------------
 
-    @api.depends("category_ids.original_amount", "category_ids.insurance_amount")
+    @api.depends(
+        "category_ids.original_amount",
+        "category_ids.insurance_amount",
+        "category_ids.include_in_report",
+    )
     def _compute_totals(self):
         for claim in self:
+            included_categories = claim.category_ids.filtered(
+                lambda c: c.include_in_report
+            )
             claim.total_original_amount = sum(
-                claim.category_ids.mapped("original_amount")
+                included_categories.mapped("original_amount")
             )
             claim.total_insurance_amount = sum(
-                claim.category_ids.mapped("insurance_amount")
+                included_categories.mapped("insurance_amount")
             )
 
     # -------------------------------------------------------------------------

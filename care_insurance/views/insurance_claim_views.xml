@@ -99,10 +99,12 @@
                         <group>
                             <field name="age" readonly="state != 'draft'"/>
                             <field name="doctor" readonly="state != 'draft'"/>
+                            <field name="claim_number" readonly="state != 'draft'"/>
                             <field name="bill_number" readonly="state != 'draft'"/>
                             <field name="ip_number" readonly="state != 'draft'"/>
                             <field name="op_number" readonly="state != 'draft'"/>
                             <field name="room_number" readonly="state != 'draft'"/>
+                            <field name="room_category" readonly="state != 'draft'"/>
                             <field name="admission_date" readonly="state != 'draft'"/>
                             <field name="as_on" readonly="state != 'draft'"/>
                         </group>
@@ -116,16 +118,23 @@
                     <notebook>
                         <page string="Category Summary" name="category_summary">
                             <field name="category_ids" nolabel="1" readonly="state != 'draft'">
-                                <list editable="bottom" create="false" delete="false">
-                                    <field name="category_name" readonly="1"/>
-                                    <!-- Original values (readonly) -->
+                                <list editable="bottom" create="true" delete="true">
+                                    <field name="is_manual" column_invisible="1"/>
+                                    <field name="category_id" string="Category"
+                                           options="{'no_create': True, 'no_open': True}"/>
+                                    <field name="category_name" column_invisible="1"/>
+                                    <!-- Original values -->
                                     <field name="original_quantity" readonly="1"/>
                                     <field name="original_rate" readonly="1"/>
                                     <field name="original_amount" readonly="1" sum="Total Original"/>
-                                    <!-- Insurance values (editable in draft) -->
-                                    <field name="insurance_quantity"/>
-                                    <field name="insurance_rate"/>
-                                    <field name="insurance_amount" sum="Total Insurance"/>
+                                    <!-- Insurance values (readonly when print_line_items) -->
+                                    <field name="insurance_quantity" readonly="print_line_items"/>
+                                    <field name="insurance_rate" readonly="print_line_items"/>
+                                    <field name="insurance_amount" sum="Total Insurance" readonly="print_line_items"/>
+                                    <!-- Checkboxes at the end -->
+                                    <field name="include_in_report" string="Include in Report" width="100px"/>
+                                    <field name="print_line_items" string="Print Items" width="80px"
+                                           readonly="is_manual"/>
                                 </list>
                             </field>
                             <group class="oe_subtotal_footer">
