@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_insurance_company_user,insurance.company.user,model_insurance_company,group_insurance_user,1,0,0,0
+access_insurance_company_manager,insurance.company.manager,model_insurance_company,group_insurance_manager,1,1,1,1
+access_insurance_claim_user,insurance.claim.user,model_insurance_claim,group_insurance_user,1,1,1,0
+access_insurance_claim_manager,insurance.claim.manager,model_insurance_claim,group_insurance_manager,1,1,1,1
+access_insurance_claim_category_user,insurance.claim.category.user,model_insurance_claim_category,group_insurance_user,1,1,1,1
+access_insurance_claim_category_manager,insurance.claim.category.manager,model_insurance_claim_category,group_insurance_manager,1,1,1,1
+access_insurance_reject_wizard_user,insurance.reject.wizard.user,model_insurance_reject_wizard,group_insurance_user,1,1,1,1

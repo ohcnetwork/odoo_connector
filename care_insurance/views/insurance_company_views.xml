@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Insurance Company List View -->
+    <record id="insurance_company_view_list" model="ir.ui.view">
+        <field name="name">insurance.company.list</field>
+        <field name="model">insurance.company</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="account_id"/>
+                <field name="claim_count" string="Claims"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Insurance Company Form View -->
+    <record id="insurance_company_view_form" model="ir.ui.view">
+        <field name="name">insurance.company.form</field>
+        <field name="model">insurance.company</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_claims" type="object"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                invisible="claim_count == 0">
+                            <field name="claim_count" widget="statinfo" string="Claims"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger"
+                            invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="Insurance Company Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="account_id"/>
+                        </group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Notes">
+                            <field name="description" placeholder="Description..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Insurance Company Search View -->
+    <record id="insurance_company_view_search" model="ir.ui.view">
+        <field name="name">insurance.company.search</field>
+        <field name="model">insurance.company</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+                <separator/>
+                <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
+                <separator/>
+                <filter string="Company" name="group_company" context="{'group_by': 'company_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Insurance Company Action -->
+    <record id="insurance_company_action" model="ir.actions.act_window">
+        <field name="name">Insurance Companies</field>
+        <field name="res_model">insurance.company</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first insurance company
+            </p>
+            <p>
+                Define insurance companies and their receivable accounts for claim processing.
+            </p>
+        </field>
+    </record>
+
+    <!-- Configuration Menu (others defined in insurance_claim_views.xml) -->
+    <menuitem id="menu_insurance_config"
+              name="Configuration"
+              parent="menu_insurance_root"
+              sequence="90"/>
+
+    <menuitem id="menu_insurance_company"
+              name="Insurance Companies"
+              parent="menu_insurance_config"
+              action="insurance_company_action"
+              sequence="10"/>
+</odoo>
+
