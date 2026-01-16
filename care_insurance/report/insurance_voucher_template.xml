@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="report_insurance_voucher">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="claim">
+                <t t-call="web.external_layout">
+                    <div class="page" style="font-family: system-ui, -apple-system, sans-serif;">
+                        <!-- Header with Company Info -->
+                        <div class="d-flex justify-content-between align-items-start mb-3 pb-2" style="border-bottom: 1px solid #e5e7eb;">
+                            <div>
+                                <h2 class="mb-1" style="font-size: 1.5rem; font-weight: 500;">
+                                    <span t-field="claim.company_id.name"/>
+                                </h2>
+                                <div style="color: #6b7280; font-size: 0.875rem;">
+                                    <t t-if="claim.company_id.street">
+                                        <span t-field="claim.company_id.street"/>
+                                        <t t-if="claim.company_id.city">, </t>
+                                    </t>
+                                    <t t-if="claim.company_id.city">
+                                        <span t-field="claim.company_id.city"/>
+                                    </t>
+                                    <t t-if="claim.company_id.state_id">
+                                        <br/><span t-field="claim.company_id.state_id.name"/>
+                                        <t t-if="claim.company_id.zip"> - <span t-field="claim.company_id.zip"/></t>
+                                    </t>
+                                    <t t-if="claim.company_id.phone">
+                                        <br/><span t-field="claim.company_id.phone"/>
+                                    </t>
+                                </div>
+                            </div>
+                            <div class="text-end" style="flex-shrink: 0;">
+                                <t t-set="company" t-value="claim.company_id"/>
+                                <img t-if="company.logo" 
+                                     t-att-src="'data:image/png;base64,%s' % company.logo.decode('utf-8') if company.logo else ''" 
+                                     style="max-height: 50px; max-width: 150px; width: auto; object-fit: contain;" 
+                                     alt="Company Logo"/>
+                            </div>
+                        </div>
+
+                        <!-- Voucher Title Row -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <div style="font-size: 1rem; text-transform: uppercase; color: #374151;">INSURANCE CLAIM</div>
+                                <div style="font-size: 1rem; font-weight: 600; color: #111827;">
+                                    <span t-field="claim.name"/>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div style="font-size: 0.875rem; font-weight: 500; color: #374151;">Issue Date:</div>
+                                <p style="font-size: 0.875rem; font-weight: 500; color: #111827; margin: 0;">
+                                    <span t-field="claim.create_date" t-options='{"widget": "datetime", "format": "dd MMM, yyyy h:mm a"}'/>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Bill To and Details Section -->
+                        <div class="d-flex justify-content-between mb-4">
+                            <div>
+                                <div style="font-size: 0.875rem; font-weight: 500; color: #374151;">Bill To:</div>
+                                <p style="font-size: 1rem; font-weight: 500; margin: 0 0 0 0.5rem;">
+                                    <span t-field="claim.customer_id.name"/>
+                                </p>
+                                <t t-if="claim.age">
+                                    <p style="font-size: 0.875rem; color: #6b7280; margin: 0 0 0 0.5rem;">
+                                        Age: <span t-field="claim.age"/>
+                                    </p>
+                                </t>
+                            </div>
+                            <div class="text-end">
+                                <t t-if="claim.customer_id.street or claim.customer_id.city">
+                                    <div class="d-flex gap-1" style="font-size: 0.875rem; font-weight: 500; color: #374151;">
+                                        Address: 
+                                        <span style="color: #374151; white-space: pre-wrap; margin-left: 0.5rem;">
+                                            <t t-if="claim.customer_id.street"><span t-field="claim.customer_id.street"/></t>
+                                            <t t-if="claim.customer_id.street and claim.customer_id.city">, </t>
+                                            <t t-if="claim.customer_id.city"><span t-field="claim.customer_id.city"/></t>
+                                        </span>
+                                    </div>
+                                </t>
+                                <t t-if="claim.doctor">
+                                    <p style="font-size: 0.875rem; color: #374151; margin: 0.25rem 0 0 0;">
+                                        Doctor: <span t-field="claim.doctor" style="margin-left: 0.5rem;"/>
+                                    </p>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- Insurance Company & Details Row -->
+                        <div class="d-flex justify-content-between mb-3 pb-2" style="border-bottom: 1px dashed #d1d5db;">
+                            <div>
+                                <span style="font-size: 0.875rem; font-weight: 500; color: #374151;">Insurance Company: </span>
+                                <span style="font-size: 0.875rem; font-weight: 600; color: #111827;">
+                                    <span t-field="claim.insurance_company_id.name"/>
+                                </span>
+                            </div>
+                            <div class="d-flex gap-4">
+                                <t t-if="claim.bill_number">
+                                    <span style="font-size: 0.875rem; color: #374151;">Bill No: <strong t-field="claim.bill_number"/></span>
+                                </t>
+                                <t t-if="claim.op_number">
+                                    <span style="font-size: 0.875rem; color: #374151;">OP No: <strong t-field="claim.op_number"/></span>
+                                </t>
+                                <t t-if="claim.ip_number">
+                                    <span style="font-size: 0.875rem; color: #374151;">IP No: <strong t-field="claim.ip_number"/></span>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- Additional Info Row -->
+                        <t t-if="claim.room_number or claim.admission_date or claim.as_on">
+                            <div class="d-flex gap-4 mb-3" style="font-size: 0.875rem; color: #374151;">
+                                <t t-if="claim.room_number">
+                                    <span>Room No: <strong t-field="claim.room_number"/></span>
+                                </t>
+                                <t t-if="claim.admission_date">
+                                    <span>Admission: <strong t-field="claim.admission_date" t-options='{"widget": "date"}'/></span>
+                                </t>
+                                <t t-if="claim.as_on">
+                                    <span>As On: <strong t-field="claim.as_on" t-options='{"widget": "date"}'/></span>
+                                </t>
+                            </div>
+                        </t>
+
+                        <!-- Category Summary Table -->
+                        <div style="border: 1px solid #d1d5db; border-radius: 4px 4px 0 0;">
+                            <table class="table table-sm mb-0" style="font-size: 0.875rem;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid #e5e7eb;">
+                                        <th class="text-center" style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 5%;">#</th>
+                                        <th style="border-right: 1px solid #e5e7eb; font-weight: 500;">Category</th>
+                                        <th class="text-center" style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 10%;">Qty</th>
+                                        <th class="text-end" style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 15%;">Rate (₹)</th>
+                                        <th class="text-end" style="font-weight: 500; width: 15%;">Amount (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-set="sl_no" t-value="1"/>
+                                    <t t-foreach="claim.category_ids" t-as="category">
+                                        <tr style="border-bottom: 1px solid #e5e7eb;">
+                                            <td class="text-center" style="border-right: 1px solid #e5e7eb; color: #111827;">
+                                                <t t-esc="sl_no"/>
+                                            </td>
+                                            <td style="border-right: 1px solid #e5e7eb; font-weight: 500; color: #111827;">
+                                                <t t-esc="category.category_name"/>
+                                            </td>
+                                            <td class="text-center" style="border-right: 1px solid #e5e7eb; color: #111827;">
+                                                <span t-esc="'%.0f' % category.insurance_quantity"/>
+                                            </td>
+                                            <td class="text-end" style="border-right: 1px solid #e5e7eb; color: #111827;">
+                                                <span t-esc="'%.2f' % category.insurance_rate"/>
+                                            </td>
+                                            <td class="text-end" style="color: #111827; font-weight: 600;">
+                                                <span t-esc="'%.2f' % category.insurance_amount"/>
+                                            </td>
+                                        </tr>
+                                        <t t-set="sl_no" t-value="sl_no + 1"/>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Totals Section -->
+                        <div style="border: 1px solid #d1d5db; border-top: none; border-radius: 0 0 4px 4px; padding: 0.75rem;">
+                            <div class="d-flex flex-column align-items-end" style="font-size: 0.875rem; color: #111827;">
+                                <t t-set="insurance_total" t-value="sum(claim.category_ids.mapped('insurance_amount'))"/>
+
+                                <!-- Total Amount -->
+                                <div class="d-flex justify-content-between" style="width: 16rem; font-weight: 600; font-size: 1rem;">
+                                    <span>Total Amount</span>
+                                    <span>₹<t t-esc="'%.2f' % insurance_total"/></span>
+                                </div>
+
+                                <div style="padding: 0.25rem; border-top: 2px dashed #e5e7eb; width: 100%; margin: 0.5rem 0;"/>
+
+                                <!-- Approved Amount if exists -->
+                                <t t-if="claim.approved_amount">
+                                    <div class="d-flex justify-content-between" style="width: 16rem;">
+                                        <span style="color: #6b7280;">Approved Amount:</span>
+                                        <span style="font-weight: 600;">
+                                            <span t-field="claim.approved_amount"
+                                                  t-options='{"widget": "monetary", "display_currency": claim.currency_id}'/>
+                                        </span>
+                                    </div>
+                                    <t t-if="claim.approved_date">
+                                        <div class="d-flex justify-content-between" style="width: 16rem; font-size: 0.75rem;">
+                                            <span style="color: #6b7280;">Approved Date:</span>
+                                            <span t-field="claim.approved_date" t-options='{"widget": "date"}'/>
+                                        </div>
+                                    </t>
+                                    <div style="padding: 0.25rem; border-bottom: 2px dashed #e5e7eb; width: 100%; margin: 0.5rem 0;"/>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <t t-if="claim.narration">
+                            <div class="mt-4 pt-3" style="border-top: 1px solid #e5e7eb;">
+                                <h4 style="font-size: 0.875rem; font-weight: 500; color: #111827;">Notes</h4>
+                                <p style="font-size: 0.875rem; margin-top: 0.25rem;" t-field="claim.narration"/>
+                            </div>
+                        </t>
+
+                        <!-- Signature Section -->
+                        <div class="d-flex justify-content-between mt-5">
+                            <div>
+                                <p style="font-size: 0.875rem; color: #374151;">Prepared By: <span t-esc="user.name"/></p>
+                            </div>
+                            <div class="text-end">
+                                <p style="font-size: 0.875rem; font-weight: 600; color: #111827;">
+                                    For <span t-field="claim.company_id.name"/>
+                                </p>
+                                <br/><br/>
+                                <p style="font-size: 0.875rem; color: #374151;">Authorized Signatory</p>
+                            </div>
+                        </div>
+
+                        <!-- Generated Info -->
+                        <div class="d-flex justify-content-between mt-4 pt-3" style="border-top: 1px solid #e5e7eb; font-size: 0.625rem; color: #6b7280;">
+                            <p>Generated on <span t-esc="datetime.datetime.now().strftime('%B %d, %Y at %I:%M %p')"/></p>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

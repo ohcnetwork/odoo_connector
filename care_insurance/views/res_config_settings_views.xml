@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_insurance" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.insurance</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="Insurance" name="care_insurance">
+                    <block title="Insurance Settings" name="insurance_settings_block">
+                    <setting id="insurance_tag_setting" string="Insurance Tag"
+                             help="Tag used to identify invoices for insurance claims">
+                        <field name="insurance_tag_setting"/>
+                    </setting>
+                        <setting id="insurance_journal_setting" string="Default Journal"
+                                 help="Default journal for insurance claim journal entries">
+                            <field name="insurance_default_journal_id"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>

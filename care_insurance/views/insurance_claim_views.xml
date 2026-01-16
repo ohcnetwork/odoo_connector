@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Insurance Claim List View -->
+    <record id="insurance_claim_view_list" model="ir.ui.view">
+        <field name="name">insurance.claim.list</field>
+        <field name="model">insurance.claim</field>
+        <field name="arch" type="xml">
+            <list decoration-info="state == 'draft'"
+                  decoration-warning="state == 'confirmed'"
+                  decoration-success="state in ('approved', 'reconciled')"
+                  decoration-danger="state == 'rejected'">
+                <field name="name"/>
+                <field name="customer_id"/>
+                <field name="insurance_company_id"/>
+                <field name="total_insurance_amount"/>
+                <field name="approved_amount"/>
+                <field name="approved_date"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'confirmed'"
+                       decoration-success="state in ('approved', 'reconciled')"
+                       decoration-danger="state == 'rejected'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Insurance Claim Form View -->
+    <record id="insurance_claim_view_form" model="ir.ui.view">
+        <field name="name">insurance.claim.form</field>
+        <field name="model">insurance.claim</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_fetch_invoice_lines"
+                            type="object"
+                            string="Fetch Invoice Lines"
+                            class="oe_highlight"
+                            invisible="state != 'draft'"/>
+                    <button name="action_confirm"
+                            type="object"
+                            string="Confirm"
+                            class="oe_highlight"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve"
+                            type="object"
+                            string="Approve"
+                            class="oe_highlight"
+                            invisible="state != 'confirmed'"
+                            groups="care_insurance.group_insurance_manager"/>
+                    <button name="action_reject"
+                            type="object"
+                            string="Reject"
+                            class="btn-secondary"
+                            invisible="state != 'confirmed'"
+                            groups="care_insurance.group_insurance_manager"/>
+                    <button name="action_reconcile"
+                            type="object"
+                            string="Reconcile"
+                            class="oe_highlight"
+                            invisible="state != 'approved'"/>
+                    <button name="action_reset_to_draft"
+                            type="object"
+                            string="Reset to Draft"
+                            class="btn-secondary"
+                            invisible="state != 'rejected'"/>
+                    <button name="action_print_voucher"
+                            type="object"
+                            string="Print Voucher"
+                            class="btn-secondary"
+                            invisible="state == 'draft'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,confirmed,approved,reconciled"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_journal_entry"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-book"
+                                invisible="not journal_entry_id">
+                            <span class="o_stat_text">Journal Entry</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="customer_id" readonly="state != 'draft'"/>
+                            <field name="insurance_company_id" readonly="state != 'draft'"/>
+                            <field name="journal_id" readonly="state != 'draft'"/>
+                            <field name="journal_ref" readonly="state != 'draft'"/>
+                            <field name="approved_amount" readonly="state not in ('draft', 'confirmed')"/>
+                            <field name="approved_date" readonly="state not in ('draft', 'confirmed')"/>
+                        </group>
+                        <group>
+                            <field name="age" readonly="state != 'draft'"/>
+                            <field name="doctor" readonly="state != 'draft'"/>
+                            <field name="bill_number" readonly="state != 'draft'"/>
+                            <field name="ip_number" readonly="state != 'draft'"/>
+                            <field name="op_number" readonly="state != 'draft'"/>
+                            <field name="room_number" readonly="state != 'draft'"/>
+                            <field name="admission_date" readonly="state != 'draft'"/>
+                            <field name="as_on" readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+
+                    <!-- Rejection reason (only shown when rejected) -->
+                    <group invisible="state != 'rejected'">
+                        <field name="rejection_reason" readonly="1"/>
+                    </group>
+
+                    <notebook>
+                        <page string="Category Summary" name="category_summary">
+                            <field name="category_ids" nolabel="1" readonly="state != 'draft'">
+                                <list editable="bottom" create="false" delete="false">
+                                    <field name="category_name" readonly="1"/>
+                                    <!-- Original values (readonly) -->
+                                    <field name="original_quantity" readonly="1"/>
+                                    <field name="original_rate" readonly="1"/>
+                                    <field name="original_amount" readonly="1" sum="Total Original"/>
+                                    <!-- Insurance values (editable in draft) -->
+                                    <field name="insurance_quantity"/>
+                                    <field name="insurance_rate"/>
+                                    <field name="insurance_amount" sum="Total Insurance"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="total_original_amount" string="Total Original Amount"/>
+                                <field name="total_insurance_amount" string="Total Insurance Amount"/>
+                            </group>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="narration" placeholder="Internal notes..." readonly="state != 'draft'"/>
+                        </page>
+                    </notebook>
+
+                    <!-- Hidden fields -->
+                    <field name="journal_entry_id" invisible="1"/>
+                    <field name="company_id" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Insurance Claim Search View -->
+    <record id="insurance_claim_view_search" model="ir.ui.view">
+        <field name="name">insurance.claim.search</field>
+        <field name="model">insurance.claim</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="customer_id"/>
+                <field name="insurance_company_id"/>
+                <separator/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Confirmed" name="confirmed" domain="[('state', '=', 'confirmed')]"/>
+                <filter string="Approved" name="approved" domain="[('state', '=', 'approved')]"/>
+                <filter string="Reconciled" name="reconciled" domain="[('state', '=', 'reconciled')]"/>
+                <filter string="Rejected" name="rejected" domain="[('state', '=', 'rejected')]"/>
+                <separator/>
+                <filter string="Customer" name="group_customer" context="{'group_by': 'customer_id'}"/>
+                <filter string="Insurance Company" name="group_insurance" context="{'group_by': 'insurance_company_id'}"/>
+                <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                <filter string="Approved Date" name="group_date" context="{'group_by': 'approved_date:month'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Insurance Claim Action -->
+    <record id="insurance_claim_action" model="ir.actions.act_window">
+        <field name="name">Insurance Claims</field>
+        <field name="res_model">insurance.claim</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_draft': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first insurance claim
+            </p>
+            <p>
+                Manage hospital insurance claims: fetch invoice lines, confirm, approve, and reconcile.
+            </p>
+        </field>
+    </record>
+
+    <!-- Root Menu -->
+    <menuitem id="menu_insurance_root"
+              name="Insurance"
+              action="insurance_claim_action"
+              sequence="45"/>
+
+    <menuitem id="menu_insurance_claims_parent"
+              name="Claims"
+              parent="menu_insurance_root"
+              sequence="10"/>
+
+    <menuitem id="menu_insurance_claims"
+              name="Insurance Claims"
+              parent="menu_insurance_claims_parent"
+              action="insurance_claim_action"
+              sequence="10"/>
+</odoo>
