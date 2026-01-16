@@ -90,7 +90,7 @@ class InsuranceClaim(models.Model):
         "claim_id",
         string="Category Summary",
     )
-    
+
     # Track which invoice lines are included in this claim (for filtering)
     claimed_move_line_ids = fields.Many2many(
         "account.move.line",
@@ -161,8 +161,12 @@ class InsuranceClaim(models.Model):
     @api.depends("category_ids.original_amount", "category_ids.insurance_amount")
     def _compute_totals(self):
         for claim in self:
-            claim.total_original_amount = sum(claim.category_ids.mapped("original_amount"))
-            claim.total_insurance_amount = sum(claim.category_ids.mapped("insurance_amount"))
+            claim.total_original_amount = sum(
+                claim.category_ids.mapped("original_amount")
+            )
+            claim.total_insurance_amount = sum(
+                claim.category_ids.mapped("insurance_amount")
+            )
 
     # -------------------------------------------------------------------------
     # CRUD Methods
@@ -225,10 +229,12 @@ class InsuranceClaim(models.Model):
         self.claimed_move_line_ids = [(5, 0, 0)]
 
         # Get invoice lines already claimed in OTHER claims (not draft/rejected)
-        other_claims = self.search([
-            ("id", "!=", self.id),
-            ("state", "not in", ["draft", "rejected"]),
-        ])
+        other_claims = self.search(
+            [
+                ("id", "!=", self.id),
+                ("state", "not in", ["draft", "rejected"]),
+            ]
+        )
         already_claimed_line_ids = other_claims.mapped("claimed_move_line_ids").ids
 
         # Search for matching invoice lines (excluding already claimed)
@@ -238,6 +244,7 @@ class InsuranceClaim(models.Model):
             ("display_type", "=", "product"),
             ("move_id.move_type", "in", ["out_invoice", "out_refund"]),
             ("move_id.state", "=", "posted"),
+            ("move_id.insurance_company_id", "=", self.insurance_company_id.id),
         ]
         if already_claimed_line_ids:
             domain.append(("id", "not in", already_claimed_line_ids))
@@ -253,8 +260,15 @@ class InsuranceClaim(models.Model):
             )
 
         # Group by product category
-        category_totals = defaultdict(lambda: {"amount": 0.0, "category_id": None, "category_name": "Uncategorized", "line_ids": []})
-        
+        category_totals = defaultdict(
+            lambda: {
+                "amount": 0.0,
+                "category_id": None,
+                "category_name": "Uncategorized",
+                "line_ids": [],
+            }
+        )
+
         for line in invoice_lines:
             if line.price_subtotal > 0:
                 category = line.product_id.categ_id if line.product_id else None
@@ -264,38 +278,38 @@ class InsuranceClaim(models.Model):
                     category_totals[key]["category_name"] = category.name
                 else:
                     key = 0  # Uncategorized
-                
+
                 category_totals[key]["amount"] += line.price_subtotal
                 category_totals[key]["line_ids"].append(line.id)
 
         if not category_totals:
-            raise UserError(
-                _("No valid invoice lines found with positive amounts.")
-            )
+            raise UserError(_("No valid invoice lines found with positive amounts."))
 
         # Collect all line IDs for tracking
         all_line_ids = []
-        
+
         # Create category records
         category_records = []
         for key, data in category_totals.items():
             total_amount = data["amount"]
-            category_records.append({
-                "claim_id": self.id,
-                "category_id": data["category_id"],
-                "category_name": data["category_name"],
-                # Original: Qty=1, Rate=total
-                "original_quantity": 1.0,
-                "original_rate": total_amount,
-                # Insurance: same as original initially
-                "insurance_quantity": 1.0,
-                "insurance_rate": total_amount,
-            })
+            category_records.append(
+                {
+                    "claim_id": self.id,
+                    "category_id": data["category_id"],
+                    "category_name": data["category_name"],
+                    # Original: Qty=1, Rate=total
+                    "original_quantity": 1.0,
+                    "original_rate": total_amount,
+                    # Insurance: same as original initially
+                    "insurance_quantity": 1.0,
+                    "insurance_rate": total_amount,
+                }
+            )
             all_line_ids.extend(data["line_ids"])
 
         if category_records:
             self.env["insurance.claim.category"].create(category_records)
-        
+
         # Store the claimed line IDs for future filtering
         if all_line_ids:
             self.claimed_move_line_ids = [(6, 0, all_line_ids)]
@@ -434,9 +448,7 @@ class InsuranceClaim(models.Model):
             # Get receivable lines from related invoices using claimed_move_line_ids
             related_invoice_ids = claim.claimed_move_line_ids.mapped("move_id").ids
             if not related_invoice_ids:
-                raise UserError(
-                    _("No related invoices found for this claim.")
-                )
+                raise UserError(_("No related invoices found for this claim."))
 
             invoice_debit_lines = self.env["account.move.line"].search(
                 [
@@ -495,9 +507,7 @@ class InsuranceClaim(models.Model):
         self.ensure_one()
 
         if not self.category_ids:
-            raise UserError(
-                _("Cannot print voucher: No category data in this claim.")
-            )
+            raise UserError(_("Cannot print voucher: No category data in this claim."))
 
         return self.env.ref(
             "care_insurance.action_report_insurance_voucher"

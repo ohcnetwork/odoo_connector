@@ -9,6 +9,8 @@
             <xpath expr="//field[@name='invoice_date']" position="after">
                 <field name="insurance_tag"
                        invisible="move_type not in ('out_invoice', 'out_refund')"/>
+                <field name="insurance_company_id"
+                       invisible="move_type not in ('out_invoice', 'out_refund')"/>
                 <field name="is_insurance" invisible="1"/>
             </xpath>
         </field>

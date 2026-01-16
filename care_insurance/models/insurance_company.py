@@ -25,6 +25,7 @@ class InsuranceCompany(models.Model):
         string="Receivable Account",
         help="Account used for insurance receivables when claims are approved",
         tracking=True,
+        company_dependent=True,
     )
     active = fields.Boolean(default=True)
     company_id = fields.Many2one(
@@ -61,4 +62,3 @@ class InsuranceCompany(models.Model):
             "domain": [("insurance_company_id", "=", self.id)],
             "context": {"default_insurance_company_id": self.id},
         }
-

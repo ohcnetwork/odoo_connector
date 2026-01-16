@@ -17,6 +17,7 @@ class AccountUtility:
             x_identifier = request_data.x_identifier
             x_created_by = request_data.x_created_by
             payment_reference = request_data.payment_reference
+            insurance_company_id = request_data.insurance_company_id
 
             account_move = user_env["account.move"]
             existing_invoice = account_move.search(
@@ -83,6 +84,16 @@ class AccountUtility:
                     'x_created_by': x_created_by,
                     'payment_reference': payment_reference,
                 })
+
+            if insurance_company_id:
+                insurance_company_model = user_env["insurance.company"]
+                insurance_company = insurance_company_model.search([
+                    ("id", "=", int(insurance_company_id))
+                ], limit=1)
+                if insurance_company:
+                    account_move.write({
+                        'insurance_company_id': insurance_company.id
+                    })
 
             return account_move
         except Exception as e:

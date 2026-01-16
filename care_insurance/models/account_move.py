@@ -23,6 +23,12 @@ class AccountMove(models.Model):
         readonly=True,
         copy=False,
     )
+    insurance_company_id = fields.Many2one(
+        "insurance.company",
+        string="Insurance Company",
+        copy=False,
+        help="Insurance company associated with this invoice",
+    )
 
     @api.depends("insurance_tag")
     def _compute_is_insurance(self):
