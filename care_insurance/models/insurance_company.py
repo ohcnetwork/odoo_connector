@@ -25,7 +25,7 @@ class InsuranceCompany(models.Model):
         string="Receivable Account",
         help="Account used for insurance receivables when claims are approved",
         tracking=True,
-        company_dependent=True,
+        check_company=True,
     )
     active = fields.Boolean(default=True)
     company_id = fields.Many2one(
