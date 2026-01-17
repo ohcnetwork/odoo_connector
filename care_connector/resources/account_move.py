@@ -13,7 +13,7 @@ class AccountUtility:
             partner_data = request_data.partner_data
             invoice_items = request_data.invoice_items
             insurance_tag = request_data.insurance_tag
-            payment_method_id = request_data.payment_method_id
+            sponsor_company_id = request_data.sponsor_company_id
             x_identifier = request_data.x_identifier
             x_created_by = request_data.x_created_by
             payment_reference = request_data.payment_reference
@@ -55,45 +55,27 @@ class AccountUtility:
                 "invoice_date": invoice_date,
                 "due_date": due_date,
                 "move_type": move_type,
+                "sponsor_company_id": sponsor_company_id,
+                "insurance_company_id": insurance_company_id,
             }
             account_move = cls._create_account_move(user_env, move_data_dict)
             if not account_move:
                 raise ValueError("Failed to create the Invoice")
 
             if insurance_tag:
-                settings = user_env['res.config.settings'].sudo().get_values()
-                setting_tag = settings.get('insurance_tag_setting')
+                settings = user_env["res.config.settings"].sudo().get_values()
+                setting_tag = settings.get("insurance_tag_setting")
                 if setting_tag and setting_tag in insurance_tag:
-                    account_move.write({
-                        'insurance_tag': setting_tag
-                    })
-
-            if payment_method_id:
-                account_payment_method_line_model = user_env["account.payment.method.line"]
-                account_payment_method = account_payment_method_line_model.search([
-                    ("id", "=", int(payment_method_id))], limit=1)
-                if not account_payment_method.id:
-                    raise ValueError(account_payment_method)
-                account_move.write({
-                    'preferred_payment_method_line_id': account_payment_method.id
-                })
+                    account_move.write({"insurance_tag": setting_tag})
 
             if x_identifier or x_created_by or payment_reference:
-                account_move.write({
-                    'x_identifier': x_identifier,
-                    'x_created_by': x_created_by,
-                    'payment_reference': payment_reference,
-                })
-
-            if insurance_company_id:
-                insurance_company_model = user_env["insurance.company"]
-                insurance_company = insurance_company_model.search([
-                    ("id", "=", int(insurance_company_id))
-                ], limit=1)
-                if insurance_company:
-                    account_move.write({
-                        'insurance_company_id': insurance_company.id
-                    })
+                account_move.write(
+                    {
+                        "x_identifier": x_identifier,
+                        "x_created_by": x_created_by,
+                        "payment_reference": payment_reference,
+                    }
+                )
 
             return account_move
         except Exception as e:
@@ -204,7 +186,9 @@ class AccountUtility:
             invoice_line_list = []
             for item in invoice_items:
                 # Calculate discount info using native discount field
-                discount_info = cls._calculate_discount(user_env, item.discounts, item.sale_price)
+                discount_info = cls._calculate_discount(
+                    user_env, item.discounts, item.sale_price
+                )
 
                 product_data = item.product_data
                 product_product_model = user_env["product.product"]
@@ -236,15 +220,19 @@ class AccountUtility:
                     "free_qty": free_qty,
                     "price_unit": item.sale_price,
                     "x_care_id": item.x_care_id,
-                    "discount": discount_info.get("discount_percent", 0.0),  # Native Odoo discount field
+                    "discount": discount_info.get(
+                        "discount_percent", 0.0
+                    ),  # Native Odoo discount field
                 }
 
                 # Add discount group if available
                 if discount_info.get("discount_group_id"):
-                    invoice_line_vals["discount_group_id"] = discount_info["discount_group_id"]
+                    invoice_line_vals["discount_group_id"] = discount_info[
+                        "discount_group_id"
+                    ]
 
                 if commission_user_id:
-                    invoice_line_vals['commission_user_id'] = commission_user_id
+                    invoice_line_vals["commission_user_id"] = commission_user_id
 
                 move_line_model = user_env["account.move.line"]
                 missing_fields = [
@@ -281,6 +269,28 @@ class AccountUtility:
 
             if name:
                 account_move.write({"name": name})
+
+            # Set sponsor and insurance company BEFORE posting
+            # so their receivable account logic is applied
+            sponsor_company_id = move_data.get("sponsor_company_id")
+            insurance_company_id = move_data.get("insurance_company_id")
+
+            if sponsor_company_id:
+                sponsor_model = user_env["sponsor.company"]
+                sponsor = sponsor_model.search(
+                    [("id", "=", int(sponsor_company_id))], limit=1
+                )
+                if sponsor:
+                    account_move.write({"sponsor_company_id": sponsor.id})
+
+            if insurance_company_id:
+                insurance_model = user_env["insurance.company"]
+                insurance = insurance_model.search(
+                    [("id", "=", int(insurance_company_id))], limit=1
+                )
+                if insurance:
+                    account_move.write({"insurance_company_id": insurance.id})
+
             if move_type == "out_invoice":
                 account_move.action_post()
             return account_move
@@ -292,12 +302,12 @@ class AccountUtility:
     def _calculate_discount(cls, user_env, discount_data, price_unit):
         """
         Calculate total discount percentage for native Odoo discount field.
-        
+
         Args:
             user_env: Odoo environment
             discount_data: List of discount objects from Care
             price_unit: Unit price of the product (for converting fixed amounts to %)
-            
+
         Returns:
             dict with 'discount_percent' and optionally 'discount_group_id'
         """
@@ -368,23 +378,27 @@ class AccountUtility:
     def _cancel_account_move(cls, user_env, request_data):
         try:
             x_care_id = request_data.x_care_id
-            partial_reconcile_model = user_env['account.partial.reconcile']
+            partial_reconcile_model = user_env["account.partial.reconcile"]
             account_move_model = user_env["account.move"]
-            existing_invoice = account_move_model.search([('x_care_id', '=', x_care_id)], limit=1)
+            existing_invoice = account_move_model.search(
+                [("x_care_id", "=", x_care_id)], limit=1
+            )
 
             if not existing_invoice:
                 raise ValueError(f"No Invoice exists for id {x_care_id}")
 
-            partial_recs = partial_reconcile_model.search([
-                '|',
-                ('debit_move_id.move_id', '=', existing_invoice.id),
-                ('credit_move_id.move_id', '=', existing_invoice.id)
-            ])
+            partial_recs = partial_reconcile_model.search(
+                [
+                    "|",
+                    ("debit_move_id.move_id", "=", existing_invoice.id),
+                    ("credit_move_id.move_id", "=", existing_invoice.id),
+                ]
+            )
 
             if partial_recs:
                 partial_recs.unlink()
 
-            if existing_invoice.state == 'posted':
+            if existing_invoice.state == "posted":
                 existing_invoice.button_draft()
 
             existing_invoice.button_cancel()

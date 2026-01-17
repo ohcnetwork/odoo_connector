@@ -7,7 +7,7 @@ from .discounts import InvoiceDiscounts
 
 
 class InvoiceItem(BaseModel):
-    product_data:  ProductData
+    product_data: ProductData
     quantity: float = 1.0
     sale_price: float = 0.0
     x_care_id: str
@@ -17,8 +17,8 @@ class InvoiceItem(BaseModel):
 
 
 class BillType(Enum):
-    vendor = 'vendor'
-    customer = 'customer'
+    vendor = "vendor"
+    customer = "customer"
 
 
 class AccountMoveApiRequest(BaseModel):
@@ -26,12 +26,12 @@ class AccountMoveApiRequest(BaseModel):
     invoice_number: str | None = None
     bill_type: BillType
     invoice_date: str
-    due_date : str
+    due_date: str
     partner_data: PartnerData
     invoice_items: List[InvoiceItem]
     reason: str | None = None
     insurance_tag: List[str] | None = None
-    payment_method_id: int | None = None
+    sponsor_company_id: int | None = None
     x_identifier: str | None = None
     x_created_by: str | None = None
     payment_reference: str | None = None
@@ -46,6 +46,7 @@ class AccountMoveReturnApiRequest(BaseModel):
     partner_data: PartnerData | None = None
     invoice_items: List[InvoiceItem] | None = None
     reason: str | None = None
+
 
 class AccountPaymentMethodApiRequest(BaseModel):
     search_key: str | None = None

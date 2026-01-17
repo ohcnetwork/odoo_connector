@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Extend Invoice Form View to add Sponsor Field -->
+    <record id="view_move_form_sponsor" model="ir.ui.view">
+        <field name="name">account.move.form.sponsor</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <field name="invoice_date" position="after">
+                <field name="sponsor_company_id"
+                       invisible="move_type not in ('out_invoice', 'out_refund')"
+                       options="{'no_create_edit': True}"/>
+                <field name="is_sponsored" invisible="1"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Extend Invoice Search View -->
+    <record id="view_account_invoice_filter_sponsor" model="ir.ui.view">
+        <field name="name">account.move.search.sponsor</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_account_invoice_filter"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="sponsor_company_id"/>
+            </field>
+        </field>
+    </record>
+</odoo>
