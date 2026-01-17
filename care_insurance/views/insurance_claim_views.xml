@@ -90,6 +90,7 @@
                     <group>
                         <group>
                             <field name="customer_id" readonly="state != 'draft'"/>
+                            <field name="customer_care_id"/>
                             <field name="insurance_company_id" readonly="state != 'draft'"/>
                             <field name="journal_id" readonly="state != 'draft'"/>
                             <field name="journal_ref" readonly="state != 'draft'"/>
@@ -101,8 +102,6 @@
                             <field name="doctor" readonly="state != 'draft'"/>
                             <field name="claim_number" readonly="state != 'draft'"/>
                             <field name="bill_number" readonly="state != 'draft'"/>
-                            <field name="ip_number" readonly="state != 'draft'"/>
-                            <field name="op_number" readonly="state != 'draft'"/>
                             <field name="room_number" readonly="state != 'draft'"/>
                             <field name="room_category" readonly="state != 'draft'"/>
                             <field name="admission_date" readonly="state != 'draft'"/>

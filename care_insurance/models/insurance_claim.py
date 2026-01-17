@@ -26,6 +26,12 @@ class InsuranceClaim(models.Model):
         required=True,
         tracking=True,
     )
+    customer_care_id = fields.Char(
+        string="Identifier in Care",
+        related="customer_id.x_care_id",
+        readonly=True,
+        store=True,
+    )
     insurance_company_id = fields.Many2one(
         "insurance.company",
         string="Insurance Company",
@@ -78,8 +84,6 @@ class InsuranceClaim(models.Model):
     doctor = fields.Char(string="Doctor")
     claim_number = fields.Char(string="Claim Number")
     bill_number = fields.Char(string="Bill Number")
-    ip_number = fields.Char(string="I.P. No")
-    op_number = fields.Char(string="O.P. No")
     room_number = fields.Char(string="Room No")
     room_category = fields.Char(string="Room Category")
     admission_date = fields.Datetime(string="Admission Date")

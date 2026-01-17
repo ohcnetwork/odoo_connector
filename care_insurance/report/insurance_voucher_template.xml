@@ -64,6 +64,11 @@
                                 <p style="font-size: 1rem; font-weight: 500; margin: 0 0 0 0.5rem;">
                                     <span t-field="claim.customer_id.name"/>
                                 </p>
+                                <t t-if="claim.customer_care_id">
+                                    <p style="font-size: 0.75rem; color: #6b7280; margin: 0 0 0 0.5rem;">
+                                        Care ID: <span t-field="claim.customer_care_id"/>
+                                    </p>
+                                </t>
                                 <t t-if="claim.age">
                                     <p style="font-size: 0.875rem; color: #6b7280; margin: 0 0 0 0.5rem;">
                                         Age: <span t-field="claim.age"/>
@@ -103,12 +108,6 @@
                                 </t>
                                 <t t-if="claim.bill_number">
                                     <span style="font-size: 0.875rem; color: #374151;">Bill No: <strong t-field="claim.bill_number"/></span>
-                                </t>
-                                <t t-if="claim.op_number">
-                                    <span style="font-size: 0.875rem; color: #374151;">OP No: <strong t-field="claim.op_number"/></span>
-                                </t>
-                                <t t-if="claim.ip_number">
-                                    <span style="font-size: 0.875rem; color: #374151;">IP No: <strong t-field="claim.ip_number"/></span>
                                 </t>
                             </div>
                         </div>

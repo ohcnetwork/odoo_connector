@@ -12,7 +12,7 @@
     "category": "Accounting",
     "author": "Care",
     "license": "LGPL-3",
-    "depends": ["base", "account", "mail"],
+    "depends": ["base", "account", "mail", "care_connector"],
     "data": [
         # Security
         "security/insurance_security.xml",
