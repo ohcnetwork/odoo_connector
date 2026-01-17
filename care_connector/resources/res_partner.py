@@ -1,4 +1,4 @@
-from odoo.http import request
+from datetime import datetime
 
 
 class PartnerUtility:
@@ -13,8 +13,20 @@ class PartnerUtility:
                 [("x_care_id", "=", partner_data.x_care_id)], limit=1
             )
             status = partner_data.status.value if partner_data.status else None
-            if not res_partner:
-                country = country_model.search([("code", "=", "IN")], limit=1)
+
+            # Parse birthdate if provided
+            birthdate = None
+            if partner_data.birthdate:
+                birthdate = datetime.strptime(partner_data.birthdate, "%d-%m-%Y").date()
+
+            # Get gender value if provided
+            gender = partner_data.gender.value if partner_data.gender else None
+
+            # Resolve country and state
+            country_code = partner_data.country_code or "IN"
+            country = country_model.search([("code", "=", country_code)], limit=1)
+            state = False
+            if partner_data.state and country:
                 state = state_model.search(
                     [
                         ("name", "ilike", partner_data.state),
@@ -23,25 +35,68 @@ class PartnerUtility:
                     limit=1,
                 )
 
-                res_partner = res_partner_model.create(
-                    {
-                        "name": partner_data.name,
-                        "x_care_id": partner_data.x_care_id,
-                        "x_care_id_type": "vendor",
-                        "company_type": partner_data.partner_type.value,
-                        "email": partner_data.email,
-                        "vat": partner_data.pan,
-                        "phone": partner_data.phone,
-                        "country_id": country.id if country else False,
-                        "state_id": state.id if state else False,
-                    }
-                )
+            if not res_partner:
+                create_vals = {
+                    "name": partner_data.name,
+                    "x_care_id": partner_data.x_care_id,
+                    "x_care_id_type": "user",
+                    "company_type": partner_data.partner_type.value,
+                    "country_id": country.id if country else False,
+                    "state_id": state.id if state else False,
+                }
+                # Optional fields
+                if partner_data.email:
+                    create_vals["email"] = partner_data.email
+                if partner_data.phone:
+                    create_vals["phone"] = partner_data.phone
+                if partner_data.pan:
+                    create_vals["vat"] = partner_data.pan
+                if birthdate:
+                    create_vals["x_birthdate"] = birthdate
+                if gender:
+                    create_vals["x_gender"] = gender
+                # Address fields
+                if partner_data.street:
+                    create_vals["street"] = partner_data.street
+                if partner_data.street2:
+                    create_vals["street2"] = partner_data.street2
+                if partner_data.city:
+                    create_vals["city"] = partner_data.city
+                if partner_data.zip:
+                    create_vals["zip"] = partner_data.zip
+
+                res_partner = res_partner_model.create(create_vals)
             else:
-                res_partner.name = partner_data.name
-                res_partner.company_type = partner_data.partner_type.value
-                res_partner.email = partner_data.email
-                res_partner.vat = partner_data.pan
-                res_partner.phone = partner_data.phone
+                # Update existing partner
+                update_vals = {
+                    "name": partner_data.name,
+                    "company_type": partner_data.partner_type.value,
+                }
+                if partner_data.email:
+                    update_vals["email"] = partner_data.email
+                if partner_data.phone:
+                    update_vals["phone"] = partner_data.phone
+                if partner_data.pan:
+                    update_vals["vat"] = partner_data.pan
+                if birthdate:
+                    update_vals["x_birthdate"] = birthdate
+                if gender:
+                    update_vals["x_gender"] = gender
+                # Address fields
+                if partner_data.street:
+                    update_vals["street"] = partner_data.street
+                if partner_data.street2:
+                    update_vals["street2"] = partner_data.street2
+                if partner_data.city:
+                    update_vals["city"] = partner_data.city
+                if partner_data.zip:
+                    update_vals["zip"] = partner_data.zip
+                if country:
+                    update_vals["country_id"] = country.id
+                if state:
+                    update_vals["state_id"] = state.id
+
+                res_partner.write(update_vals)
 
             if status:
                 if status == "retired" and res_partner.active:

@@ -57,6 +57,10 @@ class AccountUtility:
                 "move_type": move_type,
                 "sponsor_company_id": sponsor_company_id,
                 "insurance_company_id": insurance_company_id,
+                "doctor": request_data.doctor,
+                "admission_date": request_data.admission_date,
+                "discharge_date": request_data.discharge_date,
+                "x_account": request_data.x_account,
             }
             account_move = cls._create_account_move(user_env, move_data_dict)
             if not account_move:
@@ -290,6 +294,28 @@ class AccountUtility:
                 )
                 if insurance:
                     account_move.write({"insurance_company_id": insurance.id})
+
+            # Set doctor, hospital dates, and account
+            doctor = move_data.get("doctor")
+            admission_date = move_data.get("admission_date")
+            discharge_date = move_data.get("discharge_date")
+            x_account = move_data.get("x_account")
+
+            hospital_fields = {}
+            if doctor:
+                hospital_fields["doctor"] = doctor
+            if admission_date:
+                hospital_fields["admission_date"] = datetime.strptime(
+                    admission_date, "%d-%m-%Y %H:%M:%S"
+                )
+            if discharge_date:
+                hospital_fields["discharge_date"] = datetime.strptime(
+                    discharge_date, "%d-%m-%Y %H:%M:%S"
+                )
+            if x_account:
+                hospital_fields["x_account"] = x_account
+            if hospital_fields:
+                account_move.write(hospital_fields)
 
             if move_type == "out_invoice":
                 account_move.action_post()

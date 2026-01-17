@@ -28,9 +28,37 @@ class InsuranceClaim(models.Model):
     )
     customer_care_id = fields.Char(
         string="Identifier in Care",
-        related="customer_id.x_care_id",
         readonly=True,
-        store=True,
+        help="Populated from invoice x_care_id when fetching lines",
+    )
+    # Address from customer
+    customer_street = fields.Char(
+        string="Street",
+        related="customer_id.street",
+        readonly=True,
+    )
+    customer_street2 = fields.Char(
+        string="Street 2",
+        related="customer_id.street2",
+        readonly=True,
+    )
+    customer_city = fields.Char(
+        string="City",
+        related="customer_id.city",
+        readonly=True,
+    )
+    customer_zip = fields.Char(
+        string="ZIP",
+        related="customer_id.zip",
+        readonly=True,
+    )
+    customer_state_id = fields.Many2one(
+        related="customer_id.state_id",
+        readonly=True,
+    )
+    customer_country_id = fields.Many2one(
+        related="customer_id.country_id",
+        readonly=True,
     )
     insurance_company_id = fields.Many2one(
         "insurance.company",
@@ -80,15 +108,42 @@ class InsuranceClaim(models.Model):
     )
 
     # Hospital specific fields
-    age = fields.Char(string="Customer Age")
+    age = fields.Integer(
+        string="Customer Age",
+        related="customer_id.x_age",
+        readonly=True,
+        store=True,
+    )
+    birthdate = fields.Date(
+        string="Date of Birth",
+        related="customer_id.x_birthdate",
+        readonly=True,
+        store=True,
+    )
+    gender = fields.Selection(
+        related="customer_id.x_gender",
+        string="Gender",
+        readonly=True,
+        store=True,
+    )
     doctor = fields.Char(string="Doctor")
     claim_number = fields.Char(string="Claim Number")
-    bill_number = fields.Char(string="Bill Number")
     room_number = fields.Char(string="Room No")
-    room_category = fields.Char(string="Room Category")
     admission_date = fields.Datetime(string="Admission Date")
-    as_on = fields.Datetime(string="As On")
+    discharge_date = fields.Datetime(string="Discharge Date")
     narration = fields.Text(string="Notes")
+
+    # Invoice info (populated when fetching lines)
+    account = fields.Char(
+        string="Account",
+        readonly=True,
+        help="Account identifier from invoice x_account field",
+    )
+    bill_generated_on = fields.Datetime(
+        string="Bill Generated On",
+        readonly=True,
+        help="Invoice creation date from Odoo",
+    )
 
     # Category lines (stored, editable)
     category_ids = fields.One2many(
@@ -326,6 +381,36 @@ class InsuranceClaim(models.Model):
         # Store the claimed line IDs for future filtering
         if all_line_ids:
             self.claimed_move_line_ids = [(6, 0, all_line_ids)]
+
+        # Populate fields from invoices
+        invoices = self.claimed_move_line_ids.mapped("move_id")
+        if invoices:
+            first_invoice = invoices[0]
+            update_vals = {}
+
+            # Identifier in Care from invoice's x_identifier
+            if first_invoice.x_identifier:
+                update_vals["customer_care_id"] = first_invoice.x_identifier
+
+            # Account from invoice's x_account
+            if first_invoice.x_account:
+                update_vals["account"] = first_invoice.x_account
+
+            # Bill Generated On from invoice's create_date
+            create_dates = invoices.mapped("create_date")
+            if create_dates:
+                update_vals["bill_generated_on"] = min(create_dates)
+
+            # Doctor, admission, discharge from first invoice if not set
+            if not self.doctor and first_invoice.doctor:
+                update_vals["doctor"] = first_invoice.doctor
+            if not self.admission_date and first_invoice.admission_date:
+                update_vals["admission_date"] = first_invoice.admission_date
+            if not self.discharge_date and first_invoice.discharge_date:
+                update_vals["discharge_date"] = first_invoice.discharge_date
+
+            if update_vals:
+                self.write(update_vals)
 
         return True
 

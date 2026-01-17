@@ -9,6 +9,9 @@
                 <xpath expr="//field[@name='function']" position="after">
                     <field name="x_care_id" readonly="1"/>
                     <field name="x_care_id_type" readonly="1"/>
+                    <field name="x_gender"/>
+                    <field name="x_birthdate"/>
+                    <field name="x_age" readonly="1"/>
                 </xpath>
             </field>
         </record>

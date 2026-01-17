@@ -29,6 +29,23 @@ class AccountMove(models.Model):
         copy=False,
         help="Insurance company associated with this invoice",
     )
+    doctor = fields.Char(
+        string="Doctor",
+        copy=False,
+    )
+    admission_date = fields.Datetime(
+        string="Admission Date",
+        copy=False,
+    )
+    discharge_date = fields.Datetime(
+        string="Discharge Date",
+        copy=False,
+    )
+    x_account = fields.Char(
+        string="Account",
+        copy=False,
+        help="Account identifier from Care",
+    )
 
     @api.depends("insurance_tag")
     def _compute_is_insurance(self):

@@ -11,6 +11,14 @@
                        invisible="move_type not in ('out_invoice', 'out_refund')"/>
                 <field name="insurance_company_id"
                        invisible="move_type not in ('out_invoice', 'out_refund')"/>
+                <field name="doctor"
+                       invisible="move_type not in ('out_invoice', 'out_refund')"/>
+                <field name="admission_date"
+                       invisible="move_type not in ('out_invoice', 'out_refund')"/>
+                <field name="discharge_date"
+                       invisible="move_type not in ('out_invoice', 'out_refund')"/>
+                <field name="x_account"
+                       invisible="move_type not in ('out_invoice', 'out_refund')"/>
                 <field name="is_insurance" invisible="1"/>
             </xpath>
         </field>
