@@ -54,43 +54,37 @@ class UserUtility:
 
 
     @classmethod
-    def _update_partner_details(cls,user_env, res_user, partner_data):
-        try:
-            country_model = user_env['res.country']
-            state_model = user_env['res.country.state']
+    def _update_partner_details(cls, user_env, res_user, partner_data):
+        """Update partner details for an existing user."""
+        country_model = user_env['res.country']
+        state_model = user_env['res.country.state']
 
-            res_partner = res_user.partner_id
-            is_agent = True if partner_data.agent == True else False
-            status = partner_data.status.value if partner_data.status else None
-            country = country_model.search([('code', '=', 'IN')], limit=1)
-            state = state_model.search([
-                ('name', 'ilike', partner_data.state),
-                ('country_id', '=', country.id)
-            ], limit=1)
+        res_partner = res_user.partner_id
+        status = partner_data.status.value if partner_data.status else None
+        country = country_model.search([('code', '=', 'IN')], limit=1)
+        state = state_model.search([
+            ('name', 'ilike', partner_data.state),
+            ('country_id', '=', country.id)
+        ], limit=1) if country else False
 
-            partner_vals = {
-                'x_care_id': partner_data.x_care_id,
-                'name': partner_data.name,
-                'company_type': partner_data.partner_type.value,
-                'email': partner_data.email,
-                'phone': partner_data.phone,
-                'l10n_in_pan': partner_data.pan,
-                'country_id': country.id if country else False,
-                'state_id': state.id if state else False,
-                'agent': is_agent
-            }
+        partner_vals = {
+            'x_care_id': partner_data.x_care_id,
+            'name': partner_data.name,
+            'company_type': partner_data.partner_type.value,
+            'email': partner_data.email,
+            'phone': partner_data.phone,
+            'country_id': country.id if country else False,
+            'state_id': state.id if state else False,
+        }
 
-            res_partner.write(partner_vals)
-            
-            # Also update x_care_id on the user for direct lookup
-            if partner_data.x_care_id:
-                res_user.write({'x_care_id': partner_data.x_care_id})
-            if status:
-                if status == 'retired' and res_partner.active:
-                    res_partner.active = False
-                elif status in ['draft', 'active'] and not res_partner.active:
-                    res_partner.active = True
-            return res_partner
-
-        except Exception as e:
-            raise {str(e)}
+        res_partner.write(partner_vals)
+        
+        # Also update x_care_id on the user for direct lookup
+        if partner_data.x_care_id:
+            res_user.write({'x_care_id': partner_data.x_care_id})
+        if status:
+            if status == 'retired' and res_partner.active:
+                res_partner.active = False
+            elif status in ['draft', 'active'] and not res_partner.active:
+                res_partner.active = True
+        return res_partner
