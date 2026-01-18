@@ -31,7 +31,6 @@ class AccountMoveApiRequest(BaseModel):
     invoice_items: List[InvoiceItem]
     reason: str | None = None
     insurance_tag: List[str] | None = None
-    sponsor_company_id: int | None = None
     x_identifier: str | None = None
     x_created_by: str | None = None
     payment_reference: str | None = None

@@ -13,7 +13,6 @@ class AccountUtility:
             partner_data = request_data.partner_data
             invoice_items = request_data.invoice_items
             insurance_tag = request_data.insurance_tag
-            sponsor_company_id = request_data.sponsor_company_id
             x_identifier = request_data.x_identifier
             x_created_by = request_data.x_created_by
             payment_reference = request_data.payment_reference
@@ -55,7 +54,6 @@ class AccountUtility:
                 "invoice_date": invoice_date,
                 "due_date": due_date,
                 "move_type": move_type,
-                "sponsor_company_id": sponsor_company_id,
                 "insurance_company_id": insurance_company_id,
                 "doctor": request_data.doctor,
                 "admission_date": request_data.admission_date,
@@ -274,18 +272,9 @@ class AccountUtility:
             if name:
                 account_move.write({"name": name})
 
-            # Set sponsor and insurance company BEFORE posting
+            # Set insurance company BEFORE posting
             # so their receivable account logic is applied
-            sponsor_company_id = move_data.get("sponsor_company_id")
             insurance_company_id = move_data.get("insurance_company_id")
-
-            if sponsor_company_id:
-                sponsor_model = user_env["sponsor.company"]
-                sponsor = sponsor_model.search(
-                    [("id", "=", int(sponsor_company_id))], limit=1
-                )
-                if sponsor:
-                    account_move.write({"sponsor_company_id": sponsor.id})
 
             if insurance_company_id:
                 insurance_model = user_env["insurance.company"]
