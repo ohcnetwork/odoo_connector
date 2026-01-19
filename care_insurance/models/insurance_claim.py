@@ -573,10 +573,12 @@ class InsuranceClaim(models.Model):
             claim.state = "reconciled"
 
     def action_reset_to_draft(self):
-        """Reset rejected claim to draft."""
+        """Reset confirmed or rejected claim to draft."""
         for claim in self:
-            if claim.state != "rejected":
-                raise UserError(_("Only rejected claims can be reset to draft."))
+            if claim.state not in ("confirmed", "rejected"):
+                raise UserError(
+                    _("Only confirmed or rejected claims can be reset to draft.")
+                )
 
             claim.write(
                 {

@@ -47,7 +47,8 @@
                             string="Approve"
                             class="oe_highlight"
                             invisible="state != 'confirmed'"
-                            groups="care_insurance.group_insurance_manager"/>
+                            groups="care_insurance.group_insurance_manager"
+                            confirm="Are you sure you want to approve this claim? This will create a journal entry."/>
                     <button name="action_reject"
                             type="object"
                             string="Reject"
@@ -63,12 +64,11 @@
                             type="object"
                             string="Reset to Draft"
                             class="btn-secondary"
-                            invisible="state != 'rejected'"/>
+                            invisible="state not in ('confirmed', 'rejected')"/>
                     <button name="action_print_voucher"
                             type="object"
                             string="Print Voucher"
-                            class="btn-secondary"
-                            invisible="state == 'draft'"/>
+                            class="btn-secondary"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,confirmed,approved,reconciled"/>
                 </header>
@@ -134,9 +134,8 @@
                             <field name="category_ids" nolabel="1" readonly="state != 'draft'">
                                 <list editable="bottom" create="true" delete="true">
                                     <field name="is_manual" column_invisible="1"/>
-                                    <field name="category_id" string="Category"
-                                           options="{'no_create': True, 'no_open': True}"/>
-                                    <field name="category_name" column_invisible="1"/>
+                                    <field name="category_id" column_invisible="1"/>
+                                    <field name="category_name" string="Category"/>
                                     <!-- Original values -->
                                     <field name="original_quantity" readonly="1"/>
                                     <field name="original_rate" readonly="1"/>
