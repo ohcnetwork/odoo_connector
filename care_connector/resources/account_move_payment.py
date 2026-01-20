@@ -149,37 +149,19 @@ class InvoicePaymentUtility:
             x_care_id = request_data.x_care_id
             reason = request_data.reason
             account_payment_model = user_env['account.payment']
-            a_m_r_model = user_env['account.move.reversal']
-            account_move_model = user_env["account.move"]
+
             existing_payment = account_payment_model.search([('x_care_id', '=', x_care_id)], limit=1)
 
             if not existing_payment:
                 raise ValueError(f"No payment found with x_care_id: {x_care_id}")
 
-            if existing_payment.cancel_status:
-                raise ValueError(f"{x_care_id} payment Already cancelled  ")
+            if existing_payment.state == 'canceled':
+                raise ValueError(f"{x_care_id} payment already cancelled")
 
-            journal_entry = existing_payment.move_id
-            if not journal_entry:
-                raise ValueError("No journal entry linked to this payment.")
+            # Use Odoo's native cancellation method
+            # This properly handles reconciliation and state changes
+            existing_payment.action_cancel()
 
-            reversal_wizard = a_m_r_model.with_context(
-                active_model='account.move',
-                active_ids=[journal_entry.id]
-            ).create({
-                'reason': reason,
-                'journal_id': journal_entry.journal_id.id,
-                'date': fields.Date.today(),
-            })
-            reversal_wizard.reverse_moves()
-
-            reversed_move = account_move_model.search([
-                ('reversed_entry_id', '=', journal_entry.id)
-            ], limit=1)
-            if not reversed_move:
-                raise ValueError("Reversal failed — no reversed move created.")
-
-            existing_payment.cancel_status = True
             return existing_payment
 
         except Exception as e:

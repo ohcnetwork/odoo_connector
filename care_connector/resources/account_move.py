@@ -42,9 +42,18 @@ class AccountUtility:
                         f"Invoice already exists with name {invoice_number}"
                     )
 
-            move_type = "out_invoice"
-            if bill_type == "vendor":
-                move_type = "in_invoice"
+            is_refund = getattr(request_data, 'is_refund', False)
+
+            if is_refund:
+                # Credit note types
+                move_type = "out_refund"
+                if bill_type == "vendor":
+                    move_type = "in_refund"
+            else:
+                # Invoice types
+                move_type = "out_invoice"
+                if bill_type == "vendor":
+                    move_type = "in_invoice"
 
             move_data_dict = {
                 "x_care_id": x_care_id,
@@ -215,12 +224,18 @@ class AccountUtility:
                     item.quantity, item.free_qty, move_type
                 )
 
+                # For credit notes, ensure price_unit is positive
+                # Odoo handles the sign internally based on move_type
+                price_unit = item.sale_price
+                if move_type in ("out_refund", "in_refund") and price_unit < 0:
+                    price_unit = abs(price_unit)
+
                 invoice_line_vals = {
                     "product_id": product.id,
                     "quantity": billed_qty,
                     "received_qty": item.quantity,
                     "free_qty": free_qty,
-                    "price_unit": item.sale_price,
+                    "price_unit": price_unit,
                     "x_care_id": item.x_care_id,
                     "discount": discount_info.get(
                         "discount_percent", 0.0
@@ -306,7 +321,7 @@ class AccountUtility:
             if hospital_fields:
                 account_move.write(hospital_fields)
 
-            if move_type == "out_invoice":
+            if move_type in ("out_invoice", "out_refund"):
                 account_move.action_post()
             return account_move
 
