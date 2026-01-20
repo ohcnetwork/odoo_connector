@@ -14,8 +14,8 @@
                         <div style="height: 72px;"></div>
 
                         <!-- FINAL BILL Title -->
-                        <div class="text-center mb-3">
-                            <h2 style="font-size: 1.25rem; font-weight: 700; color: #111827; margin: 0; text-decoration: underline;">
+                        <div class="mb-5" style="text-align: left;">
+                            <h2 style="font-size: 1.25rem; font-weight: 700; color: #111827; margin: 0;">
                                 FINAL BILL
                             </h2>
                         </div>
