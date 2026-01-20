@@ -170,7 +170,7 @@ class CashSession(models.Model):
         'payment_ids.amount',
         'payment_ids.payment_type',
         'payment_ids.journal_id',
-        'payment_ids.cancel_status',
+        'payment_ids.state',
         'outgoing_transfer_ids',
         'outgoing_transfer_ids.amount',
         'outgoing_transfer_ids.status',
@@ -188,7 +188,7 @@ class CashSession(models.Model):
 
             # + Cash payments received (inbound), excluding cancelled payments
             for payment in session.payment_ids:
-                if payment.journal_id.type == 'cash' and not payment.cancel_status:
+                if payment.journal_id.type == 'cash' and payment.state != 'canceled':
                     if payment.payment_type == 'inbound':
                         expected += payment.amount
                     elif payment.payment_type == 'outbound':

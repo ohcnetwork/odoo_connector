@@ -44,20 +44,6 @@ class AccountUtility:
 
             is_refund = getattr(request_data, 'is_refund', False)
 
-            # Calculate total to detect if we need to auto-convert to credit note
-            total_amount = sum(
-                item.sale_price * item.quantity for item in invoice_items
-            )
-
-            # Auto-detect: if total is negative, treat as refund/credit note
-            # and convert amounts to positive (Odoo handles sign via move_type)
-            if total_amount < 0 and not is_refund:
-                is_refund = True
-                # Convert negative amounts to positive for credit note
-                for item in invoice_items:
-                    if item.sale_price < 0:
-                        item.sale_price = abs(item.sale_price)
-
             if is_refund:
                 # Credit note types
                 move_type = "out_refund"
