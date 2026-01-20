@@ -3,142 +3,92 @@
     <template id="report_insurance_voucher">
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="claim">
-                <!-- Filter categories for report -->
-                <t t-set="included_categories" t-value="claim.category_ids.filtered(lambda c: c.include_in_report)"/>
-                <t t-set="categories_with_lines" t-value="claim.category_ids.filtered(lambda c: c.include_in_report and c.print_line_items and not c.is_manual)"/>
+                <!-- Filter categories for report (sorted by sequence for UI ordering) -->
+                <t t-set="included_categories" t-value="claim.category_ids.filtered(lambda c: c.include_in_report).sorted('sequence')"/>
+                <t t-set="categories_with_lines" t-value="claim.category_ids.filtered(lambda c: c.include_in_report and c.print_line_items and not c.is_manual).sorted('sequence')"/>
                 
                 <t t-call="web.external_layout">
                     <!-- PAGE 1: Category Summary -->
                     <div class="page" style="font-family: system-ui, -apple-system, sans-serif;">
-                        <!-- Header -->
-                        <div class="d-flex justify-content-between align-items-start mb-1 pb-2" style="border-bottom: 2px solid #111827;">
-                            <div>
-                                <h2 class="mb-0" style="font-size: 1.25rem; font-weight: 700; color: #111827;">
-                                    <span t-field="claim.company_id.name"/>
-                                </h2>
-                                <div style="color: #6b7280; font-size: 0.75rem; line-height: 1.4;">
-                                    <t t-if="claim.company_id.street">
-                                        <span t-field="claim.company_id.street"/>
-                                        <t t-if="claim.company_id.city">, </t>
-                                    </t>
-                                    <t t-if="claim.company_id.city">
-                                        <span t-field="claim.company_id.city"/>
-                                    </t>
-                                    <t t-if="claim.company_id.state_id">
-                                        <br/><span t-field="claim.company_id.state_id.name"/>
-                                        <t t-if="claim.company_id.zip"> - <span t-field="claim.company_id.zip"/></t>
-                                    </t>
-                                    <t t-if="claim.company_id.phone">
-                                        <br/>Tel: <span t-field="claim.company_id.phone"/>
-                                    </t>
-                                </div>
-                            </div>
-                            <div class="text-end" style="flex-shrink: 0;">
-                                <img t-if="claim.company_id.logo" 
-                                     t-att-src="'data:image/png;base64,%s' % claim.company_id.logo.decode('utf-8') if claim.company_id.logo else ''" 
-                                     style="max-height: 60px; max-width: 180px; width: auto; object-fit: contain;" 
-                                     alt="Company Logo"/>
-                            </div>
+                        <!-- Space for pre-printed letterhead -->
+                        <div style="height: 72px;"></div>
+
+                        <!-- FINAL BILL Title -->
+                        <div class="text-center mb-3">
+                            <h2 style="font-size: 1.25rem; font-weight: 700; color: #111827; margin: 0; text-decoration: underline;">
+                                FINAL BILL
+                            </h2>
                         </div>
 
-                        <!-- Bill To -->
-                        <div class="d-flex justify-content-between mb-1">
-                            <div>
-                                <div style="font-size: 0.875rem; font-weight: 500; color: #374151;">Bill To:</div>
-                                <p style="font-size: 1rem; font-weight: 500; margin: 0 0 0 0.5rem;">
-                                    <span t-field="claim.customer_id.name"/>
-                                </p>
-                                <t t-if="claim.customer_care_id">
-                                    <p style="font-size: 0.75rem; color: #6b7280; margin: 0 0 0 0.5rem;">
-                                        Care ID: <span t-field="claim.customer_care_id"/>
-                                    </p>
-                                </t>
-                                <t t-if="claim.age or claim.gender">
-                                    <p style="font-size: 0.875rem; color: #6b7280; margin: 0 0 0 0.5rem;">
-                                        <t t-if="claim.age">Age: <span t-field="claim.age"/></t>
-                                        <t t-if="claim.age and claim.gender">, </t>
-                                        <t t-if="claim.gender">Gender: <span t-field="claim.gender"/></t>
-                                    </p>
-                                </t>
+                        <!-- Patient Info and Bill Details - Two Column Layout -->
+                        <div class="d-flex justify-content-between mb-3" style="font-size: 0.875rem;">
+                            <!-- Left Column: Name and Address -->
+                            <div style="width: 55%;">
+                                <table style="border-collapse: collapse;">
+                                    <tr>
+                                        <td style="font-weight: 600; padding: 2px 8px 2px 0; vertical-align: top;">Name</td>
+                                        <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
+                                        <td style="font-weight: 600; padding: 2px 0;">
+                                            <t t-if="claim.customer_id.name"><span t-field="claim.customer_id.name"/></t>
+                                            <t t-else="">-</t>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600; padding: 2px 8px 2px 0; vertical-align: top;">Address</td>
+                                        <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
+                                        <td style="padding: 2px 0; line-height: 1.4;">
+                                            <t t-if="claim.customer_id.street or claim.customer_id.street2 or claim.customer_id.city">
+                                                <t t-if="claim.customer_id.street"><span t-field="claim.customer_id.street"/><br/></t>
+                                                <t t-if="claim.customer_id.street2"><span t-field="claim.customer_id.street2"/><br/></t>
+                                                <t t-if="claim.customer_id.city"><span t-field="claim.customer_id.city"/></t>
+                                                <t t-if="claim.customer_id.state_id">
+                                                    <t t-if="claim.customer_id.city">, </t>
+                                                    <span t-field="claim.customer_id.state_id.name"/>
+                                                </t>
+                                                <t t-if="claim.customer_id.zip"> <span t-field="claim.customer_id.zip"/></t>
+                                                <t t-if="claim.customer_id.phone"><br/><span t-field="claim.customer_id.phone"/></t>
+                                            </t>
+                                            <t t-else="">-</t>
+                                        </td>
+                                    </tr>
+                                </table>
                             </div>
-                            <div class="text-end">
-                                <t t-if="claim.customer_id.street or claim.customer_id.city">
-                                    <div style="font-size: 0.875rem; font-weight: 500; color: #374151;">
-                                        Address: 
-                                        <span style="color: #374151;">
-                                            <t t-if="claim.customer_id.street"><span t-field="claim.customer_id.street"/></t>
-                                            <t t-if="claim.customer_id.street and claim.customer_id.city">, </t>
-                                            <t t-if="claim.customer_id.city"><span t-field="claim.customer_id.city"/></t>
-                                        </span>
-                                    </div>
-                                </t>
-                                <t t-if="claim.doctor">
-                                    <p style="font-size: 0.875rem; color: #374151; margin: 0.25rem 0 0 0;">
-                                        Doctor: <span t-field="claim.doctor"/>
-                                    </p>
-                                </t>
-                            </div>
-                        </div>
 
-                        <!-- Insurance & Reference Details -->
-                        <div class="mb-3 p-2" style="font-size: 0.8rem;">
-                            <!-- Row 1: Insurance Company / Claim No -->
-                            <div class="d-flex justify-content-between mb-1">
-                                <div>
-                                    <div style="font-weight: 500; color: #6b7280;">Insurance Company</div>
-                                    <div style="font-weight: 600; color: #111827;" t-field="claim.insurance_company_id.name"/>
-                                </div>
-                                <div class="text-end">
-                                    <t t-if="claim.claim_number">
-                                        <div style="font-weight: 500; color: #6b7280;">Claim No</div>
-                                        <div style="font-weight: 600; color: #111827;" t-field="claim.claim_number"/>
-                                    </t>
-                                </div>
+                            <!-- Right Column: Bill Details -->
+                            <div style="width: 42%;">
+                                <table style="border-collapse: collapse; width: 100%;">
+                                    <tr>
+                                        <td style="padding: 2px 8px 2px 0;">Bill No</td>
+                                        <td style="padding: 2px 8px 2px 0;">:</td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.account"><span t-field="claim.account"/></t><t t-else="">-</t></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px 8px 2px 0;">Date</td>
+                                        <td style="padding: 2px 8px 2px 0;">:</td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.bill_generated_on"><span t-field="claim.bill_generated_on" t-options='{"widget": "date", "format": "dd-MM-yyyy"}'/></t><t t-else="">-</t></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px 8px 2px 0;">SSMM ID</td>
+                                        <td style="padding: 2px 8px 2px 0;">:</td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.customer_care_id"><span t-field="claim.customer_care_id"/></t><t t-else="">-</t></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px 8px 2px 0;">Room No</td>
+                                        <td style="padding: 2px 8px 2px 0;">:</td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.room_number"><span t-field="claim.room_number"/></t><t t-else="">-</t></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px 8px 2px 0;">Admission Date</td>
+                                        <td style="padding: 2px 8px 2px 0;">:</td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.admission_date"><span t-field="claim.admission_date" t-options='{"widget": "date", "format": "dd-MM-yyyy"}'/></t><t t-else="">-</t></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px 8px 2px 0;">Discharge Date</td>
+                                        <td style="padding: 2px 8px 2px 0;">:</td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.discharge_date"><span t-field="claim.discharge_date" t-options='{"widget": "date", "format": "dd-MM-yyyy"}'/></t><t t-else="">-</t></td>
+                                    </tr>
+                                </table>
                             </div>
-                            <!-- Row 2: Account / Room No -->
-                            <t t-if="claim.account or claim.room_number">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <div>
-                                        <t t-if="claim.account">
-                                            <div style="font-weight: 500; color: #6b7280;">Account</div>
-                                            <div style="font-weight: 600; color: #111827;" t-field="claim.account"/>
-                                        </t>
-                                    </div>
-                                    <div class="text-end">
-                                        <t t-if="claim.room_number">
-                                            <div style="font-weight: 500; color: #6b7280;">Room No</div>
-                                            <div style="font-weight: 600; color: #111827;" t-field="claim.room_number"/>
-                                        </t>
-                                    </div>
-                                </div>
-                            </t>
-                            <!-- Row 3: Admission / Discharge -->
-                            <t t-if="claim.admission_date or claim.discharge_date">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <div>
-                                        <t t-if="claim.admission_date">
-                                            <div style="font-weight: 500; color: #6b7280;">Admission</div>
-                                            <div style="font-weight: 600; color: #111827;" t-field="claim.admission_date" t-options='{"widget": "datetime", "format": "dd MMM yyyy, hh:mm a"}'/>
-                                        </t>
-                                    </div>
-                                    <div class="text-end">
-                                        <t t-if="claim.discharge_date">
-                                            <div style="font-weight: 500; color: #6b7280;">Discharge</div>
-                                            <div style="font-weight: 600; color: #111827;" t-field="claim.discharge_date" t-options='{"widget": "datetime", "format": "dd MMM yyyy, hh:mm a"}'/>
-                                        </t>
-                                    </div>
-                                </div>
-                            </t>
-                            <!-- Row 4: Bill Generated -->
-                            <t t-if="claim.bill_generated_on">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <div style="font-weight: 500; color: #6b7280;">Bill Generated</div>
-                                        <div style="font-weight: 600; color: #111827;" t-field="claim.bill_generated_on" t-options='{"widget": "datetime", "format": "dd MMM yyyy, hh:mm a"}'/>
-                                    </div>
-                                    <div class="text-end"></div>
-                                </div>
-                            </t>
                         </div>
 
                         <!-- Category Summary Table -->
@@ -228,94 +178,88 @@
                         </div>
                     </div>
 
-                    <!-- PAGE 2: Line Item Details (single page break before all line items) -->
-                    <t t-if="categories_with_lines">
-                        <div class="page" style="font-family: system-ui, -apple-system, sans-serif; page-break-before: always;">
-                            <!-- Compact Header for line items page -->
-                            <div class="d-flex justify-content-between align-items-center mb-3 pb-2" style="border-bottom: 1px solid #e5e7eb;">
-                                <div>
-                                    <span style="font-size: 1rem; font-weight: 600;" t-field="claim.company_id.name"/>
-                                    <span style="font-size: 0.875rem; color: #6b7280;"> | </span>
-                                    <span style="font-size: 0.875rem; color: #374151;">INSURANCE CLAIM</span>
-                                    <span style="font-size: 0.875rem; font-weight: 600; color: #111827;" t-field="claim.name"/>
+                    <!-- LINE ITEM DETAIL PAGES: One page per category -->
+                    <t t-foreach="categories_with_lines" t-as="cat">
+                        <t t-set="category_lines" t-value="claim.claimed_move_line_ids.filtered(lambda l: l.product_id.categ_id.id == cat.category_id.id)"/>
+                        <t t-if="category_lines">
+                            <div class="page" style="font-family: system-ui, -apple-system, sans-serif; page-break-before: always;">
+                                <!-- Compact Header for line items page -->
+                                <div class="d-flex justify-content-between align-items-center mb-3 pb-2" style="border-bottom: 1px solid #e5e7eb;">
+                                    <div>
+                                        <span style="font-size: 1rem; font-weight: 600;" t-field="claim.company_id.name"/>
+                                    </div>
+                                    <div class="text-end">
+                                        <span style="font-size: 0.875rem; color: #374151;">Patient Name: </span>
+                                        <span style="font-size: 0.875rem; font-weight: 500;" t-field="claim.customer_id.name"/>
+                                    </div>
                                 </div>
-                                <div class="text-end">
-                                    <span style="font-size: 0.875rem; color: #374151;">Customer: </span>
-                                    <span style="font-size: 0.875rem; font-weight: 500;" t-field="claim.customer_id.name"/>
+
+                                <!-- Category Title -->
+                                <div class="mb-1">
+                                    <h4 style="font-size: 0.9rem; font-weight: 600; color: #111827; margin: 0;">
+                                        <span t-esc="cat.category_name"/>
+                                    </h4>
+                                </div>
+
+                                <!-- Line Items Table -->
+                                <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 1rem;">
+                                    <table class="table table-sm mb-0" style="font-size: 0.75rem;">
+                                        <thead>
+                                            <tr style="border-bottom: 1px solid #e5e7eb; background-color: #f9fafb;">
+                                                <th class="text-center" style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 4%;">#</th>
+                                                <th style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 12%;">Invoice No</th>
+                                                <th style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 10%;">Invoice Date</th>
+                                                <th style="border-right: 1px solid #e5e7eb; font-weight: 500;">Description</th>
+                                                <th class="text-center" style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 6%;">Qty</th>
+                                                <th class="text-end" style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 10%;">Rate (₹)</th>
+                                                <th class="text-end" style="font-weight: 500; width: 10%;">Amount (₹)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <t t-set="line_no" t-value="1"/>
+                                            <t t-set="line_total" t-value="0"/>
+                                            <t t-foreach="category_lines" t-as="line">
+                                                <tr style="border-bottom: 1px solid #e5e7eb;">
+                                                    <td class="text-center" style="border-right: 1px solid #e5e7eb; color: #111827;">
+                                                        <t t-esc="line_no"/>
+                                                    </td>
+                                                    <td style="border-right: 1px solid #e5e7eb; color: #111827;">
+                                                        <span t-field="line.move_id.name"/>
+                                                    </td>
+                                                    <td style="border-right: 1px solid #e5e7eb; color: #111827;">
+                                                        <span t-field="line.move_id.invoice_date" t-options='{"widget": "date", "format": "dd MMM yyyy"}'/>
+                                                    </td>
+                                                    <td style="border-right: 1px solid #e5e7eb; color: #111827;">
+                                                        <t t-esc="line.name or line.product_id.name"/>
+                                                    </td>
+                                                    <td class="text-center" style="border-right: 1px solid #e5e7eb; color: #111827;">
+                                                        <span t-esc="'%.2f' % line.quantity"/>
+                                                    </td>
+                                                    <td class="text-end" style="border-right: 1px solid #e5e7eb; color: #111827;">
+                                                        <span t-esc="'%.2f' % line.price_unit"/>
+                                                    </td>
+                                                    <td class="text-end" style="color: #111827;">
+                                                        <span t-esc="'%.2f' % line.price_subtotal"/>
+                                                    </td>
+                                                </tr>
+                                                <t t-set="line_no" t-value="line_no + 1"/>
+                                                <t t-set="line_total" t-value="line_total + line.price_subtotal"/>
+                                            </t>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr style="background-color: #f3f4f6;">
+                                                <td colspan="6" class="text-end" style="font-weight: 600;">
+                                                    Category Total:
+                                                </td>
+                                                <td class="text-end" style="font-weight: 600;">
+                                                    ₹<t t-esc="'%.2f' % line_total"/>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
                                 </div>
                             </div>
-
-                            <!-- All categories on same page -->
-                            <t t-foreach="categories_with_lines" t-as="cat">
-                                <t t-set="category_lines" t-value="claim.claimed_move_line_ids.filtered(lambda l: l.product_id.categ_id.id == cat.category_id.id)"/>
-                                <t t-if="category_lines">
-                                    <!-- Category Title -->
-                                    <div class="mb-1 mt-3">
-                                        <h4 style="font-size: 0.9rem; font-weight: 600; color: #111827; margin: 0;">
-                                            <span t-esc="cat.category_name"/>
-                                        </h4>
-                                    </div>
-
-                                    <!-- Line Items Table -->
-                                    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 1rem;">
-                                        <table class="table table-sm mb-0" style="font-size: 0.75rem;">
-                                            <thead>
-                                                <tr style="border-bottom: 1px solid #e5e7eb; background-color: #f9fafb;">
-                                                    <th class="text-center" style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 4%;">#</th>
-                                                    <th style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 12%;">Invoice No</th>
-                                                    <th style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 10%;">Invoice Date</th>
-                                                    <th style="border-right: 1px solid #e5e7eb; font-weight: 500;">Description</th>
-                                                    <th class="text-center" style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 6%;">Qty</th>
-                                                    <th class="text-end" style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 10%;">Rate (₹)</th>
-                                                    <th class="text-end" style="font-weight: 500; width: 10%;">Amount (₹)</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <t t-set="line_no" t-value="1"/>
-                                                <t t-set="line_total" t-value="0"/>
-                                                <t t-foreach="category_lines" t-as="line">
-                                                    <tr style="border-bottom: 1px solid #e5e7eb;">
-                                                        <td class="text-center" style="border-right: 1px solid #e5e7eb; color: #111827;">
-                                                            <t t-esc="line_no"/>
-                                                        </td>
-                                                        <td style="border-right: 1px solid #e5e7eb; color: #111827;">
-                                                            <span t-field="line.move_id.name"/>
-                                                        </td>
-                                                        <td style="border-right: 1px solid #e5e7eb; color: #111827;">
-                                                            <span t-field="line.move_id.invoice_date" t-options='{"widget": "date", "format": "dd MMM yyyy"}'/>
-                                                        </td>
-                                                        <td style="border-right: 1px solid #e5e7eb; color: #111827;">
-                                                            <t t-esc="line.name or line.product_id.name"/>
-                                                        </td>
-                                                        <td class="text-center" style="border-right: 1px solid #e5e7eb; color: #111827;">
-                                                            <span t-esc="'%.2f' % line.quantity"/>
-                                                        </td>
-                                                        <td class="text-end" style="border-right: 1px solid #e5e7eb; color: #111827;">
-                                                            <span t-esc="'%.2f' % line.price_unit"/>
-                                                        </td>
-                                                        <td class="text-end" style="color: #111827;">
-                                                            <span t-esc="'%.2f' % line.price_subtotal"/>
-                                                        </td>
-                                                    </tr>
-                                                    <t t-set="line_no" t-value="line_no + 1"/>
-                                                    <t t-set="line_total" t-value="line_total + line.price_subtotal"/>
-                                                </t>
-                                            </tbody>
-                                            <tfoot>
-                                                <tr style="background-color: #f3f4f6;">
-                                                    <td colspan="6" class="text-end" style="font-weight: 600;">
-                                                        Category Total:
-                                                    </td>
-                                                    <td class="text-end" style="font-weight: 600;">
-                                                        ₹<t t-esc="'%.2f' % line_total"/>
-                                                    </td>
-                                                </tr>
-                                            </tfoot>
-                                        </table>
-                                    </div>
-                                </t>
-                            </t>
-                        </div>
+                        </t>
                     </t>
                 </t>
             </t>

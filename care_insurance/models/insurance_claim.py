@@ -141,7 +141,6 @@ class InsuranceClaim(models.Model):
     )
     bill_generated_on = fields.Datetime(
         string="Bill Generated On",
-        readonly=True,
         help="Invoice creation date from Odoo",
     )
 

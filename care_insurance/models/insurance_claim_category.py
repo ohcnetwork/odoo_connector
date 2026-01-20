@@ -8,8 +8,9 @@ class InsuranceClaimCategory(models.Model):
 
     _name = "insurance.claim.category"
     _description = "Insurance Claim Category"
-    _order = "category_name"
+    _order = "sequence, category_name"
 
+    sequence = fields.Integer(string="Sequence", default=10)
     claim_id = fields.Many2one(
         "insurance.claim", string="Claim", required=True, ondelete="cascade"
     )

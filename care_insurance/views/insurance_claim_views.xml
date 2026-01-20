@@ -133,6 +133,7 @@
                         <page string="Category Summary" name="category_summary">
                             <field name="category_ids" nolabel="1" readonly="state != 'draft'">
                                 <list editable="bottom" create="true" delete="true">
+                                    <field name="sequence" widget="handle"/>
                                     <field name="is_manual" column_invisible="1"/>
                                     <field name="category_id" column_invisible="1"/>
                                     <field name="category_name" string="Category"/>
