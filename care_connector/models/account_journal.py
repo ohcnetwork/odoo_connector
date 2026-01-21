@@ -9,7 +9,9 @@ class AccountJournal(models.Model):
             ('cash', 'Cash'),
             ('bank', 'Bank'),
             ('card', 'Card'),
+            ('credit', 'Credit'),
         ],
         string='Care Connector Code',
-        help='Code used by Care Connector API to identify this journal for payments',
+        help='Code used by Care Connector API to identify this journal for payments. '
+             'Credit is used for Care of Accounts (charity/sponsor payments).',
     )
