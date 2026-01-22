@@ -29,6 +29,20 @@ class InsuranceClaimCategory(models.Model):
         "res.currency", related="claim_id.currency_id", store=True
     )
 
+    # Tax from first product of category
+    tax_id = fields.Many2one(
+        "account.tax",
+        string="Tax",
+        readonly=True,
+        help="Tax from first invoice line of this category",
+    )
+    tax_rate = fields.Float(
+        string="Tax %",
+        compute="_compute_tax_rate",
+        store=True,
+        help="Tax percentage from associated tax",
+    )
+
     # Control flags
     is_manual = fields.Boolean(
         string="Manually Added",
@@ -59,6 +73,20 @@ class InsuranceClaimCategory(models.Model):
         store=True,
     )
 
+    # Original values with tax (computed)
+    original_rate_with_tax = fields.Monetary(
+        string="Orig. Rate (Incl. Tax)",
+        currency_field="currency_id",
+        compute="_compute_amounts_with_tax",
+        store=True,
+    )
+    original_amount_with_tax = fields.Monetary(
+        string="Orig. Amount (Incl. Tax)",
+        currency_field="currency_id",
+        compute="_compute_amounts_with_tax",
+        store=True,
+    )
+
     # Insurance values (editable, but readonly when print_line_items=True)
     insurance_quantity = fields.Float(string="Ins. Qty", default=1.0)
     insurance_rate = fields.Monetary(string="Ins. Rate", currency_field="currency_id")
@@ -70,6 +98,22 @@ class InsuranceClaimCategory(models.Model):
         readonly=False,
     )
 
+    # Tax-inclusive computed fields
+    insurance_rate_with_tax = fields.Monetary(
+        string="Rate (Incl. Tax)",
+        currency_field="currency_id",
+        compute="_compute_amounts_with_tax",
+        store=True,
+        help="Insurance rate including tax",
+    )
+    insurance_amount_with_tax = fields.Monetary(
+        string="Amount (Incl. Tax)",
+        currency_field="currency_id",
+        compute="_compute_amounts_with_tax",
+        store=True,
+        help="Insurance amount including tax",
+    )
+
     @api.depends("category_id")
     def _compute_category_name(self):
         for rec in self:
@@ -77,6 +121,11 @@ class InsuranceClaimCategory(models.Model):
                 rec.category_name = rec.category_id.name
             elif not rec.category_name:
                 rec.category_name = ""
+
+    @api.depends("tax_id")
+    def _compute_tax_rate(self):
+        for rec in self:
+            rec.tax_rate = rec.tax_id.amount if rec.tax_id else 0.0
 
     @api.depends("original_quantity", "original_rate")
     def _compute_original_amount(self):
@@ -87,6 +136,23 @@ class InsuranceClaimCategory(models.Model):
     def _compute_insurance_amount(self):
         for rec in self:
             rec.insurance_amount = rec.insurance_quantity * rec.insurance_rate
+
+    @api.depends(
+        "original_rate",
+        "original_amount",
+        "insurance_rate",
+        "insurance_amount",
+        "tax_rate",
+    )
+    def _compute_amounts_with_tax(self):
+        for rec in self:
+            multiplier = 1 + (rec.tax_rate / 100)
+            # Original values with tax
+            rec.original_rate_with_tax = rec.original_rate * multiplier
+            rec.original_amount_with_tax = rec.original_amount * multiplier
+            # Insurance values with tax
+            rec.insurance_rate_with_tax = rec.insurance_rate * multiplier
+            rec.insurance_amount_with_tax = rec.insurance_amount * multiplier
 
     @api.onchange("insurance_quantity", "insurance_rate")
     def _onchange_insurance_fields(self):

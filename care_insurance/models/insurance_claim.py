@@ -174,6 +174,13 @@ class InsuranceClaim(models.Model):
         store=True,
         currency_field="currency_id",
     )
+    total_insurance_amount_with_tax = fields.Monetary(
+        string="Total Insurance (Incl. Tax)",
+        compute="_compute_totals",
+        store=True,
+        currency_field="currency_id",
+        help="Total insurance amount including tax",
+    )
 
     # Related records
     journal_entry_id = fields.Many2one(
@@ -221,6 +228,7 @@ class InsuranceClaim(models.Model):
     @api.depends(
         "category_ids.original_amount",
         "category_ids.insurance_amount",
+        "category_ids.insurance_amount_with_tax",
         "category_ids.include_in_report",
     )
     def _compute_totals(self):
@@ -233,6 +241,9 @@ class InsuranceClaim(models.Model):
             )
             claim.total_insurance_amount = sum(
                 included_categories.mapped("insurance_amount")
+            )
+            claim.total_insurance_amount_with_tax = sum(
+                included_categories.mapped("insurance_amount_with_tax")
             )
 
     # -------------------------------------------------------------------------
@@ -333,6 +344,7 @@ class InsuranceClaim(models.Model):
                 "category_id": None,
                 "category_name": "Uncategorized",
                 "line_ids": [],
+                "tax_id": None,  # Store tax from first line
             }
         )
 
@@ -348,6 +360,9 @@ class InsuranceClaim(models.Model):
 
                 category_totals[key]["amount"] += line.price_subtotal
                 category_totals[key]["line_ids"].append(line.id)
+                # Capture tax from first line of this category
+                if not category_totals[key]["tax_id"] and line.tax_ids:
+                    category_totals[key]["tax_id"] = line.tax_ids[0].id
 
         if not category_totals:
             raise UserError(_("No valid invoice lines found with positive amounts."))
@@ -355,15 +370,19 @@ class InsuranceClaim(models.Model):
         # Collect all line IDs for tracking
         all_line_ids = []
 
-        # Create category records
+        # Create category records with incrementing sequence
         category_records = []
+        sequence = 10
         for key, data in category_totals.items():
             total_amount = data["amount"]
             category_records.append(
                 {
                     "claim_id": self.id,
+                    "sequence": sequence,
                     "category_id": data["category_id"],
                     "category_name": data["category_name"],
+                    # Tax from first line of category
+                    "tax_id": data["tax_id"],
                     # Original: Qty=1, Rate=total
                     "original_quantity": 1.0,
                     "original_rate": total_amount,
@@ -373,6 +392,7 @@ class InsuranceClaim(models.Model):
                 }
             )
             all_line_ids.extend(data["line_ids"])
+            sequence += 10  # Increment by 10 for each category
 
         if category_records:
             self.env["insurance.claim.category"].create(category_records)
