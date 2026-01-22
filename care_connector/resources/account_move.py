@@ -294,11 +294,11 @@ class AccountUtility:
             if name:
                 account_move.write({"name": name})
 
-            # Set bill_number and bill_date for vendor bills
+            # Set bill_number (as reference) and bill_date for vendor bills
             if move_type in ("in_invoice", "in_refund"):
                 vendor_bill_updates = {}
                 if bill_number:
-                    vendor_bill_updates["name"] = bill_number
+                    vendor_bill_updates["ref"] = bill_number
                 if bill_date:
                     vendor_bill_updates["invoice_date"] = datetime.strptime(
                         bill_date, "%d-%m-%Y"
