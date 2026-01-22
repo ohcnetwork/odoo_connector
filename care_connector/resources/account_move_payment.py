@@ -1,6 +1,7 @@
 from datetime import datetime
 from odoo import http, fields
 from .res_partner import PartnerUtility
+from .payment_method_line import PaymentMethodLineUtility
 
 
 class InvoicePaymentUtility:
@@ -18,6 +19,7 @@ class InvoicePaymentUtility:
             customer_type = request_data.customer_type
             counter_data = request_data.counter_data
             bank_reference = request_data.bank_reference
+            payment_method_line_id = request_data.payment_method_line_id
             account_move_model = user_env["account.move"]
             account_journal_model = user_env['account.journal']
             account_payment_model = user_env['account.payment']
@@ -36,6 +38,19 @@ class InvoicePaymentUtility:
                 raise ValueError(
                     f"No journal configured for Care Connector code '{journal_input}'. "
                     f"Please set the 'Care Connector Code' field on the appropriate journal."
+                )
+
+            # Validate payment_method_line_id for credit payments
+            payment_method_line = None
+            if journal_input.lower() == 'credit':
+                if not payment_method_line_id:
+                    raise ValueError(
+                        "payment_method_line_id is required for credit (Care of Account) payments. "
+                        "Use GET /api/payment/method/lines to fetch available payment methods."
+                    )
+                # Validate that the payment method line belongs to this journal
+                payment_method_line = PaymentMethodLineUtility.validate_payment_method_line_for_journal(
+                    user_env, payment_method_line_id, account_journal.id
                 )
 
             # Find cash session if this is a cash payment
@@ -68,12 +83,19 @@ class InvoicePaymentUtility:
                     'active_id': existing_invoice.id,
                 }
 
-                account_payment = a_p_r_transient_model.with_context(ctx).create({
+                payment_register_vals = {
                     'amount': amount,
                     'journal_id': account_journal.id,
                     'payment_date': payment_date or fields.Date.today(),
                     'bank_reference': bank_reference
-                })._create_payments()
+                }
+                # Add payment_method_line_id for credit payments
+                if payment_method_line:
+                    payment_register_vals['payment_method_line_id'] = payment_method_line.id
+
+                account_payment = a_p_r_transient_model.with_context(ctx).create(
+                    payment_register_vals
+                )._create_payments()
                 if not account_payment:
                     raise ValueError(f"Payment creation failed")
                 account_payment.x_care_id = x_care_id
@@ -109,6 +131,9 @@ class InvoicePaymentUtility:
                         'cashier': bill_counter.get('user_id'),
                         'bank_reference': bank_reference
                     }
+                    # Add payment_method_line_id for credit payments
+                    if payment_method_line:
+                        payment_vals['payment_method_line_id'] = payment_method_line.id
                     if cash_session:
                         payment_vals['cash_session_id'] = cash_session.id
                 except Exception as e:
