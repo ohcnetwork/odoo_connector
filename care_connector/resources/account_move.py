@@ -42,7 +42,7 @@ class AccountUtility:
                         f"Invoice already exists with name {invoice_number}"
                     )
 
-            is_refund = getattr(request_data, 'is_refund', False)
+            is_refund = getattr(request_data, "is_refund", False)
 
             if is_refund:
                 # Credit note types
@@ -55,9 +55,14 @@ class AccountUtility:
                 if bill_type == "vendor":
                     move_type = "in_invoice"
 
+            bill_number = request_data.bill_number
+            bill_date = request_data.bill_date
+
             move_data_dict = {
                 "x_care_id": x_care_id,
                 "name": invoice_number,
+                "bill_number": bill_number,
+                "bill_date": bill_date,
                 "res_partner": res_partner,
                 "invoice_items": invoice_items,
                 "invoice_date": invoice_date,
@@ -186,6 +191,8 @@ class AccountUtility:
         try:
             x_care_id = move_data.get("x_care_id")
             name = move_data.get("name")
+            bill_number = move_data.get("bill_number")
+            bill_date = move_data.get("bill_date")
             res_partner = move_data.get("res_partner")
             invoice_items = move_data.get("invoice_items")
             invoice_date = move_data.get("invoice_date")
@@ -286,6 +293,18 @@ class AccountUtility:
 
             if name:
                 account_move.write({"name": name})
+
+            # Set bill_number and bill_date for vendor bills
+            if move_type in ("in_invoice", "in_refund"):
+                vendor_bill_updates = {}
+                if bill_number:
+                    vendor_bill_updates["name"] = bill_number
+                if bill_date:
+                    vendor_bill_updates["invoice_date"] = datetime.strptime(
+                        bill_date, "%d-%m-%Y"
+                    ).date()
+                if vendor_bill_updates:
+                    account_move.write(vendor_bill_updates)
 
             # Set insurance company BEFORE posting
             # so their receivable account logic is applied

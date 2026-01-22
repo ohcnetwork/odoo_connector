@@ -24,6 +24,8 @@ class BillType(Enum):
 class AccountMoveApiRequest(BaseModel):
     x_care_id: str
     invoice_number: str | None = None
+    bill_number: str | None = None
+    bill_date: str | None = None
     bill_type: BillType
     invoice_date: str
     due_date: str
