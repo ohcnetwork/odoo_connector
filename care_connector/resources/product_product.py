@@ -1,5 +1,9 @@
 from odoo.http import request
+import logging
 from .product_category import CategoryUtility
+
+
+logger = logging.getLogger(__name__)
 
 
 class ProductUtility:
@@ -72,6 +76,7 @@ class ProductUtility:
             tax_name = "IGST" if len(tax_list) == 1 else "GST"
             for tax_type in ["sale", "purchase"]:
                 name = f"{tax_percentage_total}% {tax_name} {tax_type[0].upper()}"
+                logger.info(f"Name: {name}")
                 existing_tax = account_tax_model.search(
                     [
                         ("name", "=", name),
@@ -80,6 +85,7 @@ class ProductUtility:
                     ],
                     limit=1,
                 )
+                logger.info(f"Existing Tax: {existing_tax}")
 
                 if not existing_tax:
                     return {

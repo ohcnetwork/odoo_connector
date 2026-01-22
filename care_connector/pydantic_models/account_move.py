@@ -38,6 +38,7 @@ class AccountMoveApiRequest(BaseModel):
     payment_reference: str | None = None
     insurance_company_id: int | None = None
     doctor: str | None = None
+    room_number: str | None = None
     admission_date: str | None = None
     discharge_date: str | None = None
     x_account: str | None = None

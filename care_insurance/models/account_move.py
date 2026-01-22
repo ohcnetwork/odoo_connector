@@ -33,6 +33,10 @@ class AccountMove(models.Model):
         string="Doctor",
         copy=False,
     )
+    room_number = fields.Char(
+        string="Room No",
+        copy=False,
+    )
     admission_date = fields.Datetime(
         string="Admission Date",
         copy=False,

@@ -129,6 +129,13 @@ class InsuranceClaim(models.Model):
     doctor = fields.Char(string="Doctor")
     claim_number = fields.Char(string="Claim Number")
     room_number = fields.Char(string="Room No")
+    no_of_days = fields.Integer(
+        string="No. of Days",
+        compute="_compute_no_of_days",
+        store=True,
+        readonly=False,
+        help="Number of days (discharge - admission). Editable.",
+    )
     admission_date = fields.Datetime(string="Admission Date")
     discharge_date = fields.Datetime(string="Discharge Date")
     narration = fields.Text(string="Notes")
@@ -161,25 +168,20 @@ class InsuranceClaim(models.Model):
         copy=False,
     )
 
-    # Computed fields
+    # Computed totals (all amounts are tax inclusive)
     total_original_amount = fields.Monetary(
-        string="Total Original Amount",
+        string="Total Original",
         compute="_compute_totals",
         store=True,
         currency_field="currency_id",
+        help="Total original amount (tax inclusive)",
     )
     total_insurance_amount = fields.Monetary(
-        string="Total Insurance Amount",
+        string="Total Insurance",
         compute="_compute_totals",
         store=True,
         currency_field="currency_id",
-    )
-    total_insurance_amount_with_tax = fields.Monetary(
-        string="Total Insurance (Incl. Tax)",
-        compute="_compute_totals",
-        store=True,
-        currency_field="currency_id",
-        help="Total insurance amount including tax",
+        help="Total insurance amount (tax inclusive)",
     )
 
     # Related records
@@ -228,7 +230,6 @@ class InsuranceClaim(models.Model):
     @api.depends(
         "category_ids.original_amount",
         "category_ids.insurance_amount",
-        "category_ids.insurance_amount_with_tax",
         "category_ids.include_in_report",
     )
     def _compute_totals(self):
@@ -242,9 +243,15 @@ class InsuranceClaim(models.Model):
             claim.total_insurance_amount = sum(
                 included_categories.mapped("insurance_amount")
             )
-            claim.total_insurance_amount_with_tax = sum(
-                included_categories.mapped("insurance_amount_with_tax")
-            )
+
+    @api.depends("admission_date", "discharge_date")
+    def _compute_no_of_days(self):
+        for claim in self:
+            if claim.admission_date and claim.discharge_date:
+                delta = claim.discharge_date - claim.admission_date
+                claim.no_of_days = delta.days
+            else:
+                claim.no_of_days = 0
 
     # -------------------------------------------------------------------------
     # CRUD Methods
@@ -337,35 +344,52 @@ class InsuranceClaim(models.Model):
                 )
             )
 
-        # Group by product category
+        def get_root_category(category):
+            """Get the root (top-level) parent category."""
+            if not category:
+                return None
+            while category.parent_id:
+                category = category.parent_id
+            return category
+
+        # Group by root/parent category
         category_totals = defaultdict(
             lambda: {
                 "amount": 0.0,
+                "amount_with_tax": 0.0,  # Sum of tax-inclusive amounts per line
                 "category_id": None,
                 "category_name": "Uncategorized",
                 "line_ids": [],
-                "tax_id": None,  # Store tax from first line
             }
         )
 
         for line in invoice_lines:
-            if line.price_subtotal > 0:
-                category = line.product_id.categ_id if line.product_id else None
-                if category:
-                    key = category.id
-                    category_totals[key]["category_id"] = category.id
-                    category_totals[key]["category_name"] = category.name
-                else:
-                    key = 0  # Uncategorized
+            # Apply sign based on move type: negative for credit notes, positive for invoices
+            sign = -1 if line.move_id.move_type == "out_refund" else 1
+            signed_amount = line.price_subtotal * sign
 
-                category_totals[key]["amount"] += line.price_subtotal
-                category_totals[key]["line_ids"].append(line.id)
-                # Capture tax from first line of this category
-                if not category_totals[key]["tax_id"] and line.tax_ids:
-                    category_totals[key]["tax_id"] = line.tax_ids[0].id
+            # Calculate tax-inclusive amount for this line using its actual tax
+            line_tax_rate = line.tax_ids[0].amount if line.tax_ids else 0.0
+            tax_multiplier = 1 + (line_tax_rate / 100)
+            signed_amount_with_tax = signed_amount * tax_multiplier
+
+            # Get the root category for grouping
+            category = line.product_id.categ_id if line.product_id else None
+            root_category = get_root_category(category)
+
+            if root_category:
+                key = root_category.id
+                category_totals[key]["category_id"] = root_category.id
+                category_totals[key]["category_name"] = root_category.name
+            else:
+                key = 0  # Uncategorized
+
+            category_totals[key]["amount"] += signed_amount
+            category_totals[key]["amount_with_tax"] += signed_amount_with_tax
+            category_totals[key]["line_ids"].append(line.id)
 
         if not category_totals:
-            raise UserError(_("No valid invoice lines found with positive amounts."))
+            raise UserError(_("No valid invoice lines found."))
 
         # Collect all line IDs for tracking
         all_line_ids = []
@@ -374,21 +398,21 @@ class InsuranceClaim(models.Model):
         category_records = []
         sequence = 10
         for key, data in category_totals.items():
-            total_amount = data["amount"]
+            # Use tax-inclusive amount as rate (qty=1)
+            tax_inclusive_rate = data["amount_with_tax"]
+
             category_records.append(
                 {
                     "claim_id": self.id,
                     "sequence": sequence,
                     "category_id": data["category_id"],
                     "category_name": data["category_name"],
-                    # Tax from first line of category
-                    "tax_id": data["tax_id"],
-                    # Original: Qty=1, Rate=total
+                    # Original: Qty=1, Rate=tax inclusive total
                     "original_quantity": 1.0,
-                    "original_rate": total_amount,
+                    "original_rate": tax_inclusive_rate,
                     # Insurance: same as original initially
                     "insurance_quantity": 1.0,
-                    "insurance_rate": total_amount,
+                    "insurance_rate": tax_inclusive_rate,
                 }
             )
             all_line_ids.extend(data["line_ids"])
@@ -420,9 +444,11 @@ class InsuranceClaim(models.Model):
             if create_dates:
                 update_vals["bill_generated_on"] = min(create_dates)
 
-            # Doctor, admission, discharge from first invoice if not set
+            # Doctor, room, admission, discharge from first invoice if not set
             if not self.doctor and first_invoice.doctor:
                 update_vals["doctor"] = first_invoice.doctor
+            if not self.room_number and first_invoice.room_number:
+                update_vals["room_number"] = first_invoice.room_number
             if not self.admission_date and first_invoice.admission_date:
                 update_vals["admission_date"] = first_invoice.admission_date
             if not self.discharge_date and first_invoice.discharge_date:

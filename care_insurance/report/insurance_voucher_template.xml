@@ -78,6 +78,11 @@
                                         <td style="padding: 2px 0;"><t t-if="claim.room_number"><span t-field="claim.room_number"/></t><t t-else="">-</t></td>
                                     </tr>
                                     <tr>
+                                        <td style="padding: 2px 8px 2px 0;">No. of Days</td>
+                                        <td style="padding: 2px 8px 2px 0;">:</td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.no_of_days"><span t-field="claim.no_of_days"/></t><t t-else="">-</t></td>
+                                    </tr>
+                                    <tr>
                                         <td style="padding: 2px 8px 2px 0;">Admission Date</td>
                                         <td style="padding: 2px 8px 2px 0;">:</td>
                                         <td style="padding: 2px 0;"><t t-if="claim.admission_date"><span t-field="claim.admission_date" t-options='{"widget": "date", "format": "dd-MM-yyyy"}'/></t><t t-else="">-</t></td>
@@ -117,12 +122,10 @@
                                                 <span t-esc="'%.0f' % category.insurance_quantity"/>
                                             </td>
                                             <td class="text-end" style="border-right: 1px solid #e5e7eb; color: #111827;">
-                                                <!-- Tax-inclusive rate -->
-                                                <span t-esc="'%.2f' % category.insurance_rate_with_tax"/>
+                                                <span t-esc="'%.2f' % category.insurance_rate"/>
                                             </td>
                                             <td class="text-end" style="color: #111827; font-weight: 600;">
-                                                <!-- Tax-inclusive amount -->
-                                                <span t-esc="'%.2f' % category.insurance_amount_with_tax"/>
+                                                <span t-esc="'%.2f' % category.insurance_amount"/>
                                             </td>
                                         </tr>
                                         <t t-set="sl_no" t-value="sl_no + 1"/>
@@ -134,8 +137,7 @@
                         <!-- Totals -->
                         <div style="border: 1px solid #d1d5db; border-top: none; border-radius: 0 0 4px 4px; padding: 0.75rem;">
                             <div class="d-flex flex-column align-items-end" style="font-size: 0.875rem; color: #111827;">
-                                <!-- Tax-inclusive total -->
-                                <t t-set="insurance_total" t-value="sum(included_categories.mapped('insurance_amount_with_tax'))"/>
+                                <t t-set="insurance_total" t-value="sum(included_categories.mapped('insurance_amount'))"/>
                                 <div class="d-flex justify-content-between" style="width: 16rem; font-weight: 600; font-size: 1rem;">
                                     <span>Total Amount</span>
                                     <span>₹<t t-esc="'%.2f' % insurance_total"/></span>
@@ -183,7 +185,14 @@
 
                     <!-- LINE ITEM DETAIL PAGES: One page per category -->
                     <t t-foreach="categories_with_lines" t-as="cat">
-                        <t t-set="category_lines" t-value="claim.claimed_move_line_ids.filtered(lambda l: l.product_id.categ_id.id == cat.category_id.id)"/>
+                        <!-- Filter lines by root category using parent_path (includes all child categories) -->
+                        <t t-set="root_path_prefix" t-value="str(cat.category_id.id) + '/' if cat.category_id else ''"/>
+                        <t t-if="cat.category_id">
+                            <t t-set="category_lines" t-value="claim.claimed_move_line_ids.filtered(lambda l: l.product_id.categ_id.parent_path and l.product_id.categ_id.parent_path.startswith(root_path_prefix))"/>
+                        </t>
+                        <t t-else="">
+                            <t t-set="category_lines" t-value="claim.claimed_move_line_ids.filtered(lambda l: not l.product_id.categ_id)"/>
+                        </t>
                         <t t-if="category_lines">
                             <div class="page" style="font-family: system-ui, -apple-system, sans-serif; page-break-before: always;">
                                 <!-- Space for pre-printed letterhead -->
@@ -254,6 +263,11 @@
                                                 <td style="padding: 2px 0;"><t t-if="claim.room_number"><span t-field="claim.room_number"/></t><t t-else="">-</t></td>
                                             </tr>
                                             <tr>
+                                                <td style="padding: 2px 8px 2px 0;">No. of Days</td>
+                                                <td style="padding: 2px 8px 2px 0;">:</td>
+                                                <td style="padding: 2px 0;"><t t-if="claim.no_of_days"><span t-field="claim.no_of_days"/></t><t t-else="">-</t></td>
+                                            </tr>
+                                            <tr>
                                                 <td style="padding: 2px 8px 2px 0;">Admission Date</td>
                                                 <td style="padding: 2px 8px 2px 0;">:</td>
                                                 <td style="padding: 2px 0;"><t t-if="claim.admission_date"><span t-field="claim.admission_date" t-options='{"widget": "date", "format": "dd-MM-yyyy"}'/></t><t t-else="">-</t></td>
@@ -284,12 +298,15 @@
                                         <tbody>
                                             <t t-set="line_no" t-value="1"/>
                                             <t t-set="line_total" t-value="0"/>
-                                            <!-- Get tax multiplier from category -->
-                                            <t t-set="tax_multiplier" t-value="1 + (cat.tax_rate / 100)"/>
                                             <t t-foreach="category_lines" t-as="line">
-                                                <!-- Calculate tax-inclusive values using category's tax rate -->
-                                                <t t-set="tax_inclusive_rate" t-value="line.price_unit * tax_multiplier"/>
-                                                <t t-set="tax_inclusive_amount" t-value="line.price_subtotal * tax_multiplier"/>
+                                                <!-- Sign: negative for credit notes (out_refund), positive for invoices -->
+                                                <t t-set="sign" t-value="-1 if line.move_id.move_type == 'out_refund' else 1"/>
+                                                <!-- Get tax rate from line's own tax (not category's tax) -->
+                                                <t t-set="line_tax_rate" t-value="line.tax_ids[0].amount if line.tax_ids else 0.0"/>
+                                                <t t-set="tax_multiplier" t-value="1 + (line_tax_rate / 100)"/>
+                                                <!-- Calculate tax-inclusive values using line's actual tax rate -->
+                                                <t t-set="tax_inclusive_rate" t-value="line.price_unit * tax_multiplier * sign"/>
+                                                <t t-set="tax_inclusive_amount" t-value="line.price_subtotal * tax_multiplier * sign"/>
                                                 <tr style="border-bottom: 1px solid #e5e7eb;">
                                                     <td class="text-center" style="border-right: 1px solid #e5e7eb; color: #111827;">
                                                         <t t-esc="line_no"/>
@@ -304,14 +321,14 @@
                                                         <t t-esc="line.name or line.product_id.name"/>
                                                     </td>
                                                     <td class="text-center" style="border-right: 1px solid #e5e7eb; color: #111827;">
-                                                        <span t-esc="'%.2f' % line.quantity"/>
+                                                        <span t-esc="'%.2f' % (line.quantity * sign)"/>
                                                     </td>
                                                     <td class="text-end" style="border-right: 1px solid #e5e7eb; color: #111827;">
-                                                        <!-- Tax-inclusive rate using category's tax -->
+                                                        <!-- Tax-inclusive rate using line's actual tax -->
                                                         <span t-esc="'%.2f' % tax_inclusive_rate"/>
                                                     </td>
                                                     <td class="text-end" style="color: #111827;">
-                                                        <!-- Tax-inclusive amount using category's tax -->
+                                                        <!-- Tax-inclusive amount using line's actual tax -->
                                                         <span t-esc="'%.2f' % tax_inclusive_amount"/>
                                                     </td>
                                                 </tr>

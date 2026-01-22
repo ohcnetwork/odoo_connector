@@ -70,6 +70,7 @@ class AccountUtility:
                 "move_type": move_type,
                 "insurance_company_id": insurance_company_id,
                 "doctor": request_data.doctor,
+                "room_number": request_data.room_number,
                 "admission_date": request_data.admission_date,
                 "discharge_date": request_data.discharge_date,
                 "x_account": request_data.x_account,
@@ -318,8 +319,9 @@ class AccountUtility:
                 if insurance:
                     account_move.write({"insurance_company_id": insurance.id})
 
-            # Set doctor, hospital dates, and account
+            # Set doctor, hospital dates, room number, and account
             doctor = move_data.get("doctor")
+            room_number = move_data.get("room_number")
             admission_date = move_data.get("admission_date")
             discharge_date = move_data.get("discharge_date")
             x_account = move_data.get("x_account")
@@ -327,6 +329,8 @@ class AccountUtility:
             hospital_fields = {}
             if doctor:
                 hospital_fields["doctor"] = doctor
+            if room_number:
+                hospital_fields["room_number"] = room_number
             if admission_date:
                 hospital_fields["admission_date"] = datetime.strptime(
                     admission_date, "%d-%m-%Y %H:%M:%S"

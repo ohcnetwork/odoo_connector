@@ -12,8 +12,7 @@
                 <field name="name"/>
                 <field name="customer_id"/>
                 <field name="insurance_company_id"/>
-                <field name="total_insurance_amount" optional="hide"/>
-                <field name="total_insurance_amount_with_tax" string="Total (Incl. Tax)"/>
+                <field name="total_insurance_amount" string="Total Amount"/>
                 <field name="approved_amount"/>
                 <field name="approved_date"/>
                 <field name="state" widget="badge"
@@ -115,6 +114,7 @@
                             <field name="doctor" readonly="state != 'draft'"/>
                             <field name="room_number" readonly="state != 'draft'"/>
                             <field name="claim_number" readonly="state != 'draft'"/>
+                            <field name="no_of_days" readonly="state != 'draft'"/>
                             <field name="admission_date" readonly="state != 'draft'"/>
                             <field name="discharge_date" readonly="state != 'draft'"/>
                         </group>
@@ -138,33 +138,23 @@
                                     <field name="is_manual" column_invisible="1"/>
                                     <field name="category_id" column_invisible="1"/>
                                     <field name="category_name" string="Category"/>
-                                    <!-- Tax -->
-                                    <field name="tax_id" string="Tax" readonly="1" optional="hide"/>
-                                    <field name="tax_rate" string="Tax %" readonly="1" optional="hide"/>
-                                    <!-- Original values -->
-                                    <field name="original_quantity" readonly="1"/>
-                                    <field name="original_rate" readonly="1"  optional="hide"/>
-                                    <field name="original_amount" readonly="1"  optional="hide" sum="Total Original"/>
-                                    <!-- Original values with tax -->
-                                    <field name="original_rate_with_tax" string="Orig. Rate (Incl.)" readonly="1" optional="hide"/>
-                                    <field name="original_amount_with_tax" string="Orig. Amount (Incl.)" readonly="1" sum="Total Orig. (Incl.)" optional="hide"/>
-                                    <!-- Insurance values (readonly when print_line_items) -->
-                                    <field name="insurance_quantity" readonly="print_line_items"/>
-                                    <field name="insurance_rate" readonly="print_line_items"/>
-                                    <field name="insurance_amount" sum="Total Insurance" readonly="print_line_items" optional="hide"/>
-                                    <!-- Tax-inclusive values (computed, readonly) -->
-                                    <field name="insurance_rate_with_tax" string="Rate (Incl. Tax)" readonly="1"/>
-                                    <field name="insurance_amount_with_tax" string="Amount (Incl. Tax)" sum="Total (Incl. Tax)" readonly="1"/>
-                                    <!-- Checkboxes at the end -->
-                                    <field name="include_in_report" string="Include in Report" width="100px"/>
+                                    <!-- Original values (readonly) -->
+                                    <field name="original_quantity" string="Orig. Qty" readonly="1"/>
+                                    <field name="original_rate" string="Orig. Rate" readonly="1"/>
+                                    <field name="original_amount" string="Orig. Amount" readonly="1" sum="Total Original"/>
+                                    <!-- Insurance values (qty/rate editable, amount computed) -->
+                                    <field name="insurance_quantity" string="Ins. Qty"/>
+                                    <field name="insurance_rate" string="Ins. Rate"/>
+                                    <field name="insurance_amount" string="Ins. Amount" readonly="1" sum="Total Insurance"/>
+                                    <!-- Checkboxes -->
+                                    <field name="include_in_report" string="Include" width="80px"/>
                                     <field name="print_line_items" string="Print Items" width="80px"
                                            readonly="is_manual"/>
                                 </list>
                             </field>
                             <group class="oe_subtotal_footer">
-                                <field name="total_original_amount" string="Total Original Amount" invisible="1"/>
-                                <field name="total_insurance_amount" string="Total Insurance Amount" invisible="1"/>
-                                <field name="total_insurance_amount_with_tax" string="Total Insurance (Incl. Tax)"/>
+                                <field name="total_original_amount" string="Total Original"/>
+                                <field name="total_insurance_amount" string="Total Insurance"/>
                             </group>
                         </page>
                         <page string="Notes" name="notes">
