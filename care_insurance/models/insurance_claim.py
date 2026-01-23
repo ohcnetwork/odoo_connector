@@ -330,7 +330,6 @@ class InsuranceClaim(models.Model):
             ("move_id.move_type", "in", ["out_invoice", "out_refund"]),
             ("move_id.state", "=", "posted"),
             ("move_id.payment_state", "=", "not_paid"),
-            ("move_id.insurance_company_id", "=", self.insurance_company_id.id),
         ]
         if already_claimed_line_ids:
             domain.append(("id", "not in", already_claimed_line_ids))

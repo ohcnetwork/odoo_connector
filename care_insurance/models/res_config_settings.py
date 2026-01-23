@@ -37,5 +37,7 @@ class ResConfigSettings(models.TransientModel):
         )
         icp.set_param(
             "care_insurance.default_journal_id",
-            self.insurance_default_journal_id.id if self.insurance_default_journal_id else False,
+            self.insurance_default_journal_id.id
+            if self.insurance_default_journal_id
+            else False,
         )

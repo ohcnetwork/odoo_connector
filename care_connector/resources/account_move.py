@@ -1,6 +1,5 @@
 from datetime import datetime
 from .res_partner import PartnerUtility
-from .account_account import ChartOfAccountUtility
 from odoo.exceptions import UserError
 from odoo.tools.translate import _
 
@@ -16,7 +15,6 @@ class AccountUtility:
             x_identifier = request_data.x_identifier
             x_created_by = request_data.x_created_by
             payment_reference = request_data.payment_reference
-            insurance_company_id = request_data.insurance_company_id
 
             account_move = user_env["account.move"]
             existing_invoice = account_move.search(
@@ -68,7 +66,6 @@ class AccountUtility:
                 "invoice_date": invoice_date,
                 "due_date": due_date,
                 "move_type": move_type,
-                "insurance_company_id": insurance_company_id,
                 "doctor": request_data.doctor,
                 "room_number": request_data.room_number,
                 "admission_date": request_data.admission_date,
@@ -200,7 +197,6 @@ class AccountUtility:
             due_date = move_data.get("due_date")
             move_type = move_data.get("move_type")
             account_move_model = user_env["account.move"]
-            res_partner_model = user_env["res.partner"]
 
             invoice_line_list = []
             for item in invoice_items:
@@ -306,18 +302,6 @@ class AccountUtility:
                     ).date()
                 if vendor_bill_updates:
                     account_move.write(vendor_bill_updates)
-
-            # Set insurance company BEFORE posting
-            # so their receivable account logic is applied
-            insurance_company_id = move_data.get("insurance_company_id")
-
-            if insurance_company_id:
-                insurance_model = user_env["insurance.company"]
-                insurance = insurance_model.search(
-                    [("id", "=", int(insurance_company_id))], limit=1
-                )
-                if insurance:
-                    account_move.write({"insurance_company_id": insurance.id})
 
             # Set doctor, hospital dates, room number, and account
             doctor = move_data.get("doctor")

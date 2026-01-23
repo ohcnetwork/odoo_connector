@@ -15,7 +15,9 @@ class AccountMove(models.Model):
     is_insurance = fields.Boolean(
         string="Is Insurance",
         compute="_compute_is_insurance",
+        inverse="_inverse_is_insurance",
         store=True,
+        help="Check this to mark as an insurance invoice",
     )
     insurance_claim_id = fields.Many2one(
         "insurance.claim",
@@ -64,6 +66,19 @@ class AccountMove(models.Model):
             move.is_insurance = bool(
                 move.insurance_tag and move.insurance_tag == insurance_tag
             )
+
+    def _inverse_is_insurance(self):
+        """Set or clear insurance_tag based on is_insurance checkbox."""
+        insurance_tag = (
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("res.config.settings.insurance_tag_setting", default="")
+        )
+        for move in self:
+            if move.is_insurance:
+                move.insurance_tag = insurance_tag
+            else:
+                move.insurance_tag = False
 
 
 class AccountMoveLine(models.Model):
