@@ -283,6 +283,7 @@ class AccountUtility:
                     "invoice_date": invoice_date,
                     "invoice_date_due": due_date,
                     "invoice_line_ids": invoice_line_list,
+                    "invoice_cash_rounding_id": 1,  # NEAREST ROUNDING
                 }
             )
             if not account_move:
