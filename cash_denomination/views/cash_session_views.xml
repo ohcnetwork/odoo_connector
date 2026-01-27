@@ -17,6 +17,7 @@
                 <field name="difference_status" widget="badge" 
                     decoration-danger="difference_status == 'open'"
                     decoration-warning="difference_status == 'recoverable'"
+                    decoration-success="difference_status == 'recovered'"
                     decoration-muted="difference_status == 'written_off'"
                     invisible="difference_status == 'none'"/>
             </list>
