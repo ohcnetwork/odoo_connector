@@ -18,5 +18,6 @@
         "views/res_users_views.xml",
         "views/product_category_views.xml",
         "views/bill_counter_views.xml",
+        "views/res_config_settings_views.xml",
     ],
 }

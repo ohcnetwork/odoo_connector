@@ -275,17 +275,26 @@ class AccountUtility:
 
             invoice_date = datetime.strptime(invoice_date, "%d-%m-%Y").date()
             due_date = datetime.strptime(due_date, "%d-%m-%Y").date()
-            account_move = account_move_model.create(
-                {
-                    "move_type": move_type,
-                    "partner_id": res_partner.id,
-                    "x_care_id": x_care_id,
-                    "invoice_date": invoice_date,
-                    "invoice_date_due": due_date,
-                    "invoice_line_ids": invoice_line_list,
-                    "invoice_cash_rounding_id": 1,  # NEAREST ROUNDING
-                }
+
+            # Get invoice rounding setting
+            icp = user_env["ir.config_parameter"].sudo()
+            rounding_id = icp.get_param(
+                "care_connector.invoice_cash_rounding_id", default=False
             )
+
+            move_vals = {
+                "move_type": move_type,
+                "partner_id": res_partner.id,
+                "x_care_id": x_care_id,
+                "invoice_date": invoice_date,
+                "invoice_date_due": due_date,
+                "invoice_line_ids": invoice_line_list,
+            }
+
+            if rounding_id:
+                move_vals["invoice_cash_rounding_id"] = int(rounding_id)
+
+            account_move = account_move_model.create(move_vals)
             if not account_move:
                 raise ValueError("Failed to create the Invoice")
 
