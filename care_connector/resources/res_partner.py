@@ -35,11 +35,16 @@ class PartnerUtility:
                     limit=1,
                 )
 
+            # Map partner_type to x_care_id_type
+            care_id_type = (
+                "user" if partner_data.partner_type.value == "person" else "vendor"
+            )
+
             if not res_partner:
                 create_vals = {
                     "name": partner_data.name,
                     "x_care_id": partner_data.x_care_id,
-                    "x_care_id_type": "user",
+                    "x_care_id_type": care_id_type,
                     "company_type": partner_data.partner_type.value,
                     "country_id": country.id if country else False,
                     "state_id": state.id if state else False,

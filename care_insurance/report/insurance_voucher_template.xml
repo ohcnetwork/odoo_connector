@@ -2,6 +2,19 @@
 <odoo>
     <template id="report_insurance_voucher">
         <t t-call="web.html_container">
+            <!-- CSS to prevent page break issues and set base font size -->
+            <style>
+                tr, td, th {
+                    page-break-inside: avoid !important;
+                }
+                table {
+                    page-break-inside: auto;
+                }
+                tbody tr {
+                    page-break-inside: avoid !important;
+                    page-break-after: auto;
+                }
+            </style>
             <t t-foreach="docs" t-as="claim">
                 <!-- Filter categories for report (sorted by sequence for UI ordering) -->
                 <t t-set="included_categories" t-value="claim.category_ids.filtered(lambda c: c.include_in_report).sorted('sequence')"/>
@@ -9,19 +22,19 @@
                 
                 <t t-call="web.external_layout">
                     <!-- PAGE 1: Category Summary -->
-                    <div class="page" style="font-family: system-ui, -apple-system, sans-serif;">
+                    <div class="page" style="font-family: system-ui, -apple-system, sans-serif; font-size: 1rem;">
                         <!-- Space for pre-printed letterhead -->
-                        <div style="height: 72px;"></div>
+                        <div style="height: 80px;"></div>
 
                         <!-- FINAL BILL Title -->
                         <div class="mb-5" style="text-align: left;">
-                            <h2 style="font-size: 1.25rem; font-weight: 700; color: #111827; margin: 0;">
+                            <h2 style="font-size: 1.5rem; font-weight: 700; color: #111827; margin: 0;">
                                 FINAL BILL
                             </h2>
                         </div>
 
                         <!-- Patient Info and Bill Details - Two Column Layout -->
-                        <div class="d-flex justify-content-between mb-3" style="font-size: 0.875rem;">
+                        <div class="d-flex justify-content-between mb-3" style="font-size: 1rem;">
                             <!-- Left Column: Name and Address -->
                             <div style="width: 55%;">
                                 <table style="border-collapse: collapse;">
@@ -98,7 +111,7 @@
 
                         <!-- Category Summary Table -->
                         <div style="border: 1px solid #d1d5db; border-radius: 4px 4px 0 0;">
-                            <table class="table table-sm mb-0" style="font-size: 0.875rem;">
+                            <table class="table table-sm mb-0" style="font-size: 1rem;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid #e5e7eb;">
                                         <th class="text-center" style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 5%;">#</th>
@@ -136,22 +149,22 @@
 
                         <!-- Totals -->
                         <div style="border: 1px solid #d1d5db; border-top: none; border-radius: 0 0 4px 4px; padding: 0.75rem;">
-                            <div class="d-flex flex-column align-items-end" style="font-size: 0.875rem; color: #111827;">
+                            <div class="d-flex flex-column align-items-end" style="font-size: 1rem; color: #111827;">
                                 <t t-set="insurance_total" t-value="sum(included_categories.mapped('insurance_amount'))"/>
-                                <div class="d-flex justify-content-between" style="width: 16rem; font-weight: 600; font-size: 1rem;">
+                                <div class="d-flex justify-content-between" style="width: 18rem; font-weight: 600; font-size: 1.125rem;">
                                     <span>Total Amount</span>
                                     <span>₹<t t-esc="'%.2f' % insurance_total"/></span>
                                 </div>
                                 <div style="padding: 0.25rem; border-top: 2px dashed #e5e7eb; width: 100%; margin: 0.5rem 0;"/>
                                 <t t-if="claim.approved_amount">
-                                    <div class="d-flex justify-content-between" style="width: 16rem;">
+                                    <div class="d-flex justify-content-between" style="width: 18rem;">
                                         <span style="color: #6b7280;">Approved Amount:</span>
                                         <span style="font-weight: 600;">
                                             <span t-field="claim.approved_amount" t-options='{"widget": "monetary", "display_currency": claim.currency_id}'/>
                                         </span>
                                     </div>
                                     <t t-if="claim.approved_date">
-                                        <div class="d-flex justify-content-between" style="width: 16rem; font-size: 0.75rem;">
+                                        <div class="d-flex justify-content-between" style="width: 18rem; font-size: 0.9rem;">
                                             <span style="color: #6b7280;">Approved Date:</span>
                                             <span t-field="claim.approved_date" t-options='{"widget": "date"}'/>
                                         </div>
@@ -163,22 +176,22 @@
                         <!-- Notes -->
                         <t t-if="claim.narration">
                             <div class="mt-4 pt-3" style="border-top: 1px solid #e5e7eb;">
-                                <h4 style="font-size: 0.875rem; font-weight: 500; color: #111827;">Notes</h4>
-                                <p style="font-size: 0.875rem; margin-top: 0.25rem;" t-field="claim.narration"/>
+                                <h4 style="font-size: 1rem; font-weight: 500; color: #111827;">Notes</h4>
+                                <p style="font-size: 1rem; margin-top: 0.25rem;" t-field="claim.narration"/>
                             </div>
                         </t>
 
                         <!-- Signature -->
                         <div class="d-flex justify-content-between mt-5">
                             <div>
-                                <p style="font-size: 0.875rem; color: #374151;">Prepared By: <span t-esc="user.name"/></p>
+                                <p style="font-size: 1rem; color: #374151;">Prepared By: <span t-esc="user.name"/></p>
                             </div>
                             <div class="text-end">
-                                <p style="font-size: 0.875rem; font-weight: 600; color: #111827;">
+                                <p style="font-size: 1rem; font-weight: 600; color: #111827;">
                                     For <span t-field="claim.company_id.name"/>
                                 </p>
                                 <br/><br/>
-                                <p style="font-size: 0.875rem; color: #374151;">Authorized Signatory</p>
+                                <p style="font-size: 1rem; color: #374151;">Authorized Signatory</p>
                             </div>
                         </div>
                     </div>
@@ -194,19 +207,17 @@
                             <t t-set="category_lines" t-value="claim.claimed_move_line_ids.filtered(lambda l: not l.product_id.categ_id)"/>
                         </t>
                         <t t-if="category_lines">
-                            <div class="page" style="font-family: system-ui, -apple-system, sans-serif; page-break-before: always;">
-                                <!-- Space for pre-printed letterhead -->
-                                <div style="height: 72px;"></div>
+                            <div class="page" style="font-family: system-ui, -apple-system, sans-serif; font-size: 1rem; page-break-before: always;">
 
                                 <!-- LINE ITEMS Title -->
                                 <div class="mb-5" style="text-align: center;">
-                                    <h2 style="font-size: 1.25rem; font-weight: 700; color: #111827; margin: 0;">
+                                    <h2 style="font-size: 1.5rem; font-weight: 700; color: #111827; margin: 0;">
                                         DISCHARGE BILL - <span t-esc="cat.category_name.upper()"/>
                                     </h2>
                                 </div>
 
                                 <!-- Patient Info and Bill Details - Two Column Layout -->
-                                <div class="d-flex justify-content-between mb-3" style="font-size: 0.875rem;">
+                                <div class="d-flex justify-content-between mb-3" style="font-size: 1rem;">
                                     <!-- Left Column: Name and Address -->
                                     <div style="width: 55%;">
                                         <table style="border-collapse: collapse;">
@@ -283,12 +294,12 @@
 
                                 <!-- Line Items Table -->
                                 <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 1rem;">
-                                    <table class="table table-sm mb-0" style="font-size: 0.75rem;">
+                                    <table class="table table-sm mb-0" style="font-size: 0.9rem;">
                                         <thead>
                                             <tr style="border-bottom: 1px solid #e5e7eb; background-color: #f9fafb;">
                                                 <th class="text-center" style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 4%;">#</th>
-                                                <th style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 12%;">Invoice No</th>
-                                                <th style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 10%;">Invoice Date</th>
+                                                <th style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 14%;">Invoice No</th>
+                                                <th style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 12%;">Invoice Date</th>
                                                 <th style="border-right: 1px solid #e5e7eb; font-weight: 500;">Description</th>
                                                 <th class="text-center" style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 6%;">Qty</th>
                                                 <th class="text-end" style="border-right: 1px solid #e5e7eb; font-weight: 500; width: 10%;">Rate (₹)</th>
