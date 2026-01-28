@@ -26,6 +26,8 @@ class ProductUtility:
             if tax_list and len(tax_list) > 0:
                 taxes_ids = cls._get_or_create_taxes(user_env, tax_list)
 
+            print(f"Product Data: {product_data}")
+
             product_vals = {
                 "name": product_data.product_name
                 if product_data.product_name
@@ -34,8 +36,10 @@ class ProductUtility:
                 "list_price": product_data.mrp or 0.0,
                 "standard_price": product_data.cost or 0.0,
                 "categ_id": categ_id,
-                "l10n_in_hsn_code": product_data.hsn,
             }
+
+            if product_data.hsn:
+                product_vals["l10n_in_hsn_code"] = product_data.hsn
 
             if taxes_ids:
                 product_vals.update(
