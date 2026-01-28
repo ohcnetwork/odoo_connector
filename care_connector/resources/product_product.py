@@ -26,8 +26,6 @@ class ProductUtility:
             if tax_list and len(tax_list) > 0:
                 taxes_ids = cls._get_or_create_taxes(user_env, tax_list)
 
-            print(f"Product Data: {product_data}")
-
             product_vals = {
                 "name": product_data.product_name
                 if product_data.product_name
