@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 
+        The print action is automatically bound to account.payment model 
+        via binding_model_id in the report definition.
+        
+        This file can be used for any additional view customizations 
+        related to cash voucher functionality.
+    -->
+</odoo>

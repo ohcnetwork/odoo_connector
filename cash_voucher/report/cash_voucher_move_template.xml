@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="report_cash_voucher_move_template">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-if="o.journal_id.type == 'cash'">
+                    <div class="page" style="font-family: 'Times New Roman', serif; font-size: 14px; padding: 25px; border: 2px solid #000; margin: 10px;">
+
+                        <!-- Company Header -->
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <h2 style="margin: 0; font-size: 22px; font-weight: bold; text-transform: uppercase;">
+                                <t t-esc="o.company_id.name"/>
+                            </h2>
+                            <div style="font-size: 12px; margin-top: 5px;">
+                                <t t-esc="', '.join(filter(None, [o.company_id.partner_id.street, o.company_id.partner_id.street2, o.company_id.partner_id.city, o.company_id.partner_id.state_id.name if o.company_id.partner_id.state_id else '', o.company_id.partner_id.zip]))"/>
+                            </div>
+                            <t t-if="o.company_id.vat">
+                                <div style="font-size: 11px; margin-top: 3px;">
+                                    <strong>GSTIN:</strong> <t t-esc="o.company_id.vat"/>
+                                </div>
+                            </t>
+                        </div>
+
+                        <!-- Voucher Title -->
+                        <div style="text-align: center; margin: 20px 0; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 8px 0;">
+                            <span style="font-size: 18px; font-weight: bold; letter-spacing: 2px;">
+                                <t t-if="o.move_type == 'out_invoice'">CASH RECEIPT</t>
+                                <t t-elif="o.move_type == 'in_invoice'">CASH PAYMENT</t>
+                                <t t-elif="o.move_type == 'out_refund'">CASH REFUND</t>
+                                <t t-elif="o.move_type == 'in_refund'">CASH RECEIPT</t>
+                                <t t-else="">CASH VOUCHER</t>
+                            </span>
+                        </div>
+
+                        <!-- Voucher No and Date -->
+                        <table style="width: 100%; margin-bottom: 20px;">
+                            <tr>
+                                <td style="width: 50%;"><strong>Voucher No.:</strong> <t t-esc="o.name"/></td>
+                                <td style="width: 50%; text-align: right;"><strong>Date:</strong> <t t-esc="o.date" t-options='{"widget": "date", "format": "dd/MM/yyyy"}'/></td>
+                            </tr>
+                        </table>
+
+                        <!-- Main Content Box -->
+                        <div style="border: 1px solid #000; padding: 15px; min-height: 180px;">
+                            
+                            <!-- Party Name -->
+                            <div style="margin-bottom: 15px;">
+                                <strong>
+                                    <t t-if="o.move_type in ('out_invoice', 'in_refund')">Received from M/s.:</t>
+                                    <t t-elif="o.move_type in ('in_invoice', 'out_refund')">Paid to M/s.:</t>
+                                    <t t-else="">Party Name:</t>
+                                </strong>
+                                <span style="margin-left: 10px;"><t t-esc="o.partner_id.name or '_______________'"/></span>
+                            </div>
+
+                            <!-- Amount in Words -->
+                            <div style="margin-bottom: 15px;">
+                                <strong>The sum of Rupees:</strong>
+                                <div style="border: 1px solid #ccc; padding: 10px; margin-top: 5px; background-color: #fafafa; font-style: italic;">
+                                    <t t-esc="o.currency_id.amount_to_text(o.amount_total)"/> Only
+                                </div>
+                            </div>
+
+                            <!-- Particulars -->
+                            <div style="margin-bottom: 15px;">
+                                <strong>On account of:</strong>
+                                <div style="padding: 5px 0; min-height: 30px;">
+                                    <t t-set="particulars" t-value="o.ref or o.narration or ''"/>
+                                    <t t-if="not particulars and o.invoice_line_ids">
+                                        <t t-set="line_names" t-value="[l.name for l in o.invoice_line_ids[:3] if l.name and l.display_type not in ('line_section', 'line_note')]"/>
+                                        <t t-set="particulars" t-value="', '.join(line_names) + ('...' if len(o.invoice_line_ids) > 3 else '')"/>
+                                    </t>
+                                    <t t-esc="particulars or '-'"/>
+                                </div>
+                            </div>
+
+                            <!-- Amount Box -->
+                            <div style="text-align: right; margin-top: 15px;">
+                                <span style="border: 2px solid #000; padding: 10px 30px; font-size: 18px; font-weight: bold; display: inline-block;">
+                                    Rs. <t t-esc="'{:,.2f}'.format(o.amount_total)"/>
+                                </span>
+                            </div>
+
+                        </div>
+
+                        <!-- Cash Account -->
+                        <div style="margin-top: 10px; font-size: 12px;">
+                            <strong>Cash A/c:</strong> <t t-esc="o.journal_id.name"/>
+                        </div>
+
+                        <!-- Signature Section -->
+                        <table style="width: 100%; margin-top: 50px;">
+                            <tr>
+                                <td style="width: 33%; text-align: center; border-top: 1px solid #000; padding-top: 5px;">Prepared By</td>
+                                <td style="width: 34%; text-align: center; border-top: 1px solid #000; padding-top: 5px;">Authorised Signatory</td>
+                                <td style="width: 33%; text-align: center; border-top: 1px solid #000; padding-top: 5px;">
+                                    <t t-if="o.move_type in ('out_invoice', 'in_refund')">Receiver's Signature</t>
+                                    <t t-else="">Payee's Signature</t>
+                                </td>
+                            </tr>
+                        </table>
+
+                    </div>
+                </t>
+
+                <t t-if="o.journal_id.type != 'cash'">
+                    <div class="page" style="font-family: Arial, sans-serif; padding: 50px; text-align: center;">
+                        <h2 style="color: #c00;">Cash Voucher Not Applicable</h2>
+                        <p>This entry (<t t-esc="o.name"/>) is not from a cash journal.<br/>
+                        Journal: <strong><t t-esc="o.journal_id.name"/></strong></p>
+                    </div>
+                </t>
+
+            </t>
+        </t>
+    </template>
+</odoo>
