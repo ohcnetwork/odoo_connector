@@ -64,6 +64,26 @@
                                             <t t-else="">-</t>
                                         </td>
                                     </tr>
+                                    <tr>
+                                        <td style="padding: 2px 8px 2px 0; vertical-align: top;">Age</td>
+                                        <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.age"><span t-field="claim.age"/> years</t><t t-else="">-</t></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px 8px 2px 0; vertical-align: top;">Date of Birth</td>
+                                        <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.birthdate"><span t-field="claim.birthdate" t-options='{"widget": "date", "format": "dd-MM-yyyy"}'/></t><t t-else="">-</t></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px 8px 2px 0; vertical-align: top;">Gender</td>
+                                        <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.gender"><span t-field="claim.gender"/></t><t t-else="">-</t></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px 8px 2px 0; vertical-align: top;">Doctor</td>
+                                        <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.doctor"><span t-field="claim.doctor"/></t><t t-else="">-</t></td>
+                                    </tr>
                                 </table>
                             </div>
 
@@ -98,12 +118,12 @@
                                     <tr>
                                         <td style="padding: 2px 8px 2px 0;">Admission Date</td>
                                         <td style="padding: 2px 8px 2px 0;">:</td>
-                                        <td style="padding: 2px 0;"><t t-if="claim.admission_date"><span t-field="claim.admission_date" t-options='{"widget": "date", "format": "dd-MM-yyyy"}'/></t><t t-else="">-</t></td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.admission_date"><span t-field="claim.admission_date" t-options='{"widget": "datetime", "format": "dd-MM-yyyy hh:mm a"}'/></t><t t-else="">-</t></td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 2px 8px 2px 0;">Discharge Date</td>
                                         <td style="padding: 2px 8px 2px 0;">:</td>
-                                        <td style="padding: 2px 0;"><t t-if="claim.discharge_date"><span t-field="claim.discharge_date" t-options='{"widget": "date", "format": "dd-MM-yyyy"}'/></t><t t-else="">-</t></td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.discharge_date"><span t-field="claim.discharge_date" t-options='{"widget": "datetime", "format": "dd-MM-yyyy hh:mm a"}'/></t><t t-else="">-</t></td>
                                     </tr>
                                 </table>
                             </div>
@@ -247,6 +267,26 @@
                                                     <t t-else="">-</t>
                                                 </td>
                                             </tr>
+                                            <tr>
+                                                <td style="padding: 2px 8px 2px 0; vertical-align: top;">Age</td>
+                                                <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
+                                                <td style="padding: 2px 0;"><t t-if="claim.age"><span t-field="claim.age"/> years</t><t t-else="">-</t></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 2px 8px 2px 0; vertical-align: top;">Date of Birth</td>
+                                                <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
+                                                <td style="padding: 2px 0;"><t t-if="claim.birthdate"><span t-field="claim.birthdate" t-options='{"widget": "date", "format": "dd-MM-yyyy"}'/></t><t t-else="">-</t></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 2px 8px 2px 0; vertical-align: top;">Gender</td>
+                                                <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
+                                                <td style="padding: 2px 0;"><t t-if="claim.gender"><span t-field="claim.gender"/></t><t t-else="">-</t></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 2px 8px 2px 0; vertical-align: top;">Doctor</td>
+                                                <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
+                                                <td style="padding: 2px 0;"><t t-if="claim.doctor"><span t-field="claim.doctor"/></t><t t-else="">-</t></td>
+                                            </tr>
                                         </table>
                                     </div>
 
@@ -281,12 +321,12 @@
                                             <tr>
                                                 <td style="padding: 2px 8px 2px 0;">Admission Date</td>
                                                 <td style="padding: 2px 8px 2px 0;">:</td>
-                                                <td style="padding: 2px 0;"><t t-if="claim.admission_date"><span t-field="claim.admission_date" t-options='{"widget": "date", "format": "dd-MM-yyyy"}'/></t><t t-else="">-</t></td>
+                                                <td style="padding: 2px 0;"><t t-if="claim.admission_date"><span t-field="claim.admission_date" t-options='{"widget": "datetime", "format": "dd-MM-yyyy hh:mm a"}'/></t><t t-else="">-</t></td>
                                             </tr>
                                             <tr>
                                                 <td style="padding: 2px 8px 2px 0;">Discharge Date</td>
                                                 <td style="padding: 2px 8px 2px 0;">:</td>
-                                                <td style="padding: 2px 0;"><t t-if="claim.discharge_date"><span t-field="claim.discharge_date" t-options='{"widget": "date", "format": "dd-MM-yyyy"}'/></t><t t-else="">-</t></td>
+                                                <td style="padding: 2px 0;"><t t-if="claim.discharge_date"><span t-field="claim.discharge_date" t-options='{"widget": "datetime", "format": "dd-MM-yyyy hh:mm a"}'/></t><t t-else="">-</t></td>
                                             </tr>
                                         </table>
                                     </div>
