@@ -97,7 +97,6 @@
                             <field name="approved_date" readonly="state not in ('draft', 'confirmed')"/>
                         </group>
                         <group string="Patient Info">
-                            <field name="birthdate"/>
                             <field name="age"/>
                             <field name="gender"/>
                             <label for="customer_street" string="Address"/>

@@ -70,11 +70,6 @@
                                         <td style="padding: 2px 0;"><t t-if="claim.age"><span t-field="claim.age"/> years</t><t t-else="">-</t></td>
                                     </tr>
                                     <tr>
-                                        <td style="padding: 2px 8px 2px 0; vertical-align: top;">Date of Birth</td>
-                                        <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
-                                        <td style="padding: 2px 0;"><t t-if="claim.birthdate"><span t-field="claim.birthdate" t-options='{"widget": "date", "format": "dd-MM-yyyy"}'/></t><t t-else="">-</t></td>
-                                    </tr>
-                                    <tr>
                                         <td style="padding: 2px 8px 2px 0; vertical-align: top;">Gender</td>
                                         <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
                                         <td style="padding: 2px 0;"><t t-if="claim.gender"><span t-field="claim.gender"/></t><t t-else="">-</t></td>

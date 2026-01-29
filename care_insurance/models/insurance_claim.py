@@ -110,9 +110,6 @@ class InsuranceClaim(models.Model):
     # Hospital specific fields
     age = fields.Integer(
         string="Customer Age",
-        related="customer_id.x_age",
-        readonly=True,
-        store=True,
     )
     birthdate = fields.Date(
         string="Date of Birth",
@@ -252,6 +249,11 @@ class InsuranceClaim(models.Model):
                 claim.no_of_days = delta.days
             else:
                 claim.no_of_days = 0
+
+    @api.onchange("customer_id")
+    def _onchange_customer_id(self):
+        if self.customer_id:
+            self.age = self.customer_id.x_age
 
     # -------------------------------------------------------------------------
     # CRUD Methods
