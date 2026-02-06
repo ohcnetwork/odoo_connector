@@ -120,6 +120,7 @@
                         <group string="Invoice Info">
                             <field name="customer_care_id"/>
                             <field name="account"/>
+                            <field name="ip_bill_no"/>
                             <field name="bill_generated_on"/>
                         </group>
                     </group>

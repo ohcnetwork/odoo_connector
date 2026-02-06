@@ -143,6 +143,11 @@ class InsuranceClaim(models.Model):
         readonly=True,
         help="Account identifier from invoice x_account field",
     )
+    ip_bill_no = fields.Char(
+        string="IP Bill Number",
+        readonly=True,
+        help="IP Bill Number from invoice",
+    )
     bill_generated_on = fields.Datetime(
         string="Bill Generated On",
         help="Invoice creation date from Odoo",
@@ -440,6 +445,10 @@ class InsuranceClaim(models.Model):
             # Account from invoice's x_account
             if first_invoice.x_account:
                 update_vals["account"] = first_invoice.x_account
+
+            # IP Bill Number from invoice
+            if first_invoice.ip_bill_no:
+                update_vals["ip_bill_no"] = first_invoice.ip_bill_no
 
             # Bill Generated On from invoice's create_date
             create_dates = invoices.mapped("create_date")

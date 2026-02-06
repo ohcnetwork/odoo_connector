@@ -86,9 +86,9 @@
                             <div style="width: 42%;">
                                 <table style="border-collapse: collapse; width: 100%;">
                                     <tr>
-                                        <td style="padding: 2px 8px 2px 0;">Bill No</td>
+                                        <td style="padding: 2px 8px 2px 0;">IP Bill No</td>
                                         <td style="padding: 2px 8px 2px 0;">:</td>
-                                        <td style="padding: 2px 0;"><t t-if="claim.account"><span t-field="claim.account"/></t><t t-else="">-</t></td>
+                                        <td style="padding: 2px 0;"><t t-if="claim.ip_bill_no"><span t-field="claim.ip_bill_no"/></t><t t-else="">-</t></td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 2px 8px 2px 0;">Date</td>
@@ -268,11 +268,6 @@
                                                 <td style="padding: 2px 0;"><t t-if="claim.age"><span t-field="claim.age"/> years</t><t t-else="">-</t></td>
                                             </tr>
                                             <tr>
-                                                <td style="padding: 2px 8px 2px 0; vertical-align: top;">Date of Birth</td>
-                                                <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
-                                                <td style="padding: 2px 0;"><t t-if="claim.birthdate"><span t-field="claim.birthdate" t-options='{"widget": "date", "format": "dd-MM-yyyy"}'/></t><t t-else="">-</t></td>
-                                            </tr>
-                                            <tr>
                                                 <td style="padding: 2px 8px 2px 0; vertical-align: top;">Gender</td>
                                                 <td style="padding: 2px 8px 2px 0; vertical-align: top;">:</td>
                                                 <td style="padding: 2px 0;"><t t-if="claim.gender"><span t-field="claim.gender"/></t><t t-else="">-</t></td>
@@ -289,9 +284,9 @@
                                     <div style="width: 42%;">
                                         <table style="border-collapse: collapse; width: 100%;">
                                             <tr>
-                                                <td style="padding: 2px 8px 2px 0;">Bill No</td>
+                                                <td style="padding: 2px 8px 2px 0;">IP Bill No</td>
                                                 <td style="padding: 2px 8px 2px 0;">:</td>
-                                                <td style="padding: 2px 0;"><t t-if="claim.account"><span t-field="claim.account"/></t><t t-else="">-</t></td>
+                                                <td style="padding: 2px 0;"><t t-if="claim.ip_bill_no"><span t-field="claim.ip_bill_no"/></t><t t-else="">-</t></td>
                                             </tr>
                                             <tr>
                                                 <td style="padding: 2px 8px 2px 0;">Date</td>

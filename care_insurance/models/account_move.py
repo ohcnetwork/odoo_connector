@@ -52,6 +52,11 @@ class AccountMove(models.Model):
         copy=False,
         help="Account identifier from Care",
     )
+    ip_bill_no = fields.Char(
+        string="IP Bill Number",
+        copy=False,
+        help="IP Bill Number from Care",
+    )
 
     @api.depends("insurance_tag")
     def _compute_is_insurance(self):

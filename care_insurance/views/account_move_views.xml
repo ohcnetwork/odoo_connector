@@ -18,6 +18,8 @@
                        invisible="move_type not in ('out_invoice', 'out_refund')"/>
                 <field name="x_account"
                        invisible="move_type not in ('out_invoice', 'out_refund')"/>
+                <field name="ip_bill_no"
+                       invisible="move_type not in ('out_invoice', 'out_refund')"/>
             </xpath>
         </field>
     </record>

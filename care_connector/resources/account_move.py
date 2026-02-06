@@ -71,6 +71,7 @@ class AccountUtility:
                 "admission_date": request_data.admission_date,
                 "discharge_date": request_data.discharge_date,
                 "x_account": request_data.x_account,
+                "ip_bill_no": request_data.ip_bill_no,
             }
             account_move = cls._create_account_move(user_env, move_data_dict)
             if not account_move:
@@ -319,6 +320,7 @@ class AccountUtility:
             admission_date = move_data.get("admission_date")
             discharge_date = move_data.get("discharge_date")
             x_account = move_data.get("x_account")
+            ip_bill_no = move_data.get("ip_bill_no")
 
             hospital_fields = {}
             if doctor:
@@ -335,6 +337,8 @@ class AccountUtility:
                 )
             if x_account:
                 hospital_fields["x_account"] = x_account
+            if ip_bill_no:
+                hospital_fields["ip_bill_no"] = ip_bill_no
             if hospital_fields:
                 account_move.write(hospital_fields)
 
