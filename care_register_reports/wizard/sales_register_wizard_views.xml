@@ -1,0 +1,41 @@
+<odoo>
+    <record id="care_suite_view_sales_register_wizard" model="ir.ui.view">
+        <field name="name">care.sales.register.wizard.form</field>
+        <field name="model">care.sales.register.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Sales Register Report">
+                <group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="company_id"/>
+                        <field name="posted_only"/>
+                    </group>
+                    <group>
+                        <field name="date_to"/>
+                        <field name="gross_mode"/>
+                        <field name="include_refunds"/>
+                    </group>
+                </group>
+                <footer>
+                    <button string="Export" type="object" name="action_export_excel" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="care_suite_action_sales_register_wizard" model="ir.actions.act_window">
+        <field name="name">Sales Register Report</field>
+        <field name="res_model">care.sales.register.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem
+        id="care_suite_menu_sales_register_report"
+        name="Sales Register Report"
+        parent="care_suite_menu_register_reports_root"
+        action="care_suite_action_sales_register_wizard"
+        sequence="20"
+    />
+</odoo>

@@ -9,9 +9,9 @@ from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
 
-class PurchaseRegisterWizard(models.TransientModel):
-    _name = "purchase.register.wizard"
-    _description = "Purchase Register Wizard"
+class PurchaseReturnRegisterWizard(models.TransientModel):
+    _name = "care.purchase.return.register.wizard"
+    _description = "Purchase Return Register Wizard"
 
     date_from = fields.Date(required=True, default=lambda self: date.today().replace(day=1))
     date_to = fields.Date(required=True, default=lambda self: date.today())
@@ -19,10 +19,6 @@ class PurchaseRegisterWizard(models.TransientModel):
         "res.company",
         required=True,
         default=lambda self: self.env.company,
-    )
-    include_refunds = fields.Boolean(
-        string="Include Credit Notes",
-        help="Include vendor credit notes (refunds) in the export.",
     )
     posted_only = fields.Boolean(
         default=True,
@@ -52,7 +48,7 @@ class PurchaseRegisterWizard(models.TransientModel):
     def action_export_excel(self):
         self.ensure_one()
         xlsx_content = self._build_xlsx_bytes()
-        filename = "purchase_register_%s_to_%s.xlsx" % (self.date_from, self.date_to)
+        filename = "purchase_return_register_%s_to_%s.xlsx" % (self.date_from, self.date_to)
         self.write(
             {
                 "file_data": base64.b64encode(xlsx_content),
@@ -61,7 +57,7 @@ class PurchaseRegisterWizard(models.TransientModel):
         )
         return {
             "type": "ir.actions.act_url",
-            "url": "/web/content/?model=purchase.register.wizard&id=%s&field=file_data&filename_field=file_name&download=true"
+            "url": "/web/content/?model=care.purchase.return.register.wizard&id=%s&field=file_data&filename_field=file_name&download=true"
             % self.id,
             "target": "self",
         }
@@ -143,9 +139,7 @@ class PurchaseRegisterWizard(models.TransientModel):
 
     def _prepare_rows(self):
         self.ensure_one()
-        move_types = ["in_invoice", "in_receipt"]
-        if self.include_refunds:
-            move_types.append("in_refund")
+        move_types = ["in_refund"]
 
         domain = [
             ("company_id", "=", self.company_id.id),
@@ -253,7 +247,7 @@ class PurchaseRegisterWizard(models.TransientModel):
             import xlsxwriter
 
             workbook = xlsxwriter.Workbook(output, {"in_memory": True})
-            sheet = workbook.add_worksheet(_("Purchase Register"))
+            sheet = workbook.add_worksheet(_("Purchase Return Register"))
 
             header_fmt = workbook.add_format({"bold": True, "align": "center", "border": 1})
             subheader_fmt = workbook.add_format({"bold": True, "align": "center", "border": 1})
@@ -263,8 +257,8 @@ class PurchaseRegisterWizard(models.TransientModel):
 
             # Header row 1
             headers = [
-                "Bill No",
-                "Bill Date",
+                "Credit Note No",
+                "Credit Note Date",
                 "Invoice No",
                 "GRN No",
                 "GRN Date",

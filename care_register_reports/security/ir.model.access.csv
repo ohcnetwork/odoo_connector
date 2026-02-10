@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_care_purchase_register_wizard,care.purchase.register.wizard,model_care_purchase_register_wizard,account.group_account_invoice,1,1,1,0
+access_care_sales_register_wizard,care.sales.register.wizard,model_care_sales_register_wizard,account.group_account_invoice,1,1,1,0
+access_care_purchase_return_register_wizard,care.purchase.return.register.wizard,model_care_purchase_return_register_wizard,account.group_account_invoice,1,1,1,0
+access_care_sales_return_register_wizard,care.sales.return.register.wizard,model_care_sales_return_register_wizard,account.group_account_invoice,1,1,1,0
