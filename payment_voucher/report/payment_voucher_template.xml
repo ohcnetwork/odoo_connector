@@ -3,143 +3,226 @@
     <template id="report_payment_custom_receipt">
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="o">
+                <div class="page pv-page pv-v2">
+                    <style>
+                        .pv-v2 {
+                            font-family: "Times New Roman", serif;
+                            font-size: 13px;
+                            line-height: 1.35;
+                            color: #111;
+                            padding: 8mm 10mm 6mm;
+                        }
+                        .pv-v2 table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            table-layout: fixed;
+                        }
+                        .pv-v2 td,
+                        .pv-v2 th {
+                            word-wrap: break-word;
+                            overflow-wrap: anywhere;
+                        }
+                        .pv-v2 .pv-header {
+                            border-bottom: 1.2px solid #111;
+                            padding-bottom: 6px;
+                            margin-bottom: 8px;
+                        }
+                        .pv-v2 .pv-company-name {
+                            font-size: 20px;
+                            font-weight: 700;
+                            text-transform: uppercase;
+                            letter-spacing: 0.2px;
+                        }
+                        .pv-v2 .pv-company-address {
+                            font-size: 12px;
+                            margin-top: 3px;
+                        }
+                        .pv-v2 .pv-title-meta {
+                            margin-bottom: 6px;
+                        }
+                        .pv-v2 .pv-title {
+                            font-size: 17px;
+                            font-weight: 700;
+                            letter-spacing: 0.5px;
+                            vertical-align: top;
+                            width: 45%;
+                        }
+                        .pv-v2 .pv-title-meta-right {
+                            width: 55%;
+                            vertical-align: top;
+                        }
+                        .pv-v2 .pv-meta {
+                            font-size: 13px;
+                        }
+                        .pv-v2 .pv-meta td {
+                            padding: 1px 0;
+                            vertical-align: top;
+                        }
+                        .pv-v2 .pv-label {
+                            width: 130px;
+                            font-weight: 700;
+                            white-space: nowrap;
+                        }
+                        .pv-v2 .pv-colon {
+                            width: 10px;
+                            text-align: center;
+                        }
+                        .pv-v2 .pv-party {
+                            margin: 8px 0 10px;
+                        }
+                        .pv-v2 .pv-info {
+                            border: 1.2px solid #111;
+                            margin-top: 4px;
+                            font-size: 13px;
+                        }
+                        .pv-v2 .pv-info th,
+                        .pv-v2 .pv-info td {
+                            border: 1px solid #111;
+                            padding: 7px 8px;
+                            vertical-align: top;
+                        }
+                        .pv-v2 .pv-info th {
+                            text-align: center;
+                            font-size: 14px;
+                            font-weight: 700;
+                        }
+                        .pv-v2 .pv-body-row td {
+                            min-height: 42px;
+                        }
+                        .pv-v2 .pv-amount,
+                        .pv-v2 .pv-right {
+                            text-align: right;
+                            white-space: nowrap;
+                        }
+                        .pv-v2 .pv-total-row td {
+                            font-weight: 700;
+                            font-size: 14px;
+                        }
+                        .pv-v2 .pv-words {
+                            text-transform: uppercase;
+                        }
+                        .pv-v2 .pv-signatures {
+                            margin-top: 18mm;
+                            font-size: 13px;
+                        }
+                        .pv-v2 .pv-signatures td {
+                            width: 25%;
+                            text-align: center;
+                            padding-top: 16mm;
+                            border-top: 1px solid #444;
+                        }
+                    </style>
 
-                <div class="page" style="font-size:14px; padding-top:5px;">                    
-
-                    <div style="text-align:left; font-weight:bold; font-size:16px;">
-                        <t t-esc="o.company_id.name"/>
+                    <div class="pv-header">
+                        <div class="pv-company-name">
+                            <t t-esc="o.company_id.name"/>
+                        </div>
+                        <div class="pv-company-address">
+                            <t t-esc="o.company_id.partner_id.contact_address"/>
+                        </div>
                     </div>
-                    <div style="text-align:left;">
-                        <t t-esc="o.company_id.partner_id.contact_address"/>
-                    </div>
 
-                    <div style="text-align:left; margin-top:5px; font-size:15px; font-weight:bold;">
-                        <t t-if="o.journal_id.type == 'cash'">CASH PAYMENT</t>
-                        <t t-elif="o.journal_id.type == 'bank'">BANK PAYMENT</t>
-                        <t t-else="">PAYMENT</t>
-                        : <t t-esc="o.journal_id.name"/>
-                    </div>
-
-                    <table style="width:100%; margin-top:5px;">
+                    <table class="pv-title-meta">
                         <tr>
-                            <td style="width:70%;"></td>
-                            <td style="text-align:right; font-weight:bold;">Voucher No :</td>
-                            <td style="width:10%;">
-                                <t t-esc="o.name"/>
+                            <td class="pv-title">
+                                <t t-if="o.journal_id.type == 'cash'">CASH PAYMENT VOUCHER</t>
+                                <t t-elif="o.journal_id.type == 'bank'">BANK PAYMENT VOUCHER</t>
+                                <t t-else="">PAYMENT VOUCHER</t>
                             </td>
-                        </tr>
-                        <tr>
-                            <td></td>
-                            <td style="text-align:right; font-weight:bold;">Date :</td>
-                            <td>
-                                <t t-esc="o.date"/>
+                            <td class="pv-title-meta-right">
+                                <table class="pv-meta">
+                                    <tr>
+                                        <td class="pv-label">Voucher No</td>
+                                        <td class="pv-colon">:</td>
+                                        <td><t t-esc="o.name"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="pv-label">Date</td>
+                                        <td class="pv-colon">:</td>
+                                        <td><t t-esc="o.date" t-options='{"widget": "date", "format": "dd/MM/yyyy"}'/></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="pv-label">Journal</td>
+                                        <td class="pv-colon">:</td>
+                                        <td><t t-esc="o.journal_id.name"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="pv-label">Reference</td>
+                                        <td class="pv-colon">:</td>
+                                        <td><t t-esc="o.payment_reference or o.memo or '-'"/></td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
                     </table>
 
-                    <strong style="font-size:1.2rem">Payee:</strong>
-                    <span style="font-size:1.2rem; margin-left:10px;">
-                        <t t-esc="o.payment_method_line_id.name or o.payment_method_id.name or ''"/>
-                    </span>
-                    <br/>
-
-                    <table border="1" style="width:100%; border-collapse:collapse; margin-top:15px;">
-
-                        <tr style="height:50px; text-align:center; font-weight:bold;">
-                            <td style="width:30%;">Account</td>
-                            <td style="width:30%;">Memo</td>
-                            <td style="width:25%;">Bill No</td>
-                            <td style="width:15%;">Amount</td>
+                    <table class="pv-meta pv-party">
+                        <tr>
+                            <td class="pv-label">Payee</td>
+                            <td class="pv-colon">:</td>
+                            <td><t t-esc="o.partner_id.name or '-'"/></td>
                         </tr>
+                        <tr>
+                            <td class="pv-label">Payment Method</td>
+                            <td class="pv-colon">:</td>
+                            <td><t t-esc="o.payment_method_line_id.name or o.payment_method_id.name or '-'"/></td>
+                        </tr>
+                    </table>
 
-                        <!-- DATA ROW -->
-                        <tr style="height:150px;">
-
-                            <!-- PARTNER NAME -->
-                            <td style="padding-left:5px;">
-                                <t t-esc="o.partner_id.name or ''"/>
+                    <table class="pv-info">
+                        <tr>
+                            <th style="width: 28%;">Account</th>
+                            <th style="width: 34%;">Memo / Narration</th>
+                            <th style="width: 22%;">Bill No</th>
+                            <th style="width: 16%;">Amount</th>
+                        </tr>
+                        <tr class="pv-body-row">
+                            <td><t t-esc="o.partner_id.name or '-'"/></td>
+                            <td>
+                                <t t-set="memo_text" t-value="o.memo or o.payment_reference or ''"/>
+                                <t t-set="memo_text" t-value="', '.join(dict.fromkeys([p.strip() for p in memo_text.split(',') if p and p.strip()]))"/>
+                                <t t-esc="memo_text or '-'"/>
                             </td>
-
-                            <!-- MEMO -->
-                            <td style="padding-left:5px;">
-                                <t t-if="o.memo">
-                                    <t t-esc="o.memo"/>
-                                </t>
-                            </td>
-
-                            <!-- BILL NUMBERS -->
-                            <td style="padding-left:5px;">
-                                <!-- For outbound payments (vendor bills) -->
+                            <td>
                                 <t t-if="o.payment_type == 'outbound' and o.reconciled_bill_ids">
                                     <t t-foreach="o.reconciled_bill_ids" t-as="bill">
                                         <t t-esc="bill.name"/><br t-if="not bill_last"/>
                                     </t>
                                 </t>
-                                <!-- For inbound payments (customer invoices) -->
                                 <t t-if="o.payment_type == 'inbound' and o.reconciled_invoice_ids">
                                     <t t-foreach="o.reconciled_invoice_ids" t-as="inv">
                                         <t t-esc="inv.name"/><br t-if="not inv_last"/>
                                     </t>
                                 </t>
+                                <t t-if="not ((o.payment_type == 'outbound' and o.reconciled_bill_ids) or (o.payment_type == 'inbound' and o.reconciled_invoice_ids))">-</t>
                             </td>
-
-                            <!-- AMOUNT WITH DR/CR -->
-                            <td style="padding-left:5px;">
-
-                                <!-- Inbound → Debit (Dr) -->
-                                <t t-if="o.payment_type == 'inbound'">
-                                    <t t-esc="'%.2f' % o.amount"/>
-                                    Dr
-                                </t>
-
-                                <!-- Outbound → Credit (Cr) -->
-                                <t t-if="o.payment_type == 'outbound'">
-                                    <t t-esc="'%.2f' % o.amount"/>
-                                    Cr
-                                </t>
-
-                            </td>
-
-                        </tr>
-
-                        <tr style="height:70px;">
-
-                            <td style="padding-left:5px; font-weight:bold;">
-                                <t t-esc="o.currency_id.amount_to_text(o.amount)"/>
-                                    ONLY
-                            </td>
-
-                            <td colspan="2" style="text-align:right; padding-right:10px; font-weight:bold;">
-                                Total
-                            </td>
-                            <td style="padding-left:5px; font-weight:bold;">
-                                <t t-esc="'%.2f' % o.amount"/>
+                            <td class="pv-amount">
+                                INR <span t-esc="'{:,.2f}'.format(o.amount)"/>
+                                <span>
+                                    <t t-if="o.payment_type == 'inbound'">Dr</t>
+                                    <t t-elif="o.payment_type == 'outbound'">Cr</t>
+                                </span>
                             </td>
                         </tr>
-
+                        <tr class="pv-total-row">
+                            <td colspan="2" class="pv-words">
+                                <t t-esc="o.currency_id.amount_to_text(o.amount)"/> ONLY
+                            </td>
+                            <td class="pv-right">Total</td>
+                            <td class="pv-amount">INR <span t-esc="'{:,.2f}'.format(o.amount)"/></td>
+                        </tr>
                     </table>
 
-                    <!-- SIGNATURE SECTION -->
-                    <table style="width:100%; margin-top:40px;">
+                    <table class="pv-signatures">
                         <tr>
-                            <td style="text-align:center; width:25%;">Prepared By</td>
-                            <td style="text-align:center; width:25%;">Verified By</td>
-                            <td style="text-align:center; width:25%;">Authorised Signatory</td>
-                            <td style="text-align:center; width:25%;">Signature of Payee</td>
-                        </tr>
-
-                        <tr style="height:150px;">
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
+                            <td>Prepared By</td>
+                            <td>Verified By</td>
+                            <td>Authorised Signatory</td>
+                            <td>Signature of Payee</td>
                         </tr>
                     </table>
-
                 </div>
-
             </t>
         </t>
     </template>
-
 </odoo>
