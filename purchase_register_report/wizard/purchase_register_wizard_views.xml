@@ -1,0 +1,40 @@
+<odoo>
+    <record id="view_purchase_register_wizard" model="ir.ui.view">
+        <field name="name">purchase.register.wizard.form</field>
+        <field name="model">purchase.register.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Purchase Register Report">
+                <group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="company_id"/>
+                        <field name="posted_only"/>
+                    </group>
+                    <group>
+                        <field name="date_to"/>
+                        <field name="gross_mode"/>
+                        <field name="include_refunds"/>
+                    </group>
+                </group>
+                <footer>
+                    <button string="Export" type="object" name="action_export_excel" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_purchase_register_wizard" model="ir.actions.act_window">
+        <field name="name">Purchase Register Report</field>
+        <field name="res_model">purchase.register.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem
+        id="menu_purchase_register_report"
+        name="Purchase Register Report"
+        parent="account.menu_finance_reports"
+        action="action_purchase_register_wizard"
+    />
+</odoo>
