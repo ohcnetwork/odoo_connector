@@ -148,7 +148,11 @@
                                     <t t-elif="o.move_type in ('in_invoice', 'out_refund')">Paid To</t>
                                     <t t-else="">Party</t>
                                 </td>
-                                <td>: <t t-esc="o.partner_id.name or '-'"/></td>
+                                <t t-set="party"
+                                    t-value="o.partner_id
+                                                or (o.line_ids and o.line_ids.filtered(lambda l: l.partner_id) and o.line_ids.filtered(lambda l: l.partner_id)[0].partner_id)
+                                            "/>
+                                    <td>: <t t-if="party" t-esc="party.name"/><t t-else="">-</t></td>
                             </tr>
                         </table>
 

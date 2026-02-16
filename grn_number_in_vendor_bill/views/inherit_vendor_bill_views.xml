@@ -6,6 +6,7 @@
             <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='invoice_date']" position="after">
+                    <field name="grn_sequence_id" invisible="move_type != 'in_invoice'" readonly="state == 'posted'"/>
                     <field name="grn_number" invisible="move_type != 'in_invoice'" readonly="1"/>
                 </xpath>
             </field>
