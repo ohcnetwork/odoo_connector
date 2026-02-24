@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_salary_rule_form_split_employee" model="ir.ui.view">
+        <field name="name">hr.salary.rule.form.split.employee</field>
+        <field name="model">hr.salary.rule</field>
+        <field name="inherit_id" ref="hr_payroll_account.hr_salary_rule_view_form"/>
+        <field name="arch" type="xml">
+            <field name="employee_move_line" position="after">
+                <field name="split_by_employee"/>
+            </field>
+        </field>
+    </record>
+</odoo>
