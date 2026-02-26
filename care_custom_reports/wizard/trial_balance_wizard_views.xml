@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Wizard Form View -->
+    <record id="view_trial_balance_wizard_form" model="ir.ui.view">
+        <field name="name">trial.balance.wizard.form</field>
+        <field name="model">trial.balance.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Trial Balance Report">
+                <group>
+                    <group>
+                        <field name="date_from" />
+                        <field name="date_to" />
+                        <field name="target_move" />
+                    </group>
+                    <group>
+                        <field name="hide_zero_balance" />
+                        <field name="include_opening_balance" />
+                        <field name="show_partner_detail" />
+                    </group>
+                </group>
+                <group string="Filters">
+                    <field name="journal_ids" widget="many2many_tags" />
+                    <field name="account_ids" widget="many2many_tags" />
+                </group>
+                <footer>
+                    <button name="action_export_excel"
+                            string="Export Excel"
+                            type="object"
+                            class="btn-primary" />
+                    <button string="Cancel" class="btn-secondary" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Wizard Action -->
+    <record id="action_trial_balance_wizard" model="ir.actions.act_window">
+        <field name="name">Trial Balance (Excel)</field>
+        <field name="res_model">trial.balance.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Custom Reports submenu under Accounting > Reporting -->
+    <menuitem id="menu_custom_reports"
+              name="Custom Reports"
+              parent="account.menu_finance_reports"
+              sequence="100" />
+
+    <!-- Trial Balance under Custom Reports -->
+    <menuitem id="menu_trial_balance_wizard"
+              name="Trial Balance"
+              parent="menu_custom_reports"
+              action="action_trial_balance_wizard"
+              sequence="10" />
+
+</odoo>
