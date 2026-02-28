@@ -1,0 +1,30 @@
+<odoo>
+    <record id="view_general_ledger_excel_wizard" model="ir.ui.view">
+        <field name="name">general.ledger.excel.wizard.form</field>
+        <field name="model">general.ledger.excel.wizard</field>
+        <field name="arch" type="xml">
+            <form string="General Ledger Excel Export">
+                <group>
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                </group>
+                <footer>
+                    <button name="action_export_excel" type="object" string="Export to Excel" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_general_ledger_excel_wizard" model="ir.actions.act_window">
+        <field name="name">General Ledger Excel Export</field>
+        <field name="res_model">general.ledger.excel.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+    <menuitem id="menu_general_ledger_excel_report"
+              name="General Ledger Report"
+              parent="menu_nvoice_report_menu"
+              sequence="5"
+              action="action_general_ledger_excel_wizard"/>
+</odoo>

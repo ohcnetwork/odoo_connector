@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<odoo>
+    <record id="care_product_category_form_view_inherit" model="ir.ui.view">
+        <field name="name">product.category.form.view.inherit.care</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="product.product_category_form_view"></field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='parent_id']" position="after">
+                <field name="x_care_id" readonly="1"/>
+
+            </xpath>
+        </field>
+    </record>
+</odoo>

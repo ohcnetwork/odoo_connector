@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_bill_counter_list" model="ir.ui.view">
+            <field name="name">bill.counter.list</field>
+            <field name="model">bill.counter</field>
+            <field name="arch" type="xml">
+                <list string="Bill Counter">
+                    <field name="bill_counter"/>
+                    <field name="name"/>
+                    <field name="x_care_id"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_bill_counter_form" model="ir.ui.view">
+            <field name="name">bill.counter.form</field>
+            <field name="model">bill.counter</field>
+            <field name="arch" type="xml">
+                <form string="Bill Counter">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="bill_counter"/>
+                                <field name="name" widget="many2many_tags"/>
+                            </group>
+                            <group>
+                                <field name="x_care_id"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_bill_counter" model="ir.actions.act_window">
+            <field name="name">Bill Counter</field>
+            <field name="res_model">bill.counter</field>
+            <field name="view_mode">list,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                Create your first bill counter record
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="menu_main_cash_denomination" name="Cash Denomination" parent="account.menu_finance" sequence="9"/>
+        <menuitem id="menu_bill_counter" name="Bill Counter" parent="menu_main_cash_denomination" action="action_bill_counter" sequence="2"/>
+    </data>
+</odoo>

@@ -1,0 +1,49 @@
+<odoo>
+    <record id="view_tds_list" model="ir.ui.view">
+        <field name="name">tds.list</field>
+        <field name="model">tds</field>
+        <field name="arch" type="xml">
+            <list string="Tax Deducted at Source">
+                <field name="name"/>
+                <field name="limit"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_tds_form" model="ir.ui.view">
+        <field name="name">tds.form</field>
+        <field name="model">tds</field>
+        <field name="arch" type="xml">
+            <form string="Tax Deducted at Source">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="limit"/>
+                        </group>
+                        <group>
+                            <field name="tds_tax"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_tds" model="ir.actions.act_window">
+        <field name="name">Tax Deducted at Source</field>
+        <field name="res_model">tds</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_account_tds_heading"
+              name="TDS"
+              parent="account.menu_finance_configuration"
+              sequence="30"/>
+
+    <menuitem id="menu_account_tds_root"
+              name="TDS"
+              parent="menu_account_tds_heading"
+              sequence="10"
+              action="action_tds"/>
+</odoo>

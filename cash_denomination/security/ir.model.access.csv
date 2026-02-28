@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_cash_denomination,cash.denomination,model_cash_denomination,base.group_user,1,1,1,1
+access_denomination_payment_lines,denomination.payment.lines,model_denomination_payment_lines,base.group_user,1,1,1,1
+access_cash_denomination_line,cash.denomination.line,model_cash_denomination_line,base.group_user,1,1,1,1
+access_cash_trasnfer,cash.transfer,model_cash_transfer,base.group_user,1,1,1,1
+access_cash_trasnfer_line,cash.transfer.line,model_cash_transfer_line,base.group_user,1,1,1,1
+access_account_head_config,account.head.config,model_account_head_config,base.group_user,1,1,1,1
+access_cash_denomination_reject_wizard,cash.denomination.reject.wizard,model_cash_denomination_reject_wizard,base.group_user,1,1,1,1
+access_cash_transfer_accept,cash.transfer.accept,model_cash_transfer_accept,base.group_user,1,1,1,1
+access_denomination_payment_pending_lines,denomination.payment.pending.lines,model_denomination_payment_pending_lines,base.group_user,1,1,1,1

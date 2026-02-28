@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_tds_read,tds read,model_tds,account.group_account_invoice,1,0,0,0
+access_tds_full,tds full,model_tds,account.group_account_manager,1,1,1,1
+access_tds_vendor_report_wizard,tds vendor report wizard,model_tds_vendor_report_wizard,account.group_account_invoice,1,1,1,0

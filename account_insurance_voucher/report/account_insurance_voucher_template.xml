@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="report_invoice_custom_bill">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+
+                <div class="page" style="font-size:12px; padding:10px;">
+                    <div style="
+                        position:absolute;
+                        top:50%;
+                        left:50%;
+                        transform:translate(-50%, -50%);
+                        opacity:0.35;
+                        z-index:-1;
+                        width:100%;
+                        text-align:center;
+                    ">
+                        <img t-if="o.create_uid.company_id.logo" t-att-src="image_data_uri(o.create_uid.company_id.logo)" style="width:60%;"/>
+                    </div>
+                    <div style="text-align:center; margin-bottom: 15px;">
+
+                        <!-- Company Logo -->
+                        <img t-if="o.create_uid.company_id.logo" t-att-src="image_data_uri(o.create_uid.company_id.logo)" style="max-height: 80px;"/>
+
+                        <!-- Company Name -->
+                        <div style="font-size:18px; font-weight:bold; margin-top:5px;">
+                            <t t-esc="o.create_uid.company_id.name"/>
+                        </div>
+
+                        <!-- Address (Line by line) -->
+                        <div style="font-size:12px;">
+                            <t t-esc="o.company_id.street"/>
+                            <br/>
+                            <t t-esc="o.company_id.city"/>
+                            <t t-if="o.company_id.state_id">,
+                                <t t-esc="o.company_id.state_id.name"/>
+                            </t>
+                            <t t-if="o.company_id.zip">
+                                <t t-esc="o.company_id.zip"/>
+                            </t>
+                        </div>
+
+                        <!-- Phone Mobile  -->
+                        <div style="font-size:12px;">
+                            <t t-if="o.company_id.phone">Phone: <t t-esc="o.company_id.phone"/>
+                            </t>
+                            <t t-if="o.company_id.phone and o.company_id.mobile">, </t>
+                            <t t-if="o.company_id.mobile">Mobile: <t t-esc="o.company_id.mobile"/>
+                            </t>
+                        </div>
+
+                        <!-- Email -->
+                        <div style="font-size:12px;">
+                            <t t-if="o.company_id.email">Email: <t t-esc="o.company_id.email"/>
+                            </t>
+                        </div>
+
+                        <!-- GSTIN -->
+                        <div style="font-size:10px;">
+                            <t t-if="o.company_id.vat">GSTIN: <t t-esc="o.company_id.vat"/>
+                            </t>
+                        </div>
+
+                    </div>
+
+
+                    <hr style="border-top: 1px solid black; margin-bottom: 10px;"/>
+
+                    <div style="text-align:center; font-weight:bold; font-size:25px; margin-top:5px; margin-bottom: 25px;">
+                        INTERIM BILL
+                    </div>
+
+                    <table style="width:100%; border-collapse:collapse; margin-bottom: 15px;">
+                        <tr>
+                            <td style="width:10%; font-weight:bold;">Name :</td>
+                            <td style="width:40%;">
+                                <t t-esc="o.customer_id.name"/>
+                            </td>
+                            <td style="width:20%; font-weight:bold;">Bill No :</td>
+                            <td style="width:30%;">
+                                <t t-esc="o.bill_number"/>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td style="font-weight:bold;">Age :</td>
+                            <td>
+                                <t t-esc="o.age"/>
+                            </td>
+                            <td style="font-weight:bold;">O.P No :</td>
+                            <td>
+                                <t t-esc="o.op_number"/>
+                            </td>
+
+                            <td></td>
+                        </tr>
+
+                        <tr>
+                            <td style="font-weight:bold;">Address :</td>
+                            <td>
+                                <t t-esc="o.customer_id.street"/>
+,
+                                <t t-esc="o.customer_id.city"/>
+                                <br/>
+                                <t t-esc="o.customer_id.state_id.name"/>
+,
+                                <t t-if="o.customer_id.zip">
+                                    <t t-esc="o.customer_id.zip"/>
+                                </t>
+                            </td>
+                            <td style="font-weight:bold;">Room No :</td>
+                            <td>
+                                <t t-esc="o.room_number"/>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td style="font-weight:bold;">Doctor :</td>
+                            <td>
+                                <t t-esc="o.doctor"/>
+                            </td>
+                            <td style="font-weight:bold;">Date :</td>
+
+                            <td>
+                                <t t-esc="o.approved_date" t-options='{"widget": "date"}'/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                            </td>
+                            <td>
+                            </td>
+                            <td style="font-weight:bold;">Admission Date :</td>
+                            <td>
+                                <t t-esc="o.admission_date" t-options='{"widget": "date"}'/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                            </td>
+                            <td>
+                            </td>
+                            <td style="font-weight:bold;">As On :</td>
+                            <td>
+                                <t t-esc="o.as_on" t-options='{"widget": "date"}'/>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <table border="1" style="width:100%; border-collapse:collapse;">
+                        <thead style="background-color:#e6e6e6;">
+                            <tr style="text-align:center; font-weight:bold;">
+                                <td style="width:5%;">Sl.No.</td>
+                                <td style="width:45%;">Description</td>
+                                <td style="width:10%;">Quantity</td>
+                                <td style="width:20%;">Rate</td>
+                                <td style="width:20%;">Amount</td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-set="lines" t-value="o.invoice_line_ids.filtered(lambda l: l.show_in_report)"/>
+                            <t t-set="sl_no" t-value="1"/>
+                            <t t-foreach="lines" t-as="line">
+                                <tr>
+                                    <td style="text-align:center;">
+                                        <t t-esc="sl_no"/>
+                                    </td>
+                                    <td style="padding-left:5px;">
+                                        <t t-esc="line.description"/>
+                                    </td>
+                                    <td style="text-align:center;">
+                                        <t t-esc="line.quantity"/>
+                                    </td>
+                                    <td style="text-align:right; padding-right:5px;">
+                                        <t t-esc="'%.2f' % line.price_unit"/>
+                                    </td>
+                                    <td style="text-align:right; padding-right:5px;">
+                                        <t t-esc="'%.2f' % line.insurance_amount"/>
+                                    </td>
+                                </tr>
+                                <t t-set="sl_no" t-value="sl_no + 1"/>
+                            </t>
+
+                            <t t-set="report_total" t-value="sum(lines.mapped('insurance_amount')) or 0"/>
+
+                            <!-- TOTAL Row -->
+                            <tr style="font-weight:bold;">
+                                <td colspan="4" style="text-align:right; padding-right:10px;">TOTAL</td>
+                                <td style="text-align:right; padding-right:5px; border-top: 2px double black;">
+                                    <t t-esc="'%.2f' % report_total"/>
+                                </td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+
+                    <table style="width:100%; margin-top:20px;">
+                        <tr>
+                            <td style="width:50%; text-align:left;">Prepared By: <t t-esc="user.name"/>
+                            </td>
+                            <td style="width:50%; text-align:right; font-weight:bold;">FOR <t t-esc="o.create_uid.company_id.name"/>
+                            </td>
+                        </tr>
+                    </table>
+
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <record id="paperformat_us_custom_receipt" model="report.paperformat">
+        <field name="name">US Letter Custom Receipt</field>
+        <field name="default" eval="True" />
+        <field name="format">A4</field>
+        <field name="page_height">0</field>
+        <field name="page_width">0</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">0</field>
+        <field name="margin_bottom">5</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False" />
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <record id="account.action_report_payment_receipt" model="ir.actions.report">
+        <field name="paperformat_id" ref="account_insurance_voucher.paperformat_us_custom_receipt" />
+    </record>
+
+</odoo>

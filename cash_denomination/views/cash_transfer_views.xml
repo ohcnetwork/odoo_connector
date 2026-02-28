@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_cash_transfer_list" model="ir.ui.view">
+            <field name="name">cash.transfer.list</field>
+            <field name="model">cash.transfer</field>
+            <field name="arch" type="xml">
+                <list string="Cash Transfer">
+                    <field name="date"/>
+                    <field name="from_user"/>
+                    <field name="from_location"/>
+                    <field name="to_location"/>
+                    <field name="grand_total"/>
+                    <field name="state"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_cash_transfer_form" model="ir.ui.view">
+            <field name="name">cash.transfer.form</field>
+            <field name="model">cash.transfer</field>
+            <field name="arch" type="xml">
+                <form string="Cash Transfer">
+                    <header>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,submit,accepted,rejected"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="name"/>
+                                <field name="from_user"/>
+                                <field name="from_location"/>
+                            </group>
+                            <group>
+                                <field name="date"/>
+                                <field name="to_user"/>
+                                <field name="to_location"/>
+                                <field name="denomination_id" invisible="1"/>
+                            </group>
+                            <group>
+                                <group string="Approval Info" invisible="state != 'accepted'">
+                                    <field name="accepted_by" invisible="state != 'accepted'"/>
+                                </group>
+                                <group string="Rejected Info" invisible="state != 'rejected'">
+                                    <field name="rejected_by" invisible="state != 'rejected'"/>
+                                    <field name="reject_reason" invisible="state != 'rejected'"/>
+                                </group>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Cash Denomination">
+                                <field name="line_ids">
+                                    <list editable="top">
+                                        <field name="counts"/>
+                                        <field name="currency"/>
+                                        <field name="currency_id" invisible="1"/>
+                                        <field name="sub_total" sum="Sub Total"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 10px; gap: 8px; margin-left:1350px">
+                            <span style="font-weight: bold; font-size: 16px;">Total:</span>
+                            <field name="grand_total" readonly="1" class="o_field_number o_field_number_currency" style="font-weight: bold; font-size: 16px; width: 120px;"/>
+                        </div>
+
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_cash_transfer" model="ir.actions.act_window">
+            <field name="name">Cash Transfer</field>
+            <field name="res_model">cash.transfer</field>
+            <field name="view_mode">list,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                Create your first cash Transfer record
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="menu_cash_transfer" name="Cash Transfer Records" parent="care_connector.menu_main_cash_denomination" action="action_cash_transfer" sequence="1"/>
+    </data>
+</odoo>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record model="ir.ui.view" id="view_account_payment_form_cash_denomination">
+        <field name="name">account.payment.view.form.inherit.cash.denomination</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='payment_method_line_id']" position="after">
+                <field name="is_denomination" readonly="1" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

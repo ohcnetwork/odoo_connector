@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data>
+    <record id="view_cash_denomination_list" model="ir.ui.view">
+      <field name="name">cash.denomination.list</field>
+      <field name="model">cash.denomination</field>
+      <field name="arch" type="xml">
+        <list string="Cashier Denomination Entry">
+          <field name="date"/>
+          <field name="user"/>
+          <field name="counter"/>
+          <field name="pending_amount"/>
+          <field name="state" widget="badge"
+                 decoration-info="state == 'draft'"
+                 decoration-warning="state == 'submit'"
+                 decoration-success="state == 'approved'"
+                 decoration-danger="state == 'rejected'"
+          />
+        </list>
+      </field>
+    </record>
+
+    <record id="view_cash_denomination_form" model="ir.ui.view">
+      <field name="name">cash.denomination.form</field>
+      <field name="model">cash.denomination</field>
+      <field name="arch" type="xml">
+        <form string="Cashier Denomination Entry">
+          <header>
+            <button name="action_approve" string="Approve" type="object" class="btn-primary" invisible="state != 'submit'"/>
+            <button name="action_reject" string="Reject" type="object" class="btn-danger" invisible="state != 'submit'"/>
+            <field name="state" widget="statusbar" statusbar_visible="draft,submit,approved,rejected"/>
+          </header>
+          <sheet>
+            <div class="oe_button_box" name="button_box" groups="base.group_user">
+              <button name="open_journal_entry" type="object" class="oe_stat_button" icon="fa-book">
+                <span>Journal Entry</span>
+              </button>
+              <button name="action_open_cash_transfer" type="object" class="oe_stat_button" icon="fa-exchange">
+                <div class="o_stat_info">
+                  <span class="o_stat_value">
+                    <field name="cash_transfer_ids" widget="statinfo" string="Transfers"/>
+                  </span>
+                </div>
+              </button>
+            </div>
+            <group>
+              <group>
+                <field name="date"/>
+                <field name="user"/>
+              </group>
+              <group>
+                <field name="counter"/>
+                <field name="remark"/>
+                <field name="total_in_hand" invisible="1"/>
+                <field name="reject_reason" invisible = "state != 'rejected'"/>
+                <field name="pending_amount"/>
+              </group>
+            </group>
+
+            <notebook>
+              <page string="Cash Denomination">
+                <field name="denomination_line_ids">
+                  <list editable="top">
+                    <field name="counts"/>
+                    <field name="currency"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="sub_total" sum="Sub Total"/>
+                  </list>
+                </field>
+              </page>
+              <page string="Payments">
+                <field name="payment_ids">
+                  <list editable="bottom">
+                    <field name="payment_id"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="amount" force_save="1" sum="Amount"/>
+                  </list>
+                </field>
+              </page>
+              <page string="Accepted Payments">
+                  <field name="accept_transfer_ids">
+                      <list editable="bottom">
+                        <field name="cash_transfer_id"/>
+                        <field name="amount" force_save="1"/>
+                      </list>
+                  </field>
+              </page>
+              <page string="Pending Payments">
+                  <field name="pending_amount_ids">
+                      <list editable="bottom">
+                        <field name="pending_denomination_id"/>
+                        <field name="amount" force_save="1"/>
+                      </list>
+                  </field>
+              </page>
+            </notebook>
+          </sheet>
+        </form>
+      </field>
+    </record>
+
+    <record id="action_cash_denomination" model="ir.actions.act_window">
+      <field name="name">Counter Denomination Entry</field>
+      <field name="res_model">cash.denomination</field>
+      <field name="view_mode">list,form</field>
+      <field name="help" type="html">
+        <p class="o_view_nocontent_smiling_face">
+                    Create your first cash denomination record
+        </p>
+      </field>
+    </record>
+
+    <menuitem id="menu_cash_denomination" name="Cash Denomination Register" parent="care_connector.menu_main_cash_denomination" action="action_cash_denomination" sequence="1"/>
+
+  </data>
+</odoo>

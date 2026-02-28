@@ -1,0 +1,89 @@
+<odoo>
+    <record id="view_ssmm_bank_reconciliation_list" model="ir.ui.view">
+        <field name="name">ssmm.bank.reconciliation.list</field>
+        <field name="model">ssmm.bank.reconciliation</field>
+        <field name="arch" type="xml">
+            <list string="Bank Reconciliation">
+                <field name="name"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ssmm_bank_reconciliation_form" model="ir.ui.view">
+        <field name="name">ssmm.bank.reconciliation.form</field>
+        <field name="model">ssmm.bank.reconciliation</field>
+        <field name="arch" type="xml">
+            <form string="Bank Reconciliation">
+                <header>
+                <button name="action_reconcile" string="Reconcile" type="object" class="btn-secondary" invisible="state != 'draft'"/>
+                <button name="action_draft" string="To Draft" type="object" class="btn-secondary" invisible="state == 'draft'"/>
+                <field name="state" widget="statusbar" statusbar_visible="draft,reconciled"/>
+              </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="account_id"/>
+                        </group>
+                        <group>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="options"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Reconciliation Lines">
+                            <field name="br_line_ids">
+                                <list editable="bottom" create="0" delete="0">
+                                    <field name="date"/>
+                                    <field name="move_name"/>
+                                    <field name="partner_id"/>
+                                    <field name="label"/>
+                                    <field name="currency_id" invisible="1"/>
+                                    <field name="debit" force_save="1" sum="Debit"/>
+                                    <field name="credit" force_save="1" sum="Credit"/>
+                                    <field name="reconcile_date"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer" colspan="2" name="expense_total">
+                                <div class="oe_inline o_td_label">
+                                    <label for="total_company_balance"/>
+                                </div>
+                                <field name="total_company_balance" nolabel="1"/>
+
+                                <div class="oe_inline o_td_label">
+                                    <label for="no_reconcile_amount"/>
+                                </div>
+                                <field name="no_reconcile_amount" nolabel="1"/>
+
+                                <div class="oe_inline o_td_label">
+                                    <label for="bank_reconcile_amount_total"/>
+                                </div>
+                                <field name="bank_reconcile_amount_total" nolabel="1"/>
+
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ssmm_bank_reconciliation" model="ir.actions.act_window">
+        <field name="name">Bank Reconciliation</field>
+        <field name="res_model">ssmm.bank.reconciliation</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_ssmm_bank_reconciliation_heading"
+              name="Bank Reconciliation"
+              parent="account.menu_finance_entries"
+              sequence="30"/>
+
+    <menuitem id="menu_ssmm_bank_reconciliation"
+              name="Bank Reconciliation"
+              parent="menu_ssmm_bank_reconciliation_heading"
+              sequence="20"
+              action="action_ssmm_bank_reconciliation"/>
+</odoo>
+
