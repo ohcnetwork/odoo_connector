@@ -55,10 +55,12 @@ class ProductUtility:
             if product.product_tmpl_id and status:
                 if status == "retired" and product.product_tmpl_id.active:
                     product.product_tmpl_id.active = False
+                    product.active = False
                 elif (
                     status in ["draft", "active"] and not product.product_tmpl_id.active
                 ):
                     product.product_tmpl_id.active = True
+                    product.active = True
 
             return product
 
