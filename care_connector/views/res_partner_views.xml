@@ -7,6 +7,7 @@
             <field name="inherit_id" ref="base.view_partner_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='function']" position="after">
+                    <field name="ref" readonly="1"/>
                     <field name="x_care_id" readonly="1"/>
                     <field name="x_care_id_type" readonly="1"/>
                     <field name="x_gender"/>
