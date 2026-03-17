@@ -32,6 +32,7 @@ class ResPartner(http.Controller):
                     "partner_name": res_partner.name,
                     "x_care_id": res_partner.x_care_id,
                     "x_care_id_type": "vendor",
+                    "ref": res_partner.ref,
                 },
             }
             return request.make_json_response(json_response, status=200)

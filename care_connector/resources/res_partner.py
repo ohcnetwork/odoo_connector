@@ -56,6 +56,8 @@ class PartnerUtility:
                     create_vals["phone"] = partner_data.phone
                 if partner_data.pan:
                     create_vals["vat"] = partner_data.pan
+                if partner_data.ref:
+                    create_vals["ref"] = partner_data.ref
                 if birthdate:
                     create_vals["x_birthdate"] = birthdate
                 if gender:
@@ -83,6 +85,8 @@ class PartnerUtility:
                     update_vals["phone"] = partner_data.phone
                 if partner_data.pan:
                     update_vals["vat"] = partner_data.pan
+                if partner_data.ref:
+                    update_vals["ref"] = partner_data.ref
                 if birthdate:
                     update_vals["x_birthdate"] = birthdate
                 if gender:

@@ -29,6 +29,7 @@ class PartnerData(BaseModel):
     status: PartnerStatus | None = None
     birthdate: str | None = None  # Format: DD-MM-YYYY
     gender: GenderType | None = None
+    ref: str | None = None  # Reference/identifier for customer
     # Address fields
     street: str | None = None
     street2: str | None = None
