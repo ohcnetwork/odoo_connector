@@ -8,11 +8,11 @@ class AccountJournal(models.Model):
         selection=[
             ("cash", "Cash"),
             ("bank", "Bank"),
-            ("card", "Card"),
-            ("debit", "Debit"),
             ("credit", "Credit"),
         ],
         string="Care Connector Code",
         help="Code used by Care Connector API to identify this journal for payments. "
-        "Credit is used for Care of Accounts (charity/sponsor payments).",
+        "Credit is used for Care of Accounts (charity/sponsor payments). "
+        "Card and Debit are configured as payment method lines on the Bank journal "
+        "using the 'Care Payment Code' field.",
     )

@@ -104,3 +104,48 @@ class PaymentMethodLineUtility:
             )
 
         return pml
+
+    @classmethod
+    def get_payment_method_line_by_care_code(cls, user_env, care_payment_code):
+        """Look up an inbound payment method line by its x_care_payment_code.
+
+        This is used when a journal_input value (e.g. 'card', 'debit') maps to a
+        payment method line rather than a journal. The method returns both the
+        payment method line and its parent journal.
+
+        Only inbound payment method lines are matched, since this is used
+        for receiving payments from customers.
+
+        Args:
+            user_env: Authenticated Odoo environment
+            care_payment_code: The x_care_payment_code value to search for
+
+        Returns:
+            Tuple of (payment_method_line record, journal record) or (None, None)
+
+        Raises:
+            ValueError: If multiple inbound payment method lines share the same care_payment_code
+        """
+        payment_method_line_model = user_env['account.payment.method.line']
+
+        pml_records = payment_method_line_model.sudo().search([
+            ('x_care_payment_code', '=', care_payment_code),
+            ('payment_type', '=', 'inbound'),
+        ])
+
+        if not pml_records:
+            return None, None
+
+        if len(pml_records) > 1:
+            names = ', '.join(
+                f"'{r.name}' (id={r.id}, journal={r.journal_id.name})"
+                for r in pml_records
+            )
+            raise ValueError(
+                f"Multiple inbound payment method lines found with Care Payment Code "
+                f"'{care_payment_code}': {names}. Please ensure the 'Care Payment Code' "
+                f"field is unique for inbound payment method lines."
+            )
+
+        pml = pml_records[0]
+        return pml, pml.journal_id
