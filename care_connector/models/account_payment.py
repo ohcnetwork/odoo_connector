@@ -22,4 +22,6 @@ class AccountPaymentRegister(models.TransientModel):
         vals = super()._create_payment_vals_from_wizard(batch_result)
         if self.bank_reference:
             vals['bank_reference'] = self.bank_reference
+            current_ref = vals.get('ref', '')
+            vals['ref'] = f"{current_ref}, {self.bank_reference}" if current_ref else self.bank_reference
         return vals
