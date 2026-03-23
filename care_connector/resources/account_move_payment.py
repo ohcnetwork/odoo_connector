@@ -30,11 +30,18 @@ class InvoicePaymentUtility:
             if existing_payment:
                 raise ValueError(f"'{x_care_id}' already paid")
 
-            account_journal = account_journal_model.sudo().search([
-                ('x_care_journal_code', '=', journal_input.lower())
-            ], limit=1)
+            # Codes that are resolved at the journal level via x_care_journal_code.
+            # 'card' and 'debit' are NOT journal-level codes; they resolve via
+            # x_care_payment_code on payment method lines instead.
+            JOURNAL_LEVEL_CODES = ('cash', 'bank', 'credit')
 
-            # If no journal found by care code, check if this maps to a payment method line
+            account_journal = None
+            if journal_input.lower() in JOURNAL_LEVEL_CODES:
+                account_journal = account_journal_model.sudo().search([
+                    ('x_care_journal_code', '=', journal_input.lower())
+                ], limit=1)
+
+            # If no journal found, check if this maps to a payment method line
             # (e.g. 'card' and 'debit' are configured as payment method lines on a bank journal)
             payment_method_line = None
             if not account_journal:
@@ -42,6 +49,13 @@ class InvoicePaymentUtility:
                     user_env, journal_input.lower()
                 )
                 if pml and journal_from_pml:
+                    # Card/debit payment method lines are inbound-only; reject outbound flows
+                    if payment_mode.value == 'send':
+                        raise ValueError(
+                            f"Care Connector code '{journal_input}' cannot be used with "
+                            f"payment_mode='send'. Configure and use an appropriate outbound "
+                            f"journal instead."
+                        )
                     account_journal = journal_from_pml
                     payment_method_line = pml
 

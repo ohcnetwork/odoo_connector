@@ -122,15 +122,30 @@ class PaymentMethodLineUtility:
 
         Returns:
             Tuple of (payment_method_line record, journal record) or (None, None)
+
+        Raises:
+            ValueError: If multiple inbound payment method lines share the same care_payment_code
         """
         payment_method_line_model = user_env['account.payment.method.line']
 
-        pml = payment_method_line_model.sudo().search([
+        pml_records = payment_method_line_model.sudo().search([
             ('x_care_payment_code', '=', care_payment_code),
             ('payment_type', '=', 'inbound'),
-        ], limit=1, order='id asc')
+        ])
 
-        if not pml:
+        if not pml_records:
             return None, None
 
+        if len(pml_records) > 1:
+            names = ', '.join(
+                f"'{r.name}' (id={r.id}, journal={r.journal_id.name})"
+                for r in pml_records
+            )
+            raise ValueError(
+                f"Multiple inbound payment method lines found with Care Payment Code "
+                f"'{care_payment_code}': {names}. Please ensure the 'Care Payment Code' "
+                f"field is unique for inbound payment method lines."
+            )
+
+        pml = pml_records[0]
         return pml, pml.journal_id
