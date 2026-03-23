@@ -156,6 +156,8 @@ class InvoicePaymentUtility:
                         'cashier': bill_counter.get('user_id'),
                         'bank_reference': bank_reference
                     }
+                    if bank_reference:
+                        payment_vals['ref'] = bank_reference
                     # Add payment_method_line_id when resolved (credit or payment-code-based)
                     if payment_method_line:
                         payment_vals['payment_method_line_id'] = payment_method_line.id
