@@ -19,8 +19,15 @@ class PartnerUtility:
             if partner_data.birthdate:
                 birthdate = datetime.strptime(partner_data.birthdate, "%d-%m-%Y").date()
 
-            # Get gender value if provided
-            gender = partner_data.gender.value if partner_data.gender else None
+            # Get gender value if provided and normalize it
+            gender = None
+            if partner_data.gender:
+                gender_value = partner_data.gender.value.lower()
+                # Map to 'other' if not male or female
+                if gender_value not in ["male", "female"]:
+                    gender = "other"
+                else:
+                    gender = gender_value
 
             # Resolve country and state
             country_code = partner_data.country_code or "IN"
