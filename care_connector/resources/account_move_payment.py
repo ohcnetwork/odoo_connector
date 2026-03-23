@@ -1,5 +1,6 @@
 from datetime import datetime
 from odoo import http, fields
+from ..memo_labels import care_reference_label, format_care_reference_memo
 from .res_partner import PartnerUtility
 from .payment_method_line import PaymentMethodLineUtility
 
@@ -118,7 +119,9 @@ class InvoicePaymentUtility:
                 if payment_method_line:
                     payment_register_vals['payment_method_line_id'] = payment_method_line.id
 
-                account_payment = a_p_r_transient_model.with_context(ctx).create(
+                pay_ctx = dict(ctx)
+                pay_ctx['care_journal_input'] = journal_input.lower()
+                account_payment = a_p_r_transient_model.with_context(pay_ctx).create(
                     payment_register_vals
                 )._create_payments()
                 if not account_payment:
@@ -157,7 +160,12 @@ class InvoicePaymentUtility:
                         'bank_reference': bank_reference
                     }
                     if bank_reference:
-                        payment_vals['ref'] = bank_reference
+                        label = care_reference_label(
+                            journal_input=journal_input.lower(),
+                            journal=account_journal,
+                            payment_method_line=payment_method_line,
+                        )
+                        payment_vals['memo'] = format_care_reference_memo(label, bank_reference)
                     # Add payment_method_line_id when resolved (credit or payment-code-based)
                     if payment_method_line:
                         payment_vals['payment_method_line_id'] = payment_method_line.id

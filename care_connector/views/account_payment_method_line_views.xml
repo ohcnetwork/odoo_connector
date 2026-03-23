@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_account_payment_method_line_form_care" model="ir.ui.view">
-        <field name="name">account.payment.method.line.form.care</field>
+    <record id="view_account_payment_method_line_tree_care" model="ir.ui.view">
+        <field name="name">account.payment.method.line.list.care</field>
         <field name="model">account.payment.method.line</field>
-        <field name="inherit_id" ref="account.view_account_payment_method_line_form"/>
+        <field name="inherit_id" ref="account.view_account_payment_method_line_tree"/>
         <field name="arch" type="xml">
             <field name="name" position="after">
                 <field name="x_care_payment_code"/>
