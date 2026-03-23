@@ -6,7 +6,6 @@ CARE_REFERENCE_LABELS = {
     "debit": "DEBIT",
     "cash": "CASH",
     "bank": "BANK",
-    "neft": "NEFT",
     "credit": "CREDIT",
 }
 
