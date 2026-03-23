@@ -34,14 +34,25 @@ class InvoicePaymentUtility:
                 ('x_care_journal_code', '=', journal_input.lower())
             ], limit=1)
 
+            # If no journal found by care code, check if this maps to a payment method line
+            # (e.g. 'card' and 'debit' are configured as payment method lines on a bank journal)
+            payment_method_line = None
+            if not account_journal:
+                pml, journal_from_pml = PaymentMethodLineUtility.get_payment_method_line_by_care_code(
+                    user_env, journal_input.lower()
+                )
+                if pml and journal_from_pml:
+                    account_journal = journal_from_pml
+                    payment_method_line = pml
+
             if not account_journal:
                 raise ValueError(
-                    f"No journal configured for Care Connector code '{journal_input}'. "
-                    f"Please set the 'Care Connector Code' field on the appropriate journal."
+                    f"No journal or payment method configured for Care Connector code '{journal_input}'. "
+                    f"Please set the 'Care Connector Code' on the appropriate journal "
+                    f"or the 'Care Payment Code' on a payment method line."
                 )
 
             # Validate payment_method_line_id for credit payments
-            payment_method_line = None
             if journal_input.lower() == 'credit':
                 if not payment_method_line_id:
                     raise ValueError(
@@ -89,7 +100,7 @@ class InvoicePaymentUtility:
                     'payment_date': payment_date or fields.Date.today(),
                     'bank_reference': bank_reference
                 }
-                # Add payment_method_line_id for credit payments
+                # Add payment_method_line_id when resolved (credit or payment-code-based)
                 if payment_method_line:
                     payment_register_vals['payment_method_line_id'] = payment_method_line.id
 
@@ -131,7 +142,7 @@ class InvoicePaymentUtility:
                         'cashier': bill_counter.get('user_id'),
                         'bank_reference': bank_reference
                     }
-                    # Add payment_method_line_id for credit payments
+                    # Add payment_method_line_id when resolved (credit or payment-code-based)
                     if payment_method_line:
                         payment_vals['payment_method_line_id'] = payment_method_line.id
                     if cash_session:
