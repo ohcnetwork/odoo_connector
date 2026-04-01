@@ -13,6 +13,13 @@
                             <field name="invoice_cash_rounding_id"/>
                         </setting>
                     </block>
+                    <block title="Payment Method Restriction" name="care_credit_payment_settings_block">
+                        <setting id="care_credit_journal_setting"
+                                 string="Restricted Payment Journal"
+                                 help="Select a journal that requires per-partner payment method validation. Only payment method lines from this journal will be available as allowed methods on partners.">
+                            <field name="care_credit_journal_id"/>
+                        </setting>
+                    </block>
                 </app>
             </xpath>
         </field>
