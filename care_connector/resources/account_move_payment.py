@@ -93,6 +93,15 @@ class InvoicePaymentUtility:
                         f"at counter {counter_data.x_care_id}. Please open a session first."
                     )
 
+            # Check if this journal requires partner-level payment method validation
+            icp = user_env['ir.config_parameter'].sudo()
+            restricted_journal_id = icp.get_param(
+                'care_connector.care_credit_journal_id', default=False
+            )
+            requires_pml_validation = (
+                restricted_journal_id and int(restricted_journal_id) == account_journal.id
+            )
+
             existing_invoice = None
             if journal_x_care_id:
                 existing_invoice = account_move_model.search([('x_care_id', '=', journal_x_care_id)], limit=1)
@@ -102,6 +111,13 @@ class InvoicePaymentUtility:
                     raise ValueError(f"Invoice {existing_invoice.name} is not posted")
                 if existing_invoice.payment_state == 'paid':
                     raise ValueError(f"Invoice {existing_invoice.name} is already marked as paid. No further payment can be processed")
+
+                # Validate payment method is allowed for the invoice's partner
+                if requires_pml_validation:
+                    invoice_partner = existing_invoice.partner_id
+                    PaymentMethodLineUtility.validate_partner_allowed_payment_method(
+                        invoice_partner, payment_method_line
+                    )
 
                 ctx = {
                     'active_model': 'account.move',
@@ -142,6 +158,12 @@ class InvoicePaymentUtility:
 
                 if not partner:
                     raise ValueError(f"Create or retrieve partner is failed ")
+
+                # Validate payment method is allowed for this partner
+                if requires_pml_validation:
+                    PaymentMethodLineUtility.validate_partner_allowed_payment_method(
+                        partner, payment_method_line
+                    )
 
                 payment_type = 'outbound' if payment_mode.value == "send" else 'inbound'
 

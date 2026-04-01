@@ -149,3 +149,43 @@ class PaymentMethodLineUtility:
 
         pml = pml_records[0]
         return pml, pml.journal_id
+
+    @classmethod
+    def validate_partner_allowed_payment_method(cls, partner, payment_method_line):
+        """Validate that the payment method is in the partner's allowed list.
+
+        Called when the payment's journal matches the journal configured in
+        Care Connector settings (care_credit_journal_id). The partner MUST
+        have x_allowed_payment_method_line_ids configured; if the list is
+        empty or the method is not in it, the payment is rejected.
+
+        Args:
+            partner: res.partner record
+            payment_method_line: account.payment.method.line record
+
+        Raises:
+            ValueError: If no allowed methods are configured or the method
+                        is not in the partner's allowed list.
+        """
+        if not partner:
+            return
+
+        allowed_pml_ids = partner.x_allowed_payment_method_line_ids
+
+        if not allowed_pml_ids:
+            raise ValueError(
+                f"No allowed payment methods configured for partner "
+                f"'{partner.name}'. Payments on this journal require "
+                f"allowed payment methods to be set on the partner."
+            )
+
+        if not payment_method_line:
+            raise ValueError(
+                "A payment method line is required for payments on this journal."
+            )
+
+        if payment_method_line.id not in allowed_pml_ids.ids:
+            raise ValueError(
+                f"Payment method '{payment_method_line.name}' is not allowed for "
+                f"partner '{partner.name}'."
+            )

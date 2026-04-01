@@ -22,6 +22,31 @@ class ResPartner(models.Model):
         compute="_compute_age",
         store=True,
     )
+    x_allowed_payment_method_line_ids = fields.Many2many(
+        "account.payment.method.line",
+        "res_partner_payment_method_line_rel",
+        "partner_id",
+        "payment_method_line_id",
+        string="Allowed Payment Methods",
+        help="Payment method lines allowed for this partner. "
+        "Only lines from the journal configured in Care Connector settings are shown. "
+        "When a payment is made on that journal, the payment method must be in this list.",
+    )
+    x_care_credit_journal_id = fields.Many2one(
+        "account.journal",
+        string="Restricted Journal",
+        compute="_compute_care_credit_journal_id",
+        help="Technical field: journal from Care Connector settings, "
+        "used to filter allowed payment method lines.",
+    )
+
+    @api.depends_context("uid")
+    def _compute_care_credit_journal_id(self):
+        icp = self.env["ir.config_parameter"].sudo()
+        journal_id = icp.get_param("care_connector.care_credit_journal_id", default=False)
+        journal_id = int(journal_id) if journal_id else False
+        for partner in self:
+            partner.x_care_credit_journal_id = journal_id
 
     @api.depends("x_birthdate")
     def _compute_age(self):
