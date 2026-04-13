@@ -16,13 +16,16 @@
                 </xpath>
                 <xpath expr="//page[@name='sales_purchases']" position="after">
                     <page string="Allowed Payment Methods" name="allowed_payment_methods">
-                        <group>
-                            <field name="x_care_credit_journal_id" invisible="1"/>
-                            <field name="x_allowed_payment_method_line_ids" widget="many2many_tags"
-                                   domain="[('journal_id', '=', x_care_credit_journal_id), ('payment_type', '=', 'inbound')]"
-                                   options="{'no_create': True}"
-                                   placeholder="Select allowed payment methods for this partner"/>
-                        </group>
+                        <field name="x_allowed_payment_method_line_ids">
+                            <list editable="bottom">
+                                <field name="restricted_journal_id" column_invisible="1"/>
+                                <field name="payment_method_line_id"
+                                       domain="[('journal_id', '=', restricted_journal_id), ('payment_type', '=', 'inbound')]"
+                                       options="{'no_create': True}"/>
+                                <field name="date_from"/>
+                                <field name="date_to"/>
+                            </list>
+                        </field>
                     </page>
                 </xpath>
             </field>
