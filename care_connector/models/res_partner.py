@@ -35,6 +35,15 @@ class ResPartner(models.Model):
         "used to filter allowed payment method lines.",
     )
 
+    @api.depends_context("uid")
+    def _compute_care_credit_journal_id(self):
+        icp = self.env["ir.config_parameter"].sudo()
+        journal_id = icp.get_param("care_connector.care_credit_journal_id", default=False)
+        journal_id = int(journal_id) if journal_id else False
+        for partner in self:
+            partner.x_care_credit_journal_id = journal_id
+
+
     @api.depends("x_birthdate")
     def _compute_age(self):
         today = fields.Date.today()
