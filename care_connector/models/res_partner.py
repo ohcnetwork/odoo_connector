@@ -27,6 +27,13 @@ class ResPartner(models.Model):
         "partner_id",
         string="Allowed Payment Methods",
     )
+    x_care_credit_journal_id = fields.Many2one(
+        "account.journal",
+        string="Restricted Journal",
+        compute="_compute_care_credit_journal_id",
+        help="Technical field: journal from Care Connector settings, "
+        "used to filter allowed payment method lines.",
+    )
 
     @api.depends("x_birthdate")
     def _compute_age(self):
