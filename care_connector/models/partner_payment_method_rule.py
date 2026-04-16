@@ -50,7 +50,7 @@ class PartnerPaymentMethodRule(models.Model):
     def _check_dates(self):
         for rule in self:
             if rule.date_from > rule.date_to:
-                raise ValidationError("'Valid From' must be before 'Valid To'.")
+                raise ValidationError("'Valid From' must be on or before 'Valid To'.")
 
     def is_valid_on(self, date):
         """Check if this rule is valid on the given date."""
