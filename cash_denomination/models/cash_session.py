@@ -190,10 +190,6 @@ class CashSession(models.Model):
     )
     def _compute_expected(self):
         for session in self:
-            if session.status == "closed":
-                session.expected_amount = session.closing_expected
-                continue
-
             expected = session.opening_balance
 
             # + Cash payments received (inbound), excluding cancelled payments
