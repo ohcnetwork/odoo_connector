@@ -101,10 +101,7 @@ class InvoicePaymentUtility:
             requires_pml_validation = (
                 restricted_journal_id and int(restricted_journal_id) == account_journal.id
             )
-            effective_date = (
-                fields.Date.to_date(payment_date) if payment_date
-                else fields.Date.today()
-            )
+            effective_date = fields.Date.today()
 
             existing_invoice = None
             if journal_x_care_id:

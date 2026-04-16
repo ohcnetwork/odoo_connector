@@ -197,5 +197,5 @@ class PaymentMethodLineUtility:
         if not any(rule.is_valid_on(payment_date) for rule in matching_rules):
             raise ValueError(
                 f"Payment method '{payment_method_line.name}' is not valid for "
-                f"partner '{partner.name}' on {payment_date}."
+                f"partner '{partner.name}' today."
             )
