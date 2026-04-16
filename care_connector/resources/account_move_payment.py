@@ -101,6 +101,7 @@ class InvoicePaymentUtility:
             requires_pml_validation = (
                 restricted_journal_id and int(restricted_journal_id) == account_journal.id
             )
+            effective_date = fields.Date.today()
 
             existing_invoice = None
             if journal_x_care_id:
@@ -116,7 +117,7 @@ class InvoicePaymentUtility:
                 if requires_pml_validation:
                     invoice_partner = existing_invoice.partner_id
                     PaymentMethodLineUtility.validate_partner_allowed_payment_method(
-                        invoice_partner, payment_method_line
+                        invoice_partner, payment_method_line, effective_date
                     )
 
                 ctx = {
@@ -162,7 +163,7 @@ class InvoicePaymentUtility:
                 # Validate payment method is allowed for this partner
                 if requires_pml_validation:
                     PaymentMethodLineUtility.validate_partner_allowed_payment_method(
-                        partner, payment_method_line
+                        partner, payment_method_line, effective_date
                     )
 
                 payment_type = 'outbound' if payment_mode.value == "send" else 'inbound'

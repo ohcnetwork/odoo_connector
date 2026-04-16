@@ -151,28 +151,28 @@ class PaymentMethodLineUtility:
         return pml, pml.journal_id
 
     @classmethod
-    def validate_partner_allowed_payment_method(cls, partner, payment_method_line):
-        """Validate that the payment method is in the partner's allowed list.
+    def validate_partner_allowed_payment_method(cls, partner, payment_method_line, payment_date):
+        """Validate that the payment method is allowed for the partner on the given date.
 
         Called when the payment's journal matches the journal configured in
-        Care Connector settings (care_credit_journal_id). The partner MUST
-        have x_allowed_payment_method_line_ids configured; if the list is
-        empty or the method is not in it, the payment is rejected.
+        Care Connector settings. The partner MUST have allowed payment method
+        rules configured. The payment method must match a rule whose date
+        range covers the payment date.
 
         Args:
             partner: res.partner record
             payment_method_line: account.payment.method.line record
+            payment_date: date to validate against
 
         Raises:
-            ValueError: If no allowed methods are configured or the method
-                        is not in the partner's allowed list.
+            ValueError: If validation fails
         """
         if not partner:
             return
 
-        allowed_pml_ids = partner.x_allowed_payment_method_line_ids
+        rules = partner.x_allowed_payment_method_line_ids
 
-        if not allowed_pml_ids:
+        if not rules:
             raise ValueError(
                 f"No allowed payment methods configured for partner "
                 f"'{partner.name}'. Payments on this journal require "
@@ -184,8 +184,18 @@ class PaymentMethodLineUtility:
                 "A payment method line is required for payments on this journal."
             )
 
-        if payment_method_line.id not in allowed_pml_ids.ids:
+        matching_rules = rules.filtered(
+            lambda r: r.payment_method_line_id.id == payment_method_line.id
+        )
+
+        if not matching_rules:
             raise ValueError(
                 f"Payment method '{payment_method_line.name}' is not allowed for "
                 f"partner '{partner.name}'."
+            )
+
+        if not any(rule.is_valid_on(payment_date) for rule in matching_rules):
+            raise ValueError(
+                f"Payment method '{payment_method_line.name}' is not valid for "
+                f"partner '{partner.name}' today."
             )
