@@ -628,6 +628,32 @@ class InsuranceClaim(models.Model):
 
             claim.state = "reconciled"
 
+    def action_undo_reconcile(self):
+        """Undo reconciliation and revert claim to approved state."""
+        for claim in self:
+            if claim.state != "reconciled":
+                raise UserError(_("Only reconciled claims can be unreconciled."))
+
+            if not claim.journal_entry_id:
+                raise UserError(_("No journal entry found."))
+
+            receivable_account = claim.customer_id.property_account_receivable_id
+            if not receivable_account:
+                raise UserError(
+                    _("Customer '%s' has no receivable account configured.")
+                    % claim.customer_id.name
+                )
+
+            # Find reconciled lines on the insurance journal entry
+            reconciled_lines = claim.journal_entry_id.line_ids.filtered(
+                lambda l: l.account_id == receivable_account and l.reconciled
+            )
+
+            if reconciled_lines:
+                reconciled_lines.remove_move_reconcile()
+
+            claim.state = "approved"
+
     def action_reset_to_draft(self):
         """Reset confirmed or rejected claim to draft."""
         for claim in self:
