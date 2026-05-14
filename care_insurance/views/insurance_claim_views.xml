@@ -59,7 +59,14 @@
                             type="object"
                             string="Reconcile"
                             class="oe_highlight"
-                            invisible="state != 'approved'"/>
+                            invisible="state != 'approved'"
+                            confirm="Are you sure you want to reconcile this claim? This will match the insurance journal entry with the customer invoices."/>
+                    <button name="action_undo_reconcile"
+                            type="object"
+                            string="Undo Reconcile"
+                            class="btn-secondary"
+                            invisible="state != 'reconciled'"
+                            confirm="Are you sure you want to undo the reconciliation? This will unlink the matched journal items and revert the claim to Approved state."/>
                     <button name="action_reset_to_draft"
                             type="object"
                             string="Reset to Draft"
