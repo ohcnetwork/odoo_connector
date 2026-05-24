@@ -61,6 +61,13 @@
                             class="oe_highlight"
                             invisible="state != 'approved'"
                             confirm="Are you sure you want to reconcile this claim? This will match the insurance journal entry with the customer invoices."/>
+                    <button name="action_undo_approval"
+                            type="object"
+                            string="Undo Approval"
+                            class="btn-secondary"
+                            invisible="state != 'approved'"
+                            groups="care_insurance.group_insurance_manager"
+                            confirm="Are you sure you want to undo the approval? The posted journal entry will be deleted and the claim will return to Confirmed."/>
                     <button name="action_undo_reconcile"
                             type="object"
                             string="Undo Reconcile"

@@ -654,6 +654,56 @@ class InsuranceClaim(models.Model):
 
             claim.state = "approved"
 
+    def action_undo_approval(self):
+        """Undo approval: delete the posted journal entry and revert to confirmed.
+
+        This is intended for cases where the approval was made in error and the
+        journal entry should be removed entirely (not reversed).
+        """
+        for claim in self:
+            if claim.state != "approved":
+                raise UserError(_("Only approved claims can be unapproved."))
+
+            move = claim.journal_entry_id
+            if move:
+                # Block deletion if any line has been reconciled (safety net;
+                # reconciled claims should use Undo Reconcile first).
+                if any(line.reconciled for line in move.line_ids):
+                    raise UserError(
+                        _(
+                            "Cannot delete the journal entry because some of its "
+                            "lines are reconciled. Please undo the reconciliation first."
+                        )
+                    )
+
+                move_name = move.name
+                # Set to draft (account.move.unlink only allows draft/cancel moves)
+                if move.state == "posted":
+                    move.button_draft()
+                move.with_context(force_delete=True).unlink()
+
+                claim.message_post(
+                    body=_(
+                        "Approval undone by %(user)s. Journal entry %(move)s was deleted."
+                    )
+                    % {
+                        "user": self.env.user.name,
+                        "move": move_name,
+                    }
+                )
+            else:
+                claim.message_post(
+                    body=_("Approval undone by %(user)s.")
+                    % {"user": self.env.user.name}
+                )
+
+            claim.write(
+                {
+                    "journal_entry_id": False,
+                    "state": "confirmed",
+                }
+            )
+
     def action_reset_to_draft(self):
         """Reset confirmed or rejected claim to draft."""
         for claim in self:
