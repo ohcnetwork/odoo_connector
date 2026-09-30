@@ -1,7 +1,7 @@
 from markupsafe import Markup
 
 from odoo import Command
-from odoo.tools import float_compare
+from odoo.tools import float_compare, str2bool
 
 from .account_move import AccountUtility
 
@@ -27,9 +27,10 @@ class DiscountResyncUtility:
 
     @classmethod
     def check_enabled(cls, user_env):
-        """The API is off unless the system parameter is set."""
-        if not user_env["ir.config_parameter"].sudo().get_param(ENABLED_PARAM):
-            raise PermissionError(f"Discount resync is disabled. Set the system parameter {ENABLED_PARAM} to enable it.")
+        """The API is off unless the system parameter is set to True."""
+        # Parameters are stored as text, so a value of "False" has to be parsed, not tested for truth
+        if not str2bool(user_env["ir.config_parameter"].sudo().get_param(ENABLED_PARAM), default=False):
+            raise PermissionError(f"Discount resync is disabled. Set the system parameter {ENABLED_PARAM} to True to enable it.")
 
     @classmethod
     def resync(cls, user_env, request_data):
@@ -101,7 +102,8 @@ class DiscountResyncUtility:
                 )
                 if move.name != invoice.invoice:
                     raise _Stop(f"rolled back: number would change to {move.name}")
-                if abs(move.amount_total - invoice.care_total) > TOTAL_TOLERANCE:
+                # Written so that a NaN total (e.g. from a NaN discount rate) fails too
+                if not abs(move.amount_total - invoice.care_total) <= TOTAL_TOLERANCE:
                     raise _Stop(f"rolled back: Odoo total {move.amount_total} would not match Care")
                 if dry_run:
                     raise _Stop("would fix")
@@ -118,6 +120,11 @@ class DiscountResyncUtility:
     @classmethod
     def _line_changes(cls, env, move, lines):
         """(line, vals, old discount, old group names) for each line whose discount differs from Care's."""
+        care_ids = [line_data.x_care_id for line_data in lines]
+        duplicates = {care_id for care_id in care_ids if care_ids.count(care_id) > 1}
+        if duplicates:
+            raise _Stop(f"charge item {min(duplicates)} is listed more than once")
+
         has_breakdown = "discount_line_ids" in env["account.move.line"]._fields
         changes = []
         for line_data in lines:
@@ -136,6 +143,10 @@ class DiscountResyncUtility:
                     Command.create(discount_line) for discount_line in info.get("discount_lines", [])
                 ]
             changes.append((line, vals, line.discount, cls._group_names(line)))
+        # A line left out of the request would keep its old discount
+        missing = set(move.invoice_line_ids.filtered("x_care_id").mapped("x_care_id")) - set(care_ids)
+        if missing:
+            raise _Stop(f"{len(missing)} Odoo lines are not in the request")
         return changes
 
     @classmethod

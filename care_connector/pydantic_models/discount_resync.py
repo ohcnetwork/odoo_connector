@@ -13,7 +13,7 @@ class DiscountResyncLine(BaseModel):
 class DiscountResyncInvoice(BaseModel):
     invoice: str  # Odoo invoice number
     x_care_id: str  # Care invoice, account.move.x_care_id
-    care_total: float
+    care_total: float = Field(allow_inf_nan=False)  # NaN would pass the total check
     lines: List[DiscountResyncLine]
 
 
