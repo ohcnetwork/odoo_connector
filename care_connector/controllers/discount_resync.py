@@ -17,7 +17,8 @@ class DiscountResync(http.Controller):
             user_env = UserAuthentication.get_authenticated_user(auth_header)
             DiscountResyncUtility.check_enabled(user_env)
             data = json.loads(request.httprequest.data)
-            request_data = DiscountResyncApiRequest(**data)
+            # model_validate rejects a body that isn't a JSON object (e.g. [] or null) as a 400
+            request_data = DiscountResyncApiRequest.model_validate(data)
             results = DiscountResyncUtility.resync(user_env, request_data)
 
             json_response = {
