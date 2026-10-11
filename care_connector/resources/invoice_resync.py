@@ -176,9 +176,6 @@ class InvoiceResyncUtility:
         lookup_env = env(context=dict(env.context, active_test=False))
         for item in items:
             vals = AccountUtility._prepare_invoice_line_vals(lookup_env, item, move.move_type)
-            # Commission is paid on the agent, so one Odoo can't find must not be dropped
-            if item.agent_id and "commission_user_id" in fields and not vals.get("commission_user_id"):
-                raise _Stop(f"needs manual fix: agent {item.agent_id} of charge item {item.x_care_id} isn't an Odoo user")
             line = lines.filtered(lambda l, care_id=item.x_care_id: l.x_care_id == care_id)
             if len(line) > 1:
                 raise _Stop(f"{len(line)} Odoo lines for charge item {item.x_care_id}")
