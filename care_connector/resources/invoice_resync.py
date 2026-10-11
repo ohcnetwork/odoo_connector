@@ -165,8 +165,10 @@ class InvoiceResyncUtility:
         lines = move.invoice_line_ids.filtered("x_care_id")
         fields = [field for field in LINE_FIELDS if field in lines._fields]
         changes = []
+        # Products and agents archived since the invoice was synced must still be found
+        lookup_env = env(context=dict(env.context, active_test=False))
         for item in items:
-            vals = AccountUtility._prepare_invoice_line_vals(env, item, move.move_type)
+            vals = AccountUtility._prepare_invoice_line_vals(lookup_env, item, move.move_type)
             line = lines.filtered(lambda l, care_id=item.x_care_id: l.x_care_id == care_id)
             if len(line) > 1:
                 raise _Stop(f"{len(line)} Odoo lines for charge item {item.x_care_id}")
