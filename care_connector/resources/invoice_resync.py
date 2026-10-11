@@ -108,6 +108,9 @@ class InvoiceResyncUtility:
 
                 changes = cls._line_changes(env, move, data.invoice_items)
                 if not changes:
+                    # Matching lines can still total differently, e.g. through taxes or lines added in Odoo
+                    if not abs(move.amount_total - invoice.care_total) <= TOTAL_TOLERANCE:
+                        raise _Stop(f"needs manual fix: the lines match Care, but the total {move.amount_total} doesn't")
                     raise _Stop("in sync")
                 result["changes"] = "; ".join(description for _action, _line, _vals, description in changes)
                 if "insurance.claim" in env and env["insurance.claim"].sudo().search_count(
@@ -115,7 +118,10 @@ class InvoiceResyncUtility:
                 ):
                     raise _Stop("skipped: lines are on an insurance claim, fix manually")
 
-                journal = move.journal_id
+                # sales_journal_tax_selection picks the taxed or untaxed journal only when an invoice is
+                # created, so a correction that adds its first tax or removes its last would leave it in the
+                # wrong journal
+                taxed = move.is_taxed if "is_taxed" in move._fields else None
                 rematched = cls._correct(move, changes)
                 result.update(
                     lines_changed=len(changes),
@@ -124,8 +130,9 @@ class InvoiceResyncUtility:
                     new_total=move.amount_total,
                     new_payment_state=move.payment_state,
                 )
-                if move.journal_id != journal:
-                    raise _Stop(f"needs manual fix: the changes would move it to journal {move.journal_id.code}")
+                if taxed is not None and move.is_taxed != taxed:
+                    journal = "taxed" if move.is_taxed else "untaxed"
+                    raise _Stop(f"needs manual fix: the changes would move it to the {journal} journal")
                 if move.name != invoice.invoice:
                     raise _Stop(f"rolled back: number would change to {move.name}")
                 # Written so that a NaN total (e.g. from a NaN discount rate) fails too
