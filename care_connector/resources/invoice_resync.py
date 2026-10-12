@@ -89,17 +89,20 @@ class InvoiceResyncUtility:
             return result
         try:
             with env.cr.savepoint():
+                # Care refunds are synced as credit notes
+                move_type = "out_refund" if data.is_refund else "out_invoice"
                 move = env["account.move"].search(
-                    [("name", "=", invoice.invoice), ("x_care_id", "=", data.x_care_id), ("move_type", "=", "out_invoice")]
+                    [("name", "=", invoice.invoice), ("x_care_id", "=", data.x_care_id), ("move_type", "=", move_type)]
                 )
                 if len(move) != 1:
                     raise _Stop(f"not found ({len(move)} matching Odoo invoices)")
+                # Amounts are signed, like Care's: a refund's are negative
                 result.update(
                     invoice_date=str(move.invoice_date),
                     journal=move.journal_id.code,
-                    old_untaxed=move.amount_untaxed,
-                    old_tax=move.amount_tax,
-                    old_total=move.amount_total,
+                    old_untaxed=move.amount_untaxed_signed,
+                    old_tax=move.amount_tax_signed,
+                    old_total=move.amount_total_signed,
                     old_payment_state=move.payment_state,
                 )
                 if move.state != "posted":
@@ -109,8 +112,8 @@ class InvoiceResyncUtility:
                 changes = cls._line_changes(env, move, data.invoice_items)
                 if not changes:
                     # Matching lines can still total differently, e.g. through taxes or lines added in Odoo
-                    if not abs(move.amount_total - invoice.care_total) <= TOTAL_TOLERANCE:
-                        raise _Stop(f"needs manual fix: the lines match Care, but the total {move.amount_total} doesn't")
+                    if not abs(move.amount_total_signed - invoice.care_total) <= TOTAL_TOLERANCE:
+                        raise _Stop(f"needs manual fix: the lines match Care, but the total {move.amount_total_signed} doesn't")
                     raise _Stop("in sync")
                 result["changes"] = "; ".join(description for _action, _line, _vals, description in changes)
                 if "insurance.claim" in env and env["insurance.claim"].sudo().search_count(
@@ -125,9 +128,9 @@ class InvoiceResyncUtility:
                 rematched = cls._correct(move, changes)
                 result.update(
                     lines_changed=len(changes),
-                    new_untaxed=move.amount_untaxed,
-                    new_tax=move.amount_tax,
-                    new_total=move.amount_total,
+                    new_untaxed=move.amount_untaxed_signed,
+                    new_tax=move.amount_tax_signed,
+                    new_total=move.amount_total_signed,
                     new_payment_state=move.payment_state,
                 )
                 if taxed is not None and move.is_taxed != taxed:
@@ -136,8 +139,8 @@ class InvoiceResyncUtility:
                 if move.name != invoice.invoice:
                     raise _Stop(f"rolled back: number would change to {move.name}")
                 # Written so that a NaN total (e.g. from a NaN discount rate) fails too
-                if not abs(move.amount_total - invoice.care_total) <= TOTAL_TOLERANCE:
-                    raise _Stop(f"rolled back: Odoo total {move.amount_total} would not match Care")
+                if not abs(move.amount_total_signed - invoice.care_total) <= TOTAL_TOLERANCE:
+                    raise _Stop(f"rolled back: Odoo total {move.amount_total_signed} would not match Care")
                 if dry_run:
                     raise _Stop("would update")
                 cls._post_note(move, changes, result, rematched)
@@ -252,8 +255,8 @@ class InvoiceResyncUtility:
             body=Markup("<p>Invoice resynced from Care.</p><ul>%s</ul><p>Total %s → %s.%s</p>")
             % (
                 items,
-                f"{result['old_total']:.2f}",
-                f"{result['new_total']:.2f}",
+                f"{abs(result['old_total']):.2f}",
+                f"{abs(result['new_total']):.2f}",
                 " Payment re-matched." if rematched else "",
             ),
             subtype_xmlid="mail.mt_note",
