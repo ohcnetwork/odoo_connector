@@ -187,6 +187,10 @@ class InvoiceResyncUtility:
             differing = {
                 field: vals.get(field, False) for field in fields if cls._differs(line, field, vals.get(field, False))
             }
+            # Without an agent the commission falls back to the invoice's salesperson, so a person decides
+            if "commission_user_id" in differing and not differing["commission_user_id"]:
+                agent, product = line.commission_user_id.display_name, line.product_id.display_name or line.name
+                raise _Stop(f"needs manual fix: the changes would remove agent {agent} from {product}")
             if differing:
                 changes.append(("update", line, differing, cls._describe(line, differing)))
         for line in lines.filtered(lambda l: l.x_care_id not in care_ids):
