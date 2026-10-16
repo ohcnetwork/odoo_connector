@@ -35,7 +35,9 @@ class UserUtility:
             if partner_data and partner_data.x_care_id:
                 user_vals["x_care_id"] = partner_data.x_care_id
 
-            res_user = res_users_model.create(user_vals)
+            # Care users never log into Odoo; skip auth_signup's invitation email,
+            # which is sent synchronously and blocks the request on SMTP.
+            res_user = res_users_model.with_context(no_reset_password=True).create(user_vals)
             if not res_user:
                 raise ValueError(f"User creation failed")
 
