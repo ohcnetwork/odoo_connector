@@ -13,5 +13,4 @@ class InvoiceResyncInvoice(BaseModel):
 
 class InvoiceResyncApiRequest(BaseModel):
     dry_run: bool = True
-    all_or_nothing: bool = False
     invoices: List[InvoiceResyncInvoice] = Field(max_length=25)

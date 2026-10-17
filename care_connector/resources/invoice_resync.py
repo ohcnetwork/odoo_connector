@@ -4,15 +4,13 @@ from markupsafe import Markup
 from pydantic import ValidationError
 
 from odoo import Command
-from odoo.tools import float_compare, str2bool
+from odoo.tools import float_compare
 
 from ..pydantic_models.account_move import AccountMoveApiRequest
 from .account_move import AccountUtility
 
-ENABLED_PARAM = "care_connector.invoice_resync_enabled"
 # Invoice cash rounding can put the Odoo total up to a rupee away from Care's
 TOTAL_TOLERANCE = 1.0
-OK_STATUSES = ("updated", "would update", "in sync")
 # The line fields the sync sets, compared with Care's, with the names used in the results and notes
 LINE_FIELDS = {
     "product_id": "product",
@@ -30,22 +28,11 @@ class _Stop(Exception):
     """Undo this invoice and report the reason as its status."""
 
 
-class _UndoBatch(Exception):
-    """Undo every invoice in an all-or-nothing batch."""
-
-
 class InvoiceResyncUtility:
     """
     Brings posted Care invoices back in line with Care. Care sends each invoice the way the live sync
     does, and lines that differ are corrected in place, keeping the invoice number and its payments.
     """
-
-    @classmethod
-    def check_enabled(cls, user_env):
-        """The API is off unless the system parameter is set to True."""
-        # Parameters are stored as text, so a value of "False" has to be parsed, not tested for truth
-        if not str2bool(user_env["ir.config_parameter"].sudo().get_param(ENABLED_PARAM), default=False):
-            raise PermissionError(f"Invoice resync is disabled. Set the system parameter {ENABLED_PARAM} to True to enable it.")
 
     @classmethod
     def resync(cls, user_env, request_data):
@@ -54,29 +41,12 @@ class InvoiceResyncUtility:
 
         An invoice that matches is left untouched. One that differs is reset to draft, corrected,
         re-posted (keeping its number) and re-matched to the payments it had, and kept only if its total
-        then equals Care's. Dry runs undo every invoice; all_or_nothing undoes the whole batch if any
-        invoice fails. Nothing is committed here: the caller's transaction saves what's kept.
+        then equals Care's. A dry run undoes every invoice. Nothing is committed here: the caller's
+        transaction saves what's kept.
 
         Returns one result dict per invoice.
         """
-        results = []
-        try:
-            with user_env.cr.savepoint():
-                for invoice in request_data.invoices:
-                    results.append(cls._resync_invoice(user_env, invoice, request_data.dry_run))
-                if request_data.all_or_nothing and any(cls._failed(result) for result in results):
-                    raise _UndoBatch
-        except _UndoBatch:
-            user_env.invalidate_all(flush=False)
-            for result in results:
-                if result["status"] in ("updated", "would update"):
-                    verb = "would not be saved" if request_data.dry_run else "not saved"
-                    result["status"] = f"{verb}: another invoice in this batch failed"
-        return results
-
-    @classmethod
-    def _failed(cls, result):
-        return result["status"] not in OK_STATUSES and not result["status"].startswith("skipped")
+        return [cls._resync_invoice(user_env, invoice, request_data.dry_run) for invoice in request_data.invoices]
 
     @classmethod
     def _resync_invoice(cls, env, invoice, dry_run):

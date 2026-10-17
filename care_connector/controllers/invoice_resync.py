@@ -15,7 +15,6 @@ class InvoiceResync(http.Controller):
         try:
             auth_header = request.httprequest.headers.get("Authorization")
             user_env = UserAuthentication.get_authenticated_user(auth_header)
-            InvoiceResyncUtility.check_enabled(user_env)
             data = json.loads(request.httprequest.data)
             # model_validate rejects a body that isn't a JSON object (e.g. [] or null) as a 400
             request_data = InvoiceResyncApiRequest.model_validate(data)
@@ -24,18 +23,9 @@ class InvoiceResync(http.Controller):
             json_response = {
                 "success": True,
                 "dry_run": request_data.dry_run,
-                "all_or_nothing": request_data.all_or_nothing,
                 "results": results,
             }
             return request.make_json_response(json_response, status=200)
-
-        except PermissionError as e:
-            error_response = {
-                "success": False,
-                "error_type": "PermissionError",
-                "message": str(e),
-            }
-            return request.make_json_response(error_response, status=403)
 
         except ValueError as e:
             error_response = {
