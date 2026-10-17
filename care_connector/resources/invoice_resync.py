@@ -29,10 +29,7 @@ class _Stop(Exception):
 
 
 class InvoiceResyncUtility:
-    """
-    Brings posted Care invoices back in line with Care. Care sends each invoice the way the live sync
-    does, and lines that differ are corrected in place, keeping the invoice number and its payments.
-    """
+    """Brings posted Care invoices back in line with Care."""
 
     @classmethod
     def resync(cls, user_env, request_data):
@@ -50,7 +47,7 @@ class InvoiceResyncUtility:
 
     @classmethod
     def _resync_invoice(cls, env, invoice, dry_run):
-        result = {"invoice": invoice.invoice, "care_total": invoice.care_total}
+        result = {"invoice": invoice.number, "care_total": invoice.care_total}
         try:
             data = AccountMoveApiRequest.model_validate(invoice.data)
         except ValidationError as error:
@@ -59,13 +56,7 @@ class InvoiceResyncUtility:
             return result
         try:
             with env.cr.savepoint():
-                # Care refunds are synced as credit notes
-                move_type = "out_refund" if data.is_refund else "out_invoice"
-                move = env["account.move"].search(
-                    [("name", "=", invoice.invoice), ("x_care_id", "=", data.x_care_id), ("move_type", "=", move_type)]
-                )
-                if len(move) != 1:
-                    raise _Stop(f"not found ({len(move)} matching Odoo invoices)")
+                move = cls._find_move(env, invoice.number, data)
                 result.update(invoice_date=str(move.invoice_date), journal=move.journal_id.code, **cls._amounts(move, "old"))
                 if move.state != "posted":
                     raise _Stop(f"invoice is {move.state}")
@@ -83,19 +74,10 @@ class InvoiceResyncUtility:
                 ):
                     raise _Stop("skipped: lines are on an insurance claim, fix manually")
 
-                # sales_journal_tax_selection picks the taxed or untaxed journal only when an invoice is
-                # created, so a correction that adds its first tax or removes its last would leave it in the
-                # wrong journal
-                taxed = move.is_taxed if "is_taxed" in move._fields else None
+                taxed = move.is_taxed if "is_taxed" in move._fields else None  # checked after correcting
                 rematched = cls._correct(move, changes)
                 result.update(lines_changed=len(changes), **cls._amounts(move, "new"))
-                if taxed is not None and move.is_taxed != taxed:
-                    journal = "taxed" if move.is_taxed else "untaxed"
-                    raise _Stop(f"needs manual fix: the changes would move it to the {journal} journal")
-                if move.name != invoice.invoice:
-                    raise _Stop(f"rolled back: number would change to {move.name}")
-                if not cls._total_matches(move, invoice.care_total):
-                    raise _Stop(f"rolled back: Odoo total {move.amount_total_signed} would not match Care")
+                cls._check_corrected(move, invoice, taxed)
                 if dry_run:
                     raise _Stop("would update")
                 cls._post_note(move, changes, result, rematched)
@@ -104,6 +86,17 @@ class InvoiceResyncUtility:
             env.invalidate_all(flush=False)
             result["status"] = str(error) if isinstance(error, _Stop) else f"error: {error}"
         return result
+
+    @classmethod
+    def _find_move(cls, env, number, data):
+        # Care refunds are synced as credit notes
+        move_type = "out_refund" if data.is_refund else "out_invoice"
+        move = env["account.move"].search(
+            [("name", "=", number), ("x_care_id", "=", data.x_care_id), ("move_type", "=", move_type)]
+        )
+        if len(move) != 1:
+            raise _Stop(f"not found ({len(move)} matching Odoo invoices)")
+        return move
 
     @classmethod
     def _amounts(cls, move, prefix):
@@ -135,6 +128,19 @@ class InvoiceResyncUtility:
         care_date = datetime.strptime(data.invoice_date, "%d-%m-%Y").date()
         if move.invoice_date != care_date:
             raise _Stop(f"needs manual fix: the invoice date differs (Odoo {move.invoice_date}, Care {care_date})")
+
+    @classmethod
+    def _check_corrected(cls, move, invoice, taxed):
+        """Corrections that can't be kept: the invoice is rolled back and the reason reported."""
+        # sales_journal_tax_selection picks the taxed or untaxed journal only when an invoice is created,
+        # so a correction that adds its first tax or removes its last would leave it in the wrong journal
+        if taxed is not None and move.is_taxed != taxed:
+            journal = "taxed" if move.is_taxed else "untaxed"
+            raise _Stop(f"needs manual fix: the changes would move it to the {journal} journal")
+        if move.name != invoice.number:
+            raise _Stop(f"rolled back: number would change to {move.name}")
+        if not cls._total_matches(move, invoice.care_total):
+            raise _Stop(f"rolled back: Odoo total {move.amount_total_signed} would not match Care")
 
     @classmethod
     def _line_changes(cls, env, move, items):
