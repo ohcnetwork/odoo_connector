@@ -28,6 +28,10 @@ class AccountMove(http.Controller):
                     "partner": account_move.partner_id.name,
                     "invoice_date": str(account_move.invoice_date),
                     "amount_total": account_move.amount_total,
+                    # grn_number comes from grn_number_in_vendor_bill, which may not be installed
+                    "grn_number": (account_move["grn_number"] or None)
+                    if "grn_number" in account_move._fields
+                    else None,
                 }
             }
             return request.make_json_response(json_response, status=200)

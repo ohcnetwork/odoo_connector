@@ -18,8 +18,8 @@ class AccountMove(models.Model):
              "Create sequences from Settings > Technical > Sequences with a code starting with 'grn.'",
     )
 
-    def action_post(self):
-        """Assign GRN number when the vendor bill is posted (only for Care invoices)"""
+    def _assign_grn_number(self):
+        """Assign GRN number from the selected GRN sequence (only for Care invoices)"""
         for move in self:
             # Only assign GRN for vendor bills from Care system (has x_care_id)
             if move.move_type == 'in_invoice' and move.x_care_id and not move.grn_number:
@@ -41,4 +41,7 @@ class AccountMove(models.Model):
                     raise UserError("Failed to generate GRN number from sequence '%s'. "
                                     "Please contact administrator." % move.grn_sequence_id.name)
 
+    def action_post(self):
+        """Assign GRN number when the vendor bill is posted, unless Care already assigned it on the draft"""
+        self._assign_grn_number()
         return super().action_post()
