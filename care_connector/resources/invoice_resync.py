@@ -20,6 +20,20 @@ LINE_FIELDS = {
     "discount_group_id": "discount group",
     "commission_user_id": "agent",
 }
+# What the result shows of the invoice before and after correcting, in Odoo's standard read() format
+INVOICE_FIELDS = [
+    "name",
+    "state",
+    "move_type",
+    "invoice_date",
+    "journal_id",
+    "partner_id",
+    "amount_untaxed",
+    "amount_tax",
+    "amount_total",
+    "payment_state",
+]
+INVOICE_LINE_FIELDS = ["x_care_id", *LINE_FIELDS, "tax_ids", "price_subtotal"]
 
 
 class _Stop(Exception):
@@ -41,12 +55,13 @@ class InvoiceResyncUtility:
 
         Returns the result as a dict.
         """
-        result = {"invoice": invoice.number, "care_total": invoice.care_total}
+        # The status comes first; the changes and the invoice before and after are added once they're known
+        result = {"status": None}
         data = invoice.data
         try:
             with env.cr.savepoint():
                 move = cls._find_move(env, invoice.number, data)
-                result.update(invoice_date=str(move.invoice_date), journal=move.journal_id.code, **cls._amounts(move, "old"))
+                result["old"] = cls._snapshot(move)
                 if move.state != "posted":
                     raise _Stop(f"invoice is {move.state}")
                 cls._check_header(move, data)
@@ -57,7 +72,7 @@ class InvoiceResyncUtility:
                     if not cls._total_matches(move, invoice.care_total):
                         raise _Stop(f"needs manual fix: the lines match Care, but the total {move.amount_total_signed} doesn't")
                     raise _Stop("in sync")
-                result["changes"] = "; ".join(description for _command, description in changes)
+                result["changes"] = [description for _command, description in changes]
                 if "insurance.claim" in env and env["insurance.claim"].sudo().search_count(
                     [("claimed_move_line_ids", "in", move.invoice_line_ids.ids)]
                 ):
@@ -65,7 +80,7 @@ class InvoiceResyncUtility:
 
                 taxed = move.is_taxed if "is_taxed" in move._fields else None  # checked after correcting
                 rematched = cls._correct(move, changes)
-                result.update(lines_changed=len(changes), **cls._amounts(move, "new"))
+                result["new"] = cls._snapshot(move)
                 cls._check_corrected(move, invoice, taxed)
                 cls._post_note(move, changes, result, rematched)
             result["status"] = "updated"
@@ -86,14 +101,12 @@ class InvoiceResyncUtility:
         return move
 
     @classmethod
-    def _amounts(cls, move, prefix):
-        """The amounts for the results, signed like Care's: a refund's are negative."""
-        return {
-            f"{prefix}_untaxed": move.amount_untaxed_signed,
-            f"{prefix}_tax": move.amount_tax_signed,
-            f"{prefix}_total": move.amount_total_signed,
-            f"{prefix}_payment_state": move.payment_state,
-        }
+    def _snapshot(cls, move):
+        """The invoice and its Care lines in Odoo's standard read() format."""
+        snapshot = move.read(INVOICE_FIELDS)[0]
+        lines = move.invoice_line_ids.filtered("x_care_id")
+        snapshot["lines"] = lines.read([field for field in INVOICE_LINE_FIELDS if field in lines._fields])
+        return snapshot
 
     @classmethod
     def _total_matches(cls, move, care_total):
@@ -208,8 +221,8 @@ class InvoiceResyncUtility:
             body=Markup("<p>Invoice resynced from Care.</p><ul>%s</ul><p>Total %s → %s.%s</p>")
             % (
                 items,
-                f"{abs(result['old_total']):.2f}",
-                f"{abs(result['new_total']):.2f}",
+                f"{result['old']['amount_total']:.2f}",
+                f"{result['new']['amount_total']:.2f}",
                 " Payment re-matched." if rematched else "",
             ),
             subtype_xmlid="mail.mt_note",
