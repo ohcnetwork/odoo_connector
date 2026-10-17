@@ -9,29 +9,15 @@ from .account_move import AccountUtility
 
 # Invoice cash rounding can put the Odoo total up to a rupee away from Care's
 TOTAL_TOLERANCE = 1.0
-# The line fields the sync sets, compared with Care's, with the names used in the results and notes
-LINE_FIELDS = {
-    "product_id": "product",
-    "quantity": "quantity",
-    "received_qty": "received quantity",
-    "free_qty": "free quantity",
-    "price_unit": "price",
-    "discount": "discount",
-    "discount_group_id": "discount group",
-    "commission_user_id": "agent",
-}
+# The line fields the sync sets, compared with Care's. Changes name the ones that differ; old and new have the values
+LINE_FIELDS = [
+    "product_id", "quantity", "received_qty", "free_qty", "price_unit",
+    "discount", "discount_group_id", "commission_user_id",
+]
 # What the result shows of the invoice before and after correcting, in Odoo's standard read() format
 INVOICE_FIELDS = [
-    "name",
-    "state",
-    "move_type",
-    "invoice_date",
-    "journal_id",
-    "partner_id",
-    "amount_untaxed",
-    "amount_tax",
-    "amount_total",
-    "payment_state",
+    "name", "state", "move_type", "invoice_date", "journal_id",
+    "partner_id", "amount_untaxed", "amount_tax", "amount_total", "payment_state",
 ]
 INVOICE_LINE_FIELDS = ["x_care_id", *LINE_FIELDS, "tax_ids", "price_subtotal"]
 
@@ -169,7 +155,7 @@ class InvoiceResyncUtility:
                 agent = line.commission_user_id.display_name
                 raise _Stop(f"needs manual fix: the changes would remove agent {agent} from {cls._label(line)}")
             if differing:
-                changes.append((Command.update(line.id, differing), cls._describe(line, differing)))
+                changes.append((Command.update(line.id, differing), f"{cls._label(line)}: {', '.join(differing)}"))
         for line in lines.filtered(lambda l: l.x_care_id not in care_ids):
             changes.append((Command.delete(line.id), f"removed {cls._label(line)}"))
         return changes
@@ -181,20 +167,6 @@ class InvoiceResyncUtility:
             return line[field].id != (value or False)
         digits = definition.get_digits(line.env)
         return float_compare(line[field], value or 0.0, precision_digits=digits[1] if digits else 2) != 0
-
-    @classmethod
-    def _describe(cls, line, differing):
-        parts = []
-        for field, value in differing.items():
-            definition = line._fields[field]
-            if definition.type == "many2one":
-                old = line[field].display_name or "none"
-                new = line.env[definition.comodel_name].browse(value).display_name if value else "none"
-            else:
-                unit = "%" if field == "discount" else ""
-                old, new = f"{line[field]:g}{unit}", f"{value:g}{unit}"
-            parts.append(f"{LINE_FIELDS[field]} {old} → {new}")
-        return f"{cls._label(line)}: {', '.join(parts)}"
 
     @classmethod
     def _correct(cls, move, changes):
