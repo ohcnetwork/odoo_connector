@@ -1,12 +1,10 @@
 from datetime import datetime
 
 from markupsafe import Markup
-from pydantic import ValidationError
 
 from odoo import Command
 from odoo.tools import float_compare
 
-from ..pydantic_models.account_move import AccountMoveApiRequest
 from .account_move import AccountUtility
 
 # Invoice cash rounding can put the Odoo total up to a rupee away from Care's
@@ -32,27 +30,19 @@ class InvoiceResyncUtility:
     """Brings posted Care invoices back in line with Care."""
 
     @classmethod
-    def resync(cls, user_env, request_data):
+    def resync(cls, env, invoice):
         """
-        Correct each invoice whose lines differ from Care's.
+        Correct the invoice if its lines differ from Care's.
 
         An invoice that matches is left untouched. One that differs is reset to draft, corrected,
         re-posted (keeping its number) and re-matched to the payments it had, and kept only if its total
-        then equals Care's. Nothing is committed here: the caller's transaction saves what's kept.
+        then equals Care's. Anything that stops the correction is rolled back and reported as the status.
+        Nothing is committed here: the caller's transaction saves the result.
 
-        Returns one result dict per invoice.
+        Returns the result as a dict.
         """
-        return [cls._resync_invoice(user_env, invoice) for invoice in request_data.invoices]
-
-    @classmethod
-    def _resync_invoice(cls, env, invoice):
         result = {"invoice": invoice.number, "care_total": invoice.care_total}
-        try:
-            data = AccountMoveApiRequest.model_validate(invoice.data)
-        except ValidationError as error:
-            problems = "; ".join(f"{'.'.join(map(str, e['loc']))}: {e['msg']}" for e in error.errors())
-            result["status"] = f"error: Care's invoice data isn't valid: {problems}"
-            return result
+        data = invoice.data
         try:
             with env.cr.savepoint():
                 move = cls._find_move(env, invoice.number, data)
@@ -79,7 +69,7 @@ class InvoiceResyncUtility:
                 cls._check_corrected(move, invoice, taxed)
                 cls._post_note(move, changes, result, rematched)
             result["status"] = "updated"
-        except Exception as error:  # noqa: BLE001 - report it and carry on with the next invoice
+        except Exception as error:  # noqa: BLE001 - report it as the status
             env.invalidate_all(flush=False)
             result["status"] = str(error) if isinstance(error, _Stop) else f"error: {error}"
         return result
