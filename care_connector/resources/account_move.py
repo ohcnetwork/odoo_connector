@@ -73,15 +73,18 @@ class AccountUtility:
                 "x_account": request_data.x_account,
                 "ip_bill_no": request_data.ip_bill_no,
             }
-            account_move = cls._create_account_move(user_env, move_data_dict)
-            if not account_move:
-                raise ValueError("Failed to create the Invoice")
+            # The controller turns errors into a response and the request still commits,
+            # so undo the bill if its GRN can't be drawn; otherwise Care's retry hits "Invoice already exists"
+            with user_env.cr.savepoint():
+                account_move = cls._create_account_move(user_env, move_data_dict)
+                if not account_move:
+                    raise ValueError("Failed to create the Invoice")
 
-            # Draw the GRN on the draft vendor bill when Care says which sequence to use
-            if move_type == "in_invoice" and request_data.grn_sequence_code:
-                cls._assign_grn_on_draft(
-                    user_env, account_move, request_data.grn_sequence_code
-                )
+                # Draw the GRN on the draft vendor bill when Care says which sequence to use
+                if move_type == "in_invoice" and request_data.grn_sequence_code:
+                    cls._assign_grn_on_draft(
+                        user_env, account_move, request_data.grn_sequence_code
+                    )
 
             if insurance_tag:
                 settings = user_env["res.config.settings"].sudo().get_values()
