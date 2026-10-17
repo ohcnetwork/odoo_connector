@@ -1,6 +1,6 @@
 from typing import List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class InvoiceResyncInvoice(BaseModel):
@@ -12,5 +12,6 @@ class InvoiceResyncInvoice(BaseModel):
 
 
 class InvoiceResyncApiRequest(BaseModel):
-    dry_run: bool = True
+    # Unknown fields are rejected, so a request still sending dry_run fails instead of applying
+    model_config = ConfigDict(extra="forbid")
     invoices: List[InvoiceResyncInvoice] = Field(max_length=25)

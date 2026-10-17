@@ -38,15 +38,14 @@ class InvoiceResyncUtility:
 
         An invoice that matches is left untouched. One that differs is reset to draft, corrected,
         re-posted (keeping its number) and re-matched to the payments it had, and kept only if its total
-        then equals Care's. A dry run undoes every invoice. Nothing is committed here: the caller's
-        transaction saves what's kept.
+        then equals Care's. Nothing is committed here: the caller's transaction saves what's kept.
 
         Returns one result dict per invoice.
         """
-        return [cls._resync_invoice(user_env, invoice, request_data.dry_run) for invoice in request_data.invoices]
+        return [cls._resync_invoice(user_env, invoice) for invoice in request_data.invoices]
 
     @classmethod
-    def _resync_invoice(cls, env, invoice, dry_run):
+    def _resync_invoice(cls, env, invoice):
         result = {"invoice": invoice.number, "care_total": invoice.care_total}
         try:
             data = AccountMoveApiRequest.model_validate(invoice.data)
@@ -78,8 +77,6 @@ class InvoiceResyncUtility:
                 rematched = cls._correct(move, changes)
                 result.update(lines_changed=len(changes), **cls._amounts(move, "new"))
                 cls._check_corrected(move, invoice, taxed)
-                if dry_run:
-                    raise _Stop("would update")
                 cls._post_note(move, changes, result, rematched)
             result["status"] = "updated"
         except Exception as error:  # noqa: BLE001 - report it and carry on with the next invoice

@@ -22,7 +22,6 @@ class InvoiceResync(http.Controller):
 
             json_response = {
                 "success": True,
-                "dry_run": request_data.dry_run,
                 "results": results,
             }
             return request.make_json_response(json_response, status=200)
