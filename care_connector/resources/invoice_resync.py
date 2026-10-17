@@ -66,15 +66,7 @@ class InvoiceResyncUtility:
                 )
                 if len(move) != 1:
                     raise _Stop(f"not found ({len(move)} matching Odoo invoices)")
-                # Amounts are signed, like Care's: a refund's are negative
-                result.update(
-                    invoice_date=str(move.invoice_date),
-                    journal=move.journal_id.code,
-                    old_untaxed=move.amount_untaxed_signed,
-                    old_tax=move.amount_tax_signed,
-                    old_total=move.amount_total_signed,
-                    old_payment_state=move.payment_state,
-                )
+                result.update(invoice_date=str(move.invoice_date), journal=move.journal_id.code, **cls._amounts(move, "old"))
                 if move.state != "posted":
                     raise _Stop(f"invoice is {move.state}")
                 cls._check_header(move, data)
@@ -82,10 +74,10 @@ class InvoiceResyncUtility:
                 changes = cls._line_changes(env, move, data.invoice_items)
                 if not changes:
                     # Matching lines can still total differently, e.g. through taxes or lines added in Odoo
-                    if not abs(move.amount_total_signed - invoice.care_total) <= TOTAL_TOLERANCE:
+                    if not cls._total_matches(move, invoice.care_total):
                         raise _Stop(f"needs manual fix: the lines match Care, but the total {move.amount_total_signed} doesn't")
                     raise _Stop("in sync")
-                result["changes"] = "; ".join(description for _action, _line, _vals, description in changes)
+                result["changes"] = "; ".join(description for _command, description in changes)
                 if "insurance.claim" in env and env["insurance.claim"].sudo().search_count(
                     [("claimed_move_line_ids", "in", move.invoice_line_ids.ids)]
                 ):
@@ -96,32 +88,41 @@ class InvoiceResyncUtility:
                 # wrong journal
                 taxed = move.is_taxed if "is_taxed" in move._fields else None
                 rematched = cls._correct(move, changes)
-                result.update(
-                    lines_changed=len(changes),
-                    new_untaxed=move.amount_untaxed_signed,
-                    new_tax=move.amount_tax_signed,
-                    new_total=move.amount_total_signed,
-                    new_payment_state=move.payment_state,
-                )
+                result.update(lines_changed=len(changes), **cls._amounts(move, "new"))
                 if taxed is not None and move.is_taxed != taxed:
                     journal = "taxed" if move.is_taxed else "untaxed"
                     raise _Stop(f"needs manual fix: the changes would move it to the {journal} journal")
                 if move.name != invoice.invoice:
                     raise _Stop(f"rolled back: number would change to {move.name}")
-                # Written so that a NaN total (e.g. from a NaN discount rate) fails too
-                if not abs(move.amount_total_signed - invoice.care_total) <= TOTAL_TOLERANCE:
+                if not cls._total_matches(move, invoice.care_total):
                     raise _Stop(f"rolled back: Odoo total {move.amount_total_signed} would not match Care")
                 if dry_run:
                     raise _Stop("would update")
                 cls._post_note(move, changes, result, rematched)
             result["status"] = "updated"
-        except _Stop as stop:
-            env.invalidate_all(flush=False)
-            result["status"] = str(stop)
         except Exception as error:  # noqa: BLE001 - report it and carry on with the next invoice
             env.invalidate_all(flush=False)
-            result["status"] = f"error: {error}"
+            result["status"] = str(error) if isinstance(error, _Stop) else f"error: {error}"
         return result
+
+    @classmethod
+    def _amounts(cls, move, prefix):
+        """The amounts for the results, signed like Care's: a refund's are negative."""
+        return {
+            f"{prefix}_untaxed": move.amount_untaxed_signed,
+            f"{prefix}_tax": move.amount_tax_signed,
+            f"{prefix}_total": move.amount_total_signed,
+            f"{prefix}_payment_state": move.payment_state,
+        }
+
+    @classmethod
+    def _total_matches(cls, move, care_total):
+        # Written so that a NaN total (e.g. from a NaN discount rate) doesn't match
+        return abs(move.amount_total_signed - care_total) <= TOTAL_TOLERANCE
+
+    @classmethod
+    def _label(cls, line):
+        return line.product_id.display_name or line.name
 
     @classmethod
     def _check_header(cls, move, data):
@@ -137,11 +138,8 @@ class InvoiceResyncUtility:
 
     @classmethod
     def _line_changes(cls, env, move, items):
-        """(action, line, vals, description) for each line that has to change to match Care's items."""
-        care_ids = [item.x_care_id for item in items]
-        duplicates = {care_id for care_id in care_ids if care_ids.count(care_id) > 1}
-        if duplicates:
-            raise _Stop(f"charge item {min(duplicates)} is listed more than once")
+        """(command, description) for each line that has to change to match Care's items."""
+        care_ids = {item.x_care_id for item in items}
         lines = move.invoice_line_ids.filtered("x_care_id")
         fields = [field for field in LINE_FIELDS if field in lines._fields]
         changes = []
@@ -155,19 +153,19 @@ class InvoiceResyncUtility:
             if not line:
                 product = env["product.product"].browse(vals["product_id"])
                 description = f"added {product.display_name} ({vals['quantity']:g} × {vals['price_unit']:g})"
-                changes.append(("add", line, vals, description))
+                changes.append((Command.create(vals), description))
                 continue
             differing = {
                 field: vals.get(field, False) for field in fields if cls._differs(line, field, vals.get(field, False))
             }
             # Without an agent the commission falls back to the invoice's salesperson, so a person decides
             if "commission_user_id" in differing and not differing["commission_user_id"]:
-                agent, product = line.commission_user_id.display_name, line.product_id.display_name or line.name
-                raise _Stop(f"needs manual fix: the changes would remove agent {agent} from {product}")
+                agent = line.commission_user_id.display_name
+                raise _Stop(f"needs manual fix: the changes would remove agent {agent} from {cls._label(line)}")
             if differing:
-                changes.append(("update", line, differing, cls._describe(line, differing)))
+                changes.append((Command.update(line.id, differing), cls._describe(line, differing)))
         for line in lines.filtered(lambda l: l.x_care_id not in care_ids):
-            changes.append(("remove", line, None, f"removed {line.product_id.display_name or line.name}"))
+            changes.append((Command.delete(line.id), f"removed {cls._label(line)}"))
         return changes
 
     @classmethod
@@ -190,7 +188,7 @@ class InvoiceResyncUtility:
                 unit = "%" if field == "discount" else ""
                 old, new = f"{line[field]:g}{unit}", f"{value:g}{unit}"
             parts.append(f"{LINE_FIELDS[field]} {old} → {new}")
-        return f"{line.product_id.display_name or line.name}: {', '.join(parts)}"
+        return f"{cls._label(line)}: {', '.join(parts)}"
 
     @classmethod
     def _correct(cls, move, changes):
@@ -201,15 +199,7 @@ class InvoiceResyncUtility:
         ) - receivable
 
         move.button_draft()
-        commands = []
-        for action, line, vals, _description in changes:
-            if action == "add":
-                commands.append(Command.create(vals))
-            elif action == "update":
-                commands.append(Command.update(line.id, vals))
-            else:
-                commands.append(Command.delete(line.id))
-        move.write({"invoice_line_ids": commands})
+        move.write({"invoice_line_ids": [command for command, _description in changes]})
         move.action_post()
         # Re-posting removes the payment matching; match the same payments again
         for counterpart in counterparts.filtered(lambda l: not l.reconciled):
@@ -220,7 +210,7 @@ class InvoiceResyncUtility:
 
     @classmethod
     def _post_note(cls, move, changes, result, rematched):
-        items = Markup("").join(Markup("<li>%s</li>") % description for _action, _line, _vals, description in changes)
+        items = Markup("").join(Markup("<li>%s</li>") % description for _command, description in changes)
         move.message_post(
             body=Markup("<p>Invoice resynced from Care.</p><ul>%s</ul><p>Total %s → %s.%s</p>")
             % (
