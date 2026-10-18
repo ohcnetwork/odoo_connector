@@ -73,9 +73,18 @@ class AccountUtility:
                 "x_account": request_data.x_account,
                 "ip_bill_no": request_data.ip_bill_no,
             }
-            account_move = cls._create_account_move(user_env, move_data_dict)
-            if not account_move:
-                raise ValueError("Failed to create the Invoice")
+            # The controller turns errors into a response and the request still commits,
+            # so undo the bill if its GRN can't be drawn; otherwise Care's retry hits "Invoice already exists"
+            with user_env.cr.savepoint():
+                account_move = cls._create_account_move(user_env, move_data_dict)
+                if not account_move:
+                    raise ValueError("Failed to create the Invoice")
+
+                # Draw the GRN on the draft vendor bill when Care says which sequence to use
+                if move_type == "in_invoice" and request_data.grn_sequence_code:
+                    cls._assign_grn_on_draft(
+                        user_env, account_move, request_data.grn_sequence_code
+                    )
 
             if insurance_tag:
                 settings = user_env["res.config.settings"].sudo().get_values()
@@ -430,6 +439,27 @@ class AccountUtility:
             return received_qty, 0.0
 
         return received_qty - free_qty, free_qty
+
+    @classmethod
+    def _assign_grn_on_draft(cls, user_env, account_move, grn_sequence_code):
+        """
+        Set the GRN sequence on a vendor bill and draw its GRN number right away,
+        instead of waiting for the bill to be posted.
+        GRN fields come from grn_number_in_vendor_bill, which depends on this module.
+        """
+        if "grn_sequence_id" not in account_move._fields:
+            raise ValueError(
+                "GRN sequence was sent but the GRN Number in Vendor Bill module is not installed"
+            )
+
+        grn_sequence = user_env["ir.sequence"].search(
+            [("code", "=", grn_sequence_code), ("code", "=like", "grn.%")], limit=1
+        )
+        if not grn_sequence:
+            raise ValueError(f"GRN sequence with code {grn_sequence_code} not found")
+
+        account_move.write({"grn_sequence_id": grn_sequence.id})
+        account_move._assign_grn_number()
 
     @classmethod
     def _cancel_account_move(cls, user_env, request_data):

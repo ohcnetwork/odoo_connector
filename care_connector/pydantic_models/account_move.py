@@ -26,6 +26,7 @@ class AccountMoveApiRequest(BaseModel):
     invoice_number: str | None = None
     bill_number: str | None = None
     bill_date: str | None = None
+    grn_sequence_code: str | None = None
     bill_type: BillType
     invoice_date: str
     due_date: str
