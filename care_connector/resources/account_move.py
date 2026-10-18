@@ -199,80 +199,10 @@ class AccountUtility:
             move_type = move_data.get("move_type")
             account_move_model = user_env["account.move"]
 
-            invoice_line_list = []
-            for item in invoice_items:
-                # Calculate discount info using native discount field
-                discount_info = cls._calculate_discount(
-                    user_env, item.discounts, item.sale_price
-                )
-
-                product_data = item.product_data
-                product_product_model = user_env["product.product"]
-                product = product_product_model.search(
-                    [("x_care_id", "=", product_data.x_care_id)], limit=1
-                )
-                if not product:
-                    raise ValueError(
-                        f"Product with id {product_data.x_care_id} is not exists"
-                    )
-
-                commission_user_id = False
-                if item.agent_id:
-                    res_users_model = user_env["res.users"]
-                    commission_user = res_users_model.search(
-                        [("x_care_id", "=", item.agent_id)], limit=1
-                    )
-                    if commission_user:
-                        commission_user_id = commission_user.id
-
-                billed_qty, free_qty = cls._calculate_quantities(
-                    item.quantity, item.free_qty, move_type
-                )
-
-                # For credit notes, ensure price_unit is positive
-                # Odoo handles the sign internally based on move_type
-                price_unit = item.sale_price
-                if move_type in ("out_refund", "in_refund") and price_unit < 0:
-                    price_unit = abs(price_unit)
-
-                invoice_line_vals = {
-                    "product_id": product.id,
-                    "quantity": billed_qty,
-                    "received_qty": item.quantity,
-                    "free_qty": free_qty,
-                    "price_unit": price_unit,
-                    "x_care_id": item.x_care_id,
-                    "discount": discount_info.get(
-                        "discount_percent", 0.0
-                    ),  # Native Odoo discount field
-                }
-
-                # Add discount group if available
-                if discount_info.get("discount_group_id"):
-                    invoice_line_vals["discount_group_id"] = discount_info[
-                        "discount_group_id"
-                    ]
-
-                if commission_user_id:
-                    invoice_line_vals["commission_user_id"] = commission_user_id
-
-                move_line_model = user_env["account.move.line"]
-                missing_fields = [
-                    f
-                    for f in invoice_line_vals.keys()
-                    if f not in move_line_model._fields
-                ]
-
-                if missing_fields:
-                    raise UserError(
-                        _(
-                            "Invoice creation failed. The following required fields are missing: "
-                            "%s"
-                        )
-                        % ", ".join(missing_fields)
-                    )
-
-                invoice_line_list.append((0, 0, invoice_line_vals))
+            invoice_line_list = [
+                (0, 0, cls._prepare_invoice_line_vals(user_env, item, move_type))
+                for item in invoice_items
+            ]
 
             invoice_date = datetime.strptime(invoice_date, "%d-%m-%Y").date()
             due_date = datetime.strptime(due_date, "%d-%m-%Y").date()
@@ -348,6 +278,82 @@ class AccountUtility:
 
         except Exception as e:
             raise Exception(f"{str(e)}")
+
+    @classmethod
+    def _prepare_invoice_line_vals(cls, user_env, item, move_type):
+        """Invoice line values for one Care item, as the invoice is created or resynced."""
+        # Calculate discount info using native discount field
+        discount_info = cls._calculate_discount(
+            user_env, item.discounts, item.sale_price
+        )
+
+        product_data = item.product_data
+        product_product_model = user_env["product.product"]
+        product = product_product_model.search(
+            [("x_care_id", "=", product_data.x_care_id)], limit=1
+        )
+        if not product:
+            raise ValueError(
+                f"Product with id {product_data.x_care_id} is not exists"
+            )
+
+        commission_user_id = False
+        if item.agent_id:
+            res_users_model = user_env["res.users"]
+            commission_user = res_users_model.search(
+                [("x_care_id", "=", item.agent_id)], limit=1
+            )
+            if commission_user:
+                commission_user_id = commission_user.id
+
+        billed_qty, free_qty = cls._calculate_quantities(
+            item.quantity, item.free_qty, move_type
+        )
+
+        # For credit notes, ensure price_unit is positive
+        # Odoo handles the sign internally based on move_type
+        price_unit = item.sale_price
+        if move_type in ("out_refund", "in_refund") and price_unit < 0:
+            price_unit = abs(price_unit)
+
+        invoice_line_vals = {
+            "product_id": product.id,
+            "quantity": billed_qty,
+            "received_qty": item.quantity,
+            "free_qty": free_qty,
+            "price_unit": price_unit,
+            "x_care_id": item.x_care_id,
+            "discount": discount_info.get(
+                "discount_percent", 0.0
+            ),  # Native Odoo discount field
+        }
+
+        # Add discount group if available
+        if discount_info.get("discount_group_id"):
+            invoice_line_vals["discount_group_id"] = discount_info[
+                "discount_group_id"
+            ]
+
+        if commission_user_id:
+            invoice_line_vals["commission_user_id"] = commission_user_id
+
+        move_line_model = user_env["account.move.line"]
+        missing_fields = [
+            f
+            for f in invoice_line_vals.keys()
+            if f not in move_line_model._fields
+        ]
+
+        if missing_fields:
+            raise UserError(
+                _(
+                    "Invoice creation failed. The following required fields are missing: "
+                    "%s"
+                )
+                % ", ".join(missing_fields)
+            )
+
+        return invoice_line_vals
 
     @classmethod
     def _calculate_discount(cls, user_env, discount_data, price_unit):
