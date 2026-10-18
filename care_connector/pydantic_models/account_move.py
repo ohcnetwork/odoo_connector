@@ -56,5 +56,10 @@ class AccountMoveReturnApiRequest(BaseModel):
     reason: str | None = None
 
 
+class VendorBillApiRequest(BaseModel):
+    x_care_id: str  # the Care delivery order
+    reason: str | None = None
+
+
 class AccountPaymentMethodApiRequest(BaseModel):
     search_key: str | None = None
