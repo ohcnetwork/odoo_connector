@@ -76,10 +76,15 @@ class ProductUtility:
             tax_percentage_total = int(
                 sum(tax_data.tax_percentage for tax_data in tax_list)
             )
+            # 0% GST from Care is an exempt supply, which l10n_in names "0% Exempt" for sales and purchases alike
+            is_exempt = all(tax_data.tax_percentage == 0 for tax_data in tax_list)
             # TODO: Handle multiple taxes properly in future if required
             tax_name = "IGST" if len(tax_list) == 1 else "GST"
             for tax_type in ["sale", "purchase"]:
-                name = f"{tax_percentage_total}% {tax_name} {tax_type[0].upper()}"
+                if is_exempt:
+                    name = "0% Exempt"
+                else:
+                    name = f"{tax_percentage_total}% {tax_name} {tax_type[0].upper()}"
                 logger.info(f"Name: {name}")
                 existing_tax = account_tax_model.search(
                     [
