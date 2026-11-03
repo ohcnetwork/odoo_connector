@@ -6,7 +6,7 @@
     "installable": True,
     "depends": ["base", "stock_account", "contacts", "account"],
     "external_dependencies": {
-        "python": ["pydantic", "email-validator"],
+        "python": ["pydantic", "email-validator", "xlsxwriter"],
     },
     "data": [
         "security/ir.model.access.csv",

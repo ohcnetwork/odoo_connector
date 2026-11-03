@@ -1,6 +1,10 @@
 """Care stock identity and bill-value inputs; Odoo owns the costing algorithm."""
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError
+from odoo.tools.sql import column_exists
+
+from ..resources.stock_export import export_stock_xlsx
 
 
 class CareStockPeriod(models.Model):
@@ -77,6 +81,26 @@ class CareStockClose(models.Model):
             "domain": [("close_id", "=", self.id)],
         }
 
+    def action_export_xlsx(self):
+        self.ensure_one()
+        self.check_access("read")
+        if "details" not in self.snapshot:
+            raise UserError(
+                _(
+                    "This saved report has no location detail. Rebuild the stock series to export it by location."
+                )
+            )
+        return {
+            "type": "ir.actions.act_url",
+            "url": f"/care/stock/{self.id}/xlsx",
+            "target": "download",
+        }
+
+    def _export_xlsx(self):
+        self.ensure_one()
+        self.check_access("read")
+        return export_stock_xlsx(self)
+
 
 class CareStockCloseLine(models.Model):
     _name = "care.stock.close.line"
@@ -118,6 +142,8 @@ class CareStockProduct(models.Model):
 
     def init(self):
         # Adopt products posted by the earlier, single-ledger implementation.
+        if not column_exists(self.env.cr, "stock_move", "care_stock_period_id"):
+            return
         self.env.cr.execute("""
             UPDATE product_product p SET care_stock_period_id = m.period_id
             FROM (

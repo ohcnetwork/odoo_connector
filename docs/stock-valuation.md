@@ -74,6 +74,14 @@ Open **Inventory > Reporting > Care Monthly Stock**. The default filter shows cu
 reports. Archived and building filters show earlier revisions and unfinished runs.
 Open a month and choose **Batch and Location Report** for an exportable list of
 product, location, batch, expiry, owned/available/incoming quantity, cost and value.
+Choose **Export Excel** in the list or on a month to download an item-wise workbook.
+Each location has QTY and AMOUNT columns, with item, location and grand totals.
+Rows are keyed by Care item UUID, so items with the same name stay separate.
+The workbook includes Odoo product IDs, units and a second sheet with batch/location
+detail. It uses the selected report's saved quantities and values, including internal
+stock in transit, without recalculating prices from current bills or Care prices.
+Both current and archived reports can be exported. Older reports without saved
+location detail need a series rebuild before this export is available.
 
 This is a monthly valuation mirror; Care remains the daily operational stock system.
 Categories use periodic valuation. No opening or month-end general-ledger journal or
@@ -86,10 +94,14 @@ separate ledger. The monthly workflow does not use it.
 
 ```sh
 odoo --database <test-database> --update care_connector --test-enable \
-  --test-tags /care_connector --stop-after-init --no-http
+  --test-tags /care_connector --stop-after-init
 ```
 
 Tests exercise native stock moves and posted bills, free quantities, discounts,
 zero-cost receipts, historical AVCO, roll-forward, retry behavior and a two-month
 replacement. Replacement checks include incomplete publication, preserved old
 reports, detail totals, retirement of old stock and subsequent monthly preparation.
+Download tests cover item/location aggregation, product IDs, duplicate names,
+fractional/in-transit/negative quantities, saved prices, archived reports, inventory
+permissions and company isolation. Reports without location detail cannot export
+an empty valuation in its place.
