@@ -4,12 +4,13 @@
     "version": "19.0.1.0.0",
     "category": "Healthcare",
     "installable": True,
-    "depends": ["base", "stock", "contacts", "account"],
+    "depends": ["base", "stock_account", "contacts", "account"],
     "external_dependencies": {
         "python": ["pydantic", "email-validator"],
     },
     "data": [
         "security/ir.model.access.csv",
+        "security/stock_rules.xml",
         "views/account_move_views.xml",
         "views/account_payment_views.xml",
         "views/account_journal_views.xml",
