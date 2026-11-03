@@ -9,4 +9,9 @@
     <field name="model_id" ref="model_care_stock_close"/>
     <field name="domain_force">[('company_id', 'in', company_ids)]</field>
   </record>
+  <record id="care_stock_close_line_company" model="ir.rule">
+    <field name="name">Care stock report lines by company</field>
+    <field name="model_id" ref="model_care_stock_close_line"/>
+    <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+  </record>
 </odoo>

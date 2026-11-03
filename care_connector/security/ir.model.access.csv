@@ -3,3 +3,4 @@ access_bill_counter,bill.counter,model_bill_counter,base.group_user,1,1,1,1
 access_partner_payment_method_rule,partner.payment.method.rule,model_partner_payment_method_rule,base.group_user,1,1,1,1
 access_care_stock_period,care.stock.period,model_care_stock_period,stock.group_stock_manager,1,1,1,0
 access_care_stock_close,care.stock.close,model_care_stock_close,stock.group_stock_manager,1,0,1,0
+access_care_stock_close_line,care.stock.close.line,model_care_stock_close_line,stock.group_stock_manager,1,0,1,0

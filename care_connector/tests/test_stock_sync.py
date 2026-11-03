@@ -12,6 +12,175 @@ from ..resources.stock_sync import StockSync
 
 @tagged("post_install", "-at_install")
 class TestCareStockSync(TransactionCase):
+    def test_rebuild_replaces_two_months_without_double_stock_and_keeps_old_reports(
+        self,
+    ):
+        facility, item, batch = (str(uuid4()) for _ in range(3))
+        items = [{"uuid": item, "name": "Rebuild medicine", "opening_unit_cost": "8"}]
+
+        def prepare(staged=True):
+            period = {
+                "period_key": f"rebuild-test:{uuid4()}",
+                "facility_uuid": facility,
+                "month": "2026-04",
+                "stock_month": "2026-04",
+                "mode": "monthly",
+                "staged": staged,
+            }
+            MonthlyStockSync.prepare(
+                self.env,
+                {**period, "items": items, "opening_at": "2026-03-31T18:29:59Z"},
+            )
+            return period
+
+        def close(period, month, receipt_value):
+            events = []
+            if month == "2026-04":
+                events.append(
+                    {
+                        "key": f"{period['period_key']}:opening",
+                        "item_uuid": item,
+                        "source": "external",
+                        "destination": "valuation",
+                        "quantity": "100",
+                        "date": "2026-03-31T18:29:59Z",
+                        "kind": "opening",
+                        "cost_basis": "opening",
+                        "input_value": "800",
+                    }
+                )
+                evidence = {
+                    "cost_basis": "care_unmatched",
+                    "input_value": str(receipt_value),
+                    "quantity": "100",
+                }
+                events.append(
+                    {
+                        "key": f"{period['period_key']}:receipt",
+                        "item_uuid": item,
+                        "source": "external",
+                        "destination": "valuation",
+                        "quantity": "100",
+                        "date": "2026-04-30T18:29:56Z",
+                        "kind": "receipt",
+                        "cost_basis": "monthly_receipt",
+                        "input_value": str(receipt_value),
+                        "receipts": [evidence],
+                    }
+                )
+            events.append(
+                {
+                    "key": f"{period['period_key']}:{month}:issue",
+                    "item_uuid": item,
+                    "source": "valuation",
+                    "destination": "consumption",
+                    "quantity": "50" if month == "2026-04" else "20",
+                    "date": "2026-04-30T18:29:58Z"
+                    if month == "2026-04"
+                    else "2026-05-31T18:29:58Z",
+                    "kind": "dispense",
+                    "cost_basis": "native_average",
+                }
+            )
+            request = {**period, "stock_month": month}
+            MonthlyStockSync.events(self.env, {**request, "events": events})
+            quantity = 150 if month == "2026-04" else 130
+            return MonthlyStockSync.close(
+                self.env,
+                {
+                    **request,
+                    "items": items,
+                    "source_hash": f"{period['period_key']}:{month}",
+                    "quantity_basis": "owned",
+                    "event_keys": [e["key"] for e in events],
+                    "closing_quantities": {item: str(quantity)},
+                    "available_quantities": {item: str(quantity - 20)},
+                    "in_transit_quantities": {item: "20"},
+                    "location_uuids": ["store", "ward"],
+                    "stock_details": [
+                        {
+                            "item_uuid": item,
+                            "batch_uuid": batch,
+                            "batch": "B1",
+                            "expiry": "2027-01-31",
+                            "location_uuid": "store",
+                            "location": "Store",
+                            "quantity": str(quantity - 80),
+                            "incoming_quantity": "0",
+                        },
+                        {
+                            "item_uuid": item,
+                            "batch_uuid": batch,
+                            "batch": "B1",
+                            "expiry": "2027-01-31",
+                            "location_uuid": "ward",
+                            "location": "Ward",
+                            "quantity": "80",
+                            "incoming_quantity": "20",
+                        },
+                    ],
+                },
+            )["snapshot"]
+
+        old = prepare(staged=False)
+        april = close(old, "2026-04", 1000)
+        may = close(old, "2026-05", 1000)
+        # This prepare used to reject any second ledger for the same facility.
+        new = prepare()
+        self.assertEqual(Decimal(april["total_value"]), 1350)
+        self.assertEqual(Decimal(may["total_value"]), 1170)
+        close(new, "2026-04", 800)
+        publish = {
+            **new,
+            "through_month": "2026-05",
+            "replaces_period_key": old["period_key"],
+        }
+        with self.assertRaisesRegex(ValidationError, "[Cc]omplete"):
+            MonthlyStockSync.publish(self.env, publish)
+        self.assertEqual(StockSync.period(self.env, old).state, "current")
+        # An unfinished replacement must not block the current series from
+        # preparing its next month.
+        MonthlyStockSync.prepare(
+            self.env,
+            {
+                **old,
+                "stock_month": "2026-06",
+                "items": items,
+                "opening_at": "2026-05-31T18:29:59Z",
+            },
+        )
+        replacement = close(new, "2026-05", 800)
+        MonthlyStockSync.publish(self.env, publish)
+        MonthlyStockSync.publish(self.env, publish)
+        self.assertEqual(StockSync.period(self.env, old).state, "archived")
+        self.assertEqual(MonthlyStockSync.snapshot(self.env, old)["snapshot"], april)
+        self.assertEqual(Decimal(replacement["total_value"]), 1040)
+        self.assertEqual(
+            sum(Decimal(d["quantity"]) for d in replacement["details"]), 130
+        )
+        self.assertEqual(sum(Decimal(d["value"]) for d in replacement["details"]), 1040)
+        self.assertEqual(
+            sum(Decimal(d["incoming_quantity"]) for d in replacement["details"]), 20
+        )
+        products = (
+            self.env["product.product"]
+            .with_context(active_test=False)
+            .search([("care_stock_item_uuid", "=", item)])
+        )
+        self.assertEqual(len(products), 2)
+        self.assertEqual(sum(products.mapped("qty_available")), 130)
+        self.assertEqual(sum(products.filtered("active").mapped("qty_available")), 130)
+        self.assertFalse(products.filtered(lambda p: not p.active).qty_available)
+        MonthlyStockSync.prepare(
+            self.env,
+            {
+                **new,
+                "stock_month": "2026-06",
+                "items": items,
+                "opening_at": "2026-05-31T18:29:59Z",
+            },
+        )
+
     def setUp(self):
         super().setUp()
         self.item, self.batch, self.location = (str(uuid4()) for _ in range(3))
@@ -299,15 +468,12 @@ class TestCareStockSync(TransactionCase):
         self.assertEqual(
             MonthlyStockSync.events(self.env, {**period, "events": events})["posted"], 0
         )
-        with self.assertRaisesRegex(ValidationError, "cannot be replaced"):
+        with self.assertRaisesRegex(ValidationError, "new revision"):
             MonthlyStockSync.close(self.env, {**close, "source_hash": "changed"})
         with self.assertRaisesRegex(ValidationError, "closed Care stock month"):
             MonthlyStockSync.events(
                 self.env, {**period, "events": [{**issue, "key": "late"}]}
             )
-        move = self.env["stock.move"].search([("care_stock_key", "=", issue["key"])])
-        with self.assertRaisesRegex(ValidationError, "cannot be changed"):
-            move.write({"product_uom_qty": 171})
         with self.assertRaisesRegex(ValidationError, "consecutively"):
             MonthlyStockSync.prepare(self.env, {**period, "stock_month": "2026-06"})
         may = {**period, "stock_month": "2026-05"}

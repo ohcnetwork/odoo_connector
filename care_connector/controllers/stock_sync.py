@@ -34,6 +34,8 @@ class CareStock(http.Controller):
                         "close": MonthlyStockSync.close,
                         "snapshot": MonthlyStockSync.snapshot,
                         "status": MonthlyStockSync.status,
+                        "publish": MonthlyStockSync.publish,
+                        "current": MonthlyStockSync.current,
                     }
                 )
             if data.get("action") not in actions:

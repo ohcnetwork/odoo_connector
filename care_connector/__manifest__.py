@@ -21,5 +21,6 @@
         "views/product_category_views.xml",
         "views/bill_counter_views.xml",
         "views/res_config_settings_views.xml",
+        "views/stock_month_views.xml",
     ],
 }

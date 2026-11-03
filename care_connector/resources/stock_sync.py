@@ -94,6 +94,7 @@ class StockSync:
                     "company_id": env.company.id,
                     "metadata": data.get("metadata", {}),
                     "mode": data.get("mode", "detailed"),
+                    "state": "building" if data.get("staged") else "current",
                 }
             )
         if (
@@ -110,18 +111,20 @@ class StockSync:
     def prepare(cls, env, data):
         period = cls.period(env, data)
         facility = period.facility_uuid
-        if env["stock.move"].search_count(
+        if (period.mode != "monthly" or period.state != "building") and env[
+            "stock.move"
+        ].search_count(
             [
                 ("company_id", "=", env.company.id),
                 ("product_id.care_stock_facility_uuid", "=", facility),
                 ("care_stock_period_id", "!=", period.id),
+                ("care_stock_period_id.state", "=", "current"),
                 ("state", "=", "done"),
             ],
             limit=1,
         ):
             raise ValidationError(
-                "This facility already has an opening trial. Roll forward its prior closing stock; "
-                "do not import another opening balance."
+                "This facility already has a valuation ledger. Stage a rebuild to replace it."
             )
         category = env["product.category"].search(
             [("name", "=", f"Care inventory {facility}")], limit=1
@@ -194,28 +197,19 @@ class StockSync:
                 location_map[key] = location.id
         for source in data.get("locations", []):
             identity = (
-                f"{facility}:{source['uuid']}"
+                f"{period.key}:{source['uuid']}"
                 if period.mode == "monthly"
                 else source["uuid"]
             )
-            location = env["stock.location"].search(
+            location = env["stock.location"].browse(
+                location_map.get(source["uuid"], [])
+            ).exists() or env["stock.location"].search(
                 [
                     ("care_stock_location_uuid", "=", identity),
                     ("company_id", "=", env.company.id),
                 ],
                 limit=1,
             )
-            if not location and period.mode == "monthly":
-                location = env["stock.location"].search(
-                    [
-                        ("care_stock_location_uuid", "=", source["uuid"]),
-                        ("care_stock_facility_uuid", "=", facility),
-                        ("company_id", "=", env.company.id),
-                    ],
-                    limit=1,
-                )
-                if location:
-                    location.care_stock_location_uuid = identity
             if not location:
                 location = env["stock.location"].create(
                     {
@@ -231,13 +225,18 @@ class StockSync:
         period.location_map = location_map
         product_map = {}
         for source in data.get("items", []):
-            product = env["product.product"].search(
-                [
-                    ("care_stock_item_uuid", "=", source["uuid"]),
-                    ("care_stock_facility_uuid", "=", facility),
-                    ("company_id", "=", env.company.id),
-                ],
-                limit=1,
+            product = (
+                env["product.product"]
+                .with_context(active_test=False)
+                .search(
+                    [
+                        ("care_stock_item_uuid", "=", source["uuid"]),
+                        ("care_stock_facility_uuid", "=", facility),
+                        ("company_id", "=", env.company.id),
+                        ("care_stock_period_id", "=", period.id),
+                    ],
+                    limit=1,
+                )
             )
             if not product:
                 product = (
@@ -249,6 +248,8 @@ class StockSync:
                             "care_stock_item_uuid": source["uuid"],
                             "care_stock_facility_uuid": facility,
                             "company_id": env.company.id,
+                            "care_stock_period_id": period.id,
+                            "active": period.state != "building",
                             "type": "consu",
                             "is_storable": True,
                             "tracking": "none" if period.mode == "monthly" else "lot",
@@ -353,7 +354,9 @@ class StockSync:
         products = (
             {
                 product.care_stock_item_uuid: product
-                for product in env["product.product"].search(
+                for product in env["product.product"]
+                .with_context(active_test=False)
+                .search(
                     [
                         (
                             "care_stock_item_uuid",
@@ -362,6 +365,7 @@ class StockSync:
                         ),
                         ("care_stock_facility_uuid", "=", period.facility_uuid),
                         ("company_id", "=", env.company.id),
+                        ("care_stock_period_id", "=", period.id),
                     ]
                 )
             }
@@ -616,12 +620,15 @@ class StockSync:
         domain = [
             ("care_stock_facility_uuid", "=", period.facility_uuid),
             ("company_id", "=", env.company.id),
+            ("care_stock_period_id", "=", period.id),
         ]
         if data.get("item_uuids"):
             domain.append(("care_stock_item_uuid", "in", data["item_uuids"]))
         at_date = utc_date(data["as_of"]) if data.get("as_of") else None
         rows = []
-        for product in env["product.product"].search(domain):
+        for product in (
+            env["product.product"].with_context(active_test=False).search(domain)
+        ):
             historic = product.with_context(to_date=at_date) if at_date else product
             average, value = product._run_avco(at_date=at_date)
             rows.append(

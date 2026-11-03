@@ -1,0 +1,93 @@
+<odoo>
+  <record id="care_stock_close_line_list" model="ir.ui.view">
+    <field name="name">care.stock.close.line.list</field>
+    <field name="model">care.stock.close.line</field>
+    <field name="arch" type="xml">
+      <list create="false" delete="false">
+        <field name="item"/>
+        <field name="location"/>
+        <field name="batch"/>
+        <field name="expiry"/>
+        <field name="quantity" string="Owned quantity"/>
+        <field name="available_quantity"/>
+        <field name="incoming_quantity"/>
+        <field name="effective_cost"/>
+        <field name="value" sum="Total value"/>
+        <field name="currency_id" column_invisible="True"/>
+        <field name="item_uuid" optional="hide"/>
+        <field name="batch_uuid" optional="hide"/>
+        <field name="location_uuid" optional="hide"/>
+      </list>
+    </field>
+  </record>
+  <record id="care_stock_close_list" model="ir.ui.view">
+    <field name="name">care.stock.close.list</field>
+    <field name="model">care.stock.close</field>
+    <field name="arch" type="xml">
+      <list create="false" delete="false">
+        <field name="month"/>
+        <field name="facility_name"/>
+        <field name="facility_uuid" optional="hide"/>
+        <field name="state"/>
+        <field name="total_value"/>
+        <field name="currency_id" column_invisible="True"/>
+        <field name="company_id" groups="base.group_multi_company"/>
+      </list>
+    </field>
+  </record>
+  <record id="care_stock_close_search" model="ir.ui.view">
+    <field name="name">care.stock.close.search</field>
+    <field name="model">care.stock.close</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="month"/>
+        <field name="facility_name"/>
+        <filter name="current" string="Current" domain="[('period_id.state', '=', 'current')]"/>
+        <filter name="archived" string="Archived" domain="[('period_id.state', '=', 'archived')]"/>
+        <filter name="building" string="Building" domain="[('period_id.state', '=', 'building')]"/>
+      </search>
+    </field>
+  </record>
+  <record id="care_stock_close_form" model="ir.ui.view">
+    <field name="name">care.stock.close.form</field>
+    <field name="model">care.stock.close</field>
+    <field name="arch" type="xml">
+      <form create="false" delete="false" edit="false">
+        <header>
+          <button name="action_details" type="object" string="Batch and Location Report" class="oe_highlight"/>
+        </header>
+        <sheet>
+          <group>
+            <field name="month"/>
+            <field name="facility_name"/>
+            <field name="state"/>
+            <field name="total_value"/>
+            <field name="currency_id" invisible="True"/>
+          </group>
+          <field name="line_ids">
+            <list create="false" delete="false" default_order="item, location, batch">
+              <field name="item"/>
+              <field name="location"/>
+              <field name="batch"/>
+              <field name="expiry"/>
+              <field name="quantity" string="Owned quantity"/>
+              <field name="available_quantity"/>
+              <field name="incoming_quantity"/>
+              <field name="effective_cost"/>
+              <field name="value" sum="Total value"/>
+              <field name="currency_id" column_invisible="True"/>
+            </list>
+          </field>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="care_stock_close_action" model="ir.actions.act_window">
+    <field name="name">Care Monthly Stock</field>
+    <field name="res_model">care.stock.close</field>
+    <field name="view_mode">list,form</field>
+    <field name="context">{'search_default_current': 1}</field>
+  </record>
+  <menuitem id="care_stock_close_menu" name="Care Monthly Stock" parent="stock.menu_warehouse_report"
+    action="care_stock_close_action" groups="stock.group_stock_manager" sequence="90"/>
+</odoo>

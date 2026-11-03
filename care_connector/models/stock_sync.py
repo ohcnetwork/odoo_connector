@@ -1,8 +1,6 @@
 """Care stock identity and bill-value inputs; Odoo owns the costing algorithm."""
 
-from odoo.exceptions import ValidationError
-
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class CareStockPeriod(models.Model):
@@ -21,46 +19,87 @@ class CareStockPeriod(models.Model):
         required=True,
     )
     closed_through = fields.Datetime(copy=False)
+    state = fields.Selection(
+        [("building", "Building"), ("current", "Current"), ("archived", "Archived")],
+        default="current",
+        required=True,
+        index=True,
+    )
     _key_unique = models.Constraint(
         "UNIQUE(key, company_id)", "Care period keys must be unique."
     )
 
-    def write(self, vals):
-        if {"key", "facility_uuid", "month", "company_id", "mode"}.intersection(vals):
-            raise ValidationError(
-                "The identity of a Care valuation ledger cannot change."
-            )
-        if "closed_through" in vals and any(
-            p.closed_through
-            and (
-                not vals["closed_through"]
-                or fields.Datetime.to_datetime(vals["closed_through"])
-                <= p.closed_through
-            )
-            for p in self
-        ):
-            raise ValidationError("A Care valuation ledger cannot be reopened.")
-        return super().write(vals)
-
 
 class CareStockClose(models.Model):
     _name = "care.stock.close"
-    _description = "Immutable Care inventory month-end"
+    _description = "Care monthly inventory report"
+    _rec_name = "month"
+    _order = "month desc, id desc"
 
     period_id = fields.Many2one("care.stock.period", required=True, ondelete="restrict")
     company_id = fields.Many2one(related="period_id.company_id", store=True)
     month = fields.Char(required=True)
     source_hash = fields.Char(required=True)
     snapshot = fields.Json(required=True)
+    facility_uuid = fields.Char(related="period_id.facility_uuid")
+    facility_name = fields.Char(
+        string="Facility", compute="_compute_facility_name", store=True
+    )
+    state = fields.Selection(related="period_id.state")
+    total_value = fields.Monetary(
+        currency_field="currency_id", compute="_compute_total_value"
+    )
+    currency_id = fields.Many2one(related="company_id.currency_id")
+    line_ids = fields.One2many("care.stock.close.line", "close_id")
     _month_unique = models.Constraint(
         "UNIQUE(period_id, month)", "A month can only be closed once."
     )
 
-    def write(self, vals):
-        raise ValidationError("Closed inventory snapshots cannot be changed.")
+    @api.depends("snapshot")
+    def _compute_total_value(self):
+        for report in self:
+            report.total_value = float((report.snapshot or {}).get("total_value", 0))
 
-    def unlink(self):
-        raise ValidationError("Closed inventory snapshots cannot be deleted.")
+    @api.depends("period_id.metadata", "company_id.name")
+    def _compute_facility_name(self):
+        for report in self:
+            report.facility_name = (report.period_id.metadata or {}).get(
+                "facility_name"
+            ) or report.company_id.name
+
+    def action_details(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Care Stock by Batch and Location",
+            "res_model": "care.stock.close.line",
+            "view_mode": "list",
+            "domain": [("close_id", "=", self.id)],
+        }
+
+
+class CareStockCloseLine(models.Model):
+    _name = "care.stock.close.line"
+    _description = "Care stock by batch and location"
+    _order = "item, location, batch, id"
+
+    close_id = fields.Many2one(
+        "care.stock.close", required=True, ondelete="cascade", index=True
+    )
+    company_id = fields.Many2one(related="close_id.company_id", store=True)
+    currency_id = fields.Many2one(related="company_id.currency_id")
+    item_uuid = fields.Char(index=True)
+    item = fields.Char()
+    batch_uuid = fields.Char()
+    batch = fields.Char()
+    expiry = fields.Char()
+    location_uuid = fields.Char()
+    location = fields.Char()
+    quantity = fields.Float(digits=(24, 6))
+    available_quantity = fields.Float(digits=(24, 6))
+    incoming_quantity = fields.Float(digits=(24, 6))
+    effective_cost = fields.Float(digits=(24, 12))
+    value = fields.Monetary(currency_field="currency_id")
 
 
 class CareStockProduct(models.Model):
@@ -71,10 +110,23 @@ class CareStockProduct(models.Model):
     care_stock_company_id = fields.Many2one(
         "res.company", related="company_id", store=True
     )
+    care_stock_period_id = fields.Many2one("care.stock.period", copy=False, index=True)
     _care_item_unique = models.Constraint(
-        "UNIQUE(care_stock_item_uuid, care_stock_facility_uuid, care_stock_company_id)",
-        "A Care inventory item can only map to one stock product per company.",
+        "UNIQUE(care_stock_item_uuid, care_stock_period_id, care_stock_company_id)",
+        "A Care inventory item can only map to one stock product per revision.",
     )
+
+    def init(self):
+        # Adopt products posted by the earlier, single-ledger implementation.
+        self.env.cr.execute("""
+            UPDATE product_product p SET care_stock_period_id = m.period_id
+            FROM (
+                SELECT product_id, MIN(care_stock_period_id) AS period_id FROM stock_move
+                WHERE care_stock_period_id IS NOT NULL GROUP BY product_id
+                HAVING COUNT(DISTINCT care_stock_period_id) = 1
+            ) m WHERE p.id = m.product_id AND p.care_stock_item_uuid IS NOT NULL
+                AND p.care_stock_period_id IS NULL
+        """)
 
     def _update_standard_price(self, extra_value=None, extra_quantity=None):
         result = super()._update_standard_price(extra_value, extra_quantity)
@@ -127,41 +179,6 @@ class CareStockMove(models.Model):
         "A Care stock event can only be posted once.",
     )
 
-    def write(self, vals):
-        protected = {
-            "date",
-            "product_id",
-            "product_uom_qty",
-            "quantity",
-            "location_id",
-            "location_dest_id",
-            "state",
-            "care_stock_input_value",
-            "care_stock_evidence",
-            "care_stock_hash",
-            "care_stock_key",
-            "care_stock_period_id",
-            "care_stock_bill_line_ids",
-        }
-        if protected.intersection(vals) and any(
-            move.care_stock_period_id.mode == "monthly"
-            and move.care_stock_period_id.closed_through
-            and move.date <= move.care_stock_period_id.closed_through
-            for move in self
-        ):
-            raise ValidationError(
-                "Stock movements in a closed Care month cannot be changed."
-            )
-        return super().write(vals)
-
-    def unlink(self):
-        if any(
-            move.care_stock_period_id.mode == "monthly" and move.state == "done"
-            for move in self
-        ):
-            raise ValidationError("Completed Care monthly movements cannot be deleted.")
-        return super().unlink()
-
     def _get_value_from_account_move(self, quantity, at_date=None):
         self.ensure_one()
         if self.care_stock_key and self.care_stock_cost_basis:
@@ -171,38 +188,3 @@ class CareStockMove(models.Model):
                 "description": f"Care {self.care_stock_cost_basis}: {self.care_stock_key}",
             }
         return super()._get_value_from_account_move(quantity, at_date)
-
-
-class CareStockMoveLine(models.Model):
-    _inherit = "stock.move.line"
-
-    def write(self, vals):
-        if {
-            "date",
-            "quantity",
-            "product_id",
-            "lot_id",
-            "location_id",
-            "location_dest_id",
-            "move_id",
-        }.intersection(vals) and any(
-            line.move_id.care_stock_period_id.mode == "monthly"
-            and line.move_id.care_stock_period_id.closed_through
-            and line.date <= line.move_id.care_stock_period_id.closed_through
-            for line in self
-        ):
-            raise ValidationError(
-                "Stock lines in a closed Care month cannot be changed."
-            )
-        return super().write(vals)
-
-    def unlink(self):
-        if any(
-            line.move_id.care_stock_period_id.mode == "monthly"
-            and line.move_id.state == "done"
-            for line in self
-        ):
-            raise ValidationError(
-                "Completed Care monthly stock lines cannot be deleted."
-            )
-        return super().unlink()
