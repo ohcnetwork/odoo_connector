@@ -10,10 +10,11 @@ permissions in the intended company. Configure the matching connection in Care.
 
 ## Opening and month-end flow
 
-The first approved opening is imported from Excel through the Care command. Care
-validates the expected total, freezes the source and submits opening quantities
-and allocated values once. Later months carry the previous issued close. Do not
-import the same opening separately through Odoo inventory adjustments.
+The first opening is captured directly from Care's prior-day stock report. Care
+checks the approved financial total, freezes the report rows and submits opening
+quantities and allocated values once. No Excel import is required. Later months
+carry the previous issued close. Do not import the same opening separately through
+Odoo inventory adjustments.
 
 For `mode: monthly`, the request supplies `period_key`, `facility_uuid`, `month`
 (the first opening month) and `stock_month` (the month being processed):
