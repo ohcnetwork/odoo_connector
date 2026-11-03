@@ -1,5 +1,5 @@
 import os
-from odoo import api, fields, models, _
+from odoo import api, fields, models
 
 
 class AccountMove(models.Model):
@@ -28,9 +28,10 @@ class AccountMove(models.Model):
 class AccountMoveLines(models.Model):
     _inherit = "account.move.line"
 
-    x_care_id = fields.Char(string="Care Charge Item ID")
+    x_care_id = fields.Char(string="Care Charge Item ID", index=True)
     received_qty = fields.Float(string="Quantity", store=True)
     free_qty = fields.Float(string="Free Quantity")
+    care_purchase = fields.Json(string="Care purchase batch", copy=False)
 
     @api.onchange("received_qty", "free_qty")
     def _onchange_received_qty(self):

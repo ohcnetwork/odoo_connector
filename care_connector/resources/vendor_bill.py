@@ -4,6 +4,7 @@ from markupsafe import Markup
 
 from .account_move import AccountUtility
 from .invoice_resync import InvoiceResyncUtility, _Stop
+from .purchase_prices import PurchasePrices
 
 
 class _Unchanged(Exception):
@@ -27,18 +28,25 @@ class VendorBillUtility:
     @classmethod
     def create_or_update(cls, env, request_data):
         """Create the order's bill, or bring the one from an earlier completion in line with the order."""
-        move = cls.find(env, request_data.x_care_id)
-        if not move:
-            return AccountUtility.get_or_create_account_move(env, request_data)
-
-        # The controller commits even when it returns an error, and comparing can write too (discount groups),
-        # so only a finished update is kept
-        try:
-            with env.cr.savepoint():
-                cls._update(env, move, request_data)
-        except _Unchanged:
-            pass
-        return move
+        # The controller returns errors without rolling back the request. Keep
+        # financial updates and identity updates in one savepoint.
+        with env.cr.savepoint():
+            move = cls.find(env, request_data.x_care_id)
+            if not move:
+                return AccountUtility.get_or_create_account_move(env, request_data)
+            try:
+                with env.cr.savepoint():
+                    cls._update(env, move, request_data)
+            except _Unchanged:
+                pass
+            entries = [
+                {"care_line_uuid": item.x_care_id, "care_purchase": item.care_purchase.model_dump(mode="json")}
+                for item in request_data.invoice_items
+                if item.care_purchase is not None
+            ]
+            for offset in range(0, len(entries), 500):
+                PurchasePrices.metadata(env, {"entries": entries[offset : offset + 500]})
+            return move
 
     @classmethod
     def _update(cls, env, move, request_data):

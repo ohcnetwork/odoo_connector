@@ -337,6 +337,11 @@ class AccountUtility:
             ),  # Native Odoo discount field
         }
 
+        if move_type == "in_invoice" and item.care_purchase is not None:
+            if str(item.care_purchase.charge_definition_uuid) != product_data.x_care_id:
+                raise ValueError("Care purchase metadata belongs to another billing product")
+            invoice_line_vals["care_purchase"] = item.care_purchase.model_dump(mode="json")
+
         # Add discount group if available
         if discount_info.get("discount_group_id"):
             invoice_line_vals["discount_group_id"] = discount_info[

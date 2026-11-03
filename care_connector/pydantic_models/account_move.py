@@ -4,6 +4,7 @@ from enum import Enum
 from .res_partner import PartnerData
 from .product_product import ProductData
 from .discounts import InvoiceDiscounts
+from .purchase import CarePurchaseData
 
 
 class InvoiceItem(BaseModel):
@@ -14,6 +15,7 @@ class InvoiceItem(BaseModel):
     agent_id: str | None = None
     discounts: list[InvoiceDiscounts] | None = None
     free_qty: float = 0.0
+    care_purchase: CarePurchaseData | None = None
 
 
 class BillType(Enum):

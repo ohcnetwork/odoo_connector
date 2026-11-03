@@ -3,3 +3,4 @@ from . import res_user, product_category
 from . import cash_session, insurance_company, payment_method_line, invoice_resync
 from . import vendor_bill
 from . import stock_sync
+from . import purchase_prices
