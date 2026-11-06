@@ -39,8 +39,9 @@ class PurchaseReturnRegisterWizard(models.TransientModel):
 
     _ZERO_BUCKET = Decimal("0")
     _RATE_PRECISION = Decimal("0.01")
-    # GST slabs that always get columns, even when no credit note in the period uses them.
-    _FIXED_RATES = tuple(Decimal(rate).quantize(Decimal("0.01")) for rate in ("5", "12", "18", "28"))
+    # GST slabs that always get columns, even when no credit note in the period uses them. Any other
+    # rate (12%, 28%, ...) gets columns only in periods that use it.
+    _FIXED_RATES = tuple(Decimal(rate).quantize(Decimal("0.01")) for rate in ("5", "18"))
     # Supplier credit note numbers are typed as "CREDIT NOTE NO: CR26..." and similar,
     # sometimes followed by the note's date.
     _REF_PREFIX = re.compile(r"^\s*CREDIT\s+NOTE?\s+(?:BILL\s+)?NO\s*[:;.]?\s*", re.IGNORECASE)
