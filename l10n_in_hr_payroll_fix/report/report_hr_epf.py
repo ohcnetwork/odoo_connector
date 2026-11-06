@@ -23,7 +23,9 @@ class L10nInHrPayrollEpfReport(models.Model):
         """
         self.ensure_one()
         # Get the relevant records based on the year and month
-        indian_employees = self.env['hr.employee'].search([
+        # Use active_test=False to include archived/terminated employees
+        # who still have valid payslips for the period
+        indian_employees = self.env['hr.employee'].with_context(active_test=False).search([
             ('company_id', '=', self.company_id.id),
             ('company_id.l10n_in_provident_fund', '=', True),
             ('l10n_in_pf_employee_amount', '>', 0),
@@ -42,49 +44,74 @@ class L10nInHrPayrollEpfReport(models.Model):
         if not payslips:
             return []
 
-        payslip_line_values = payslips._get_line_values(['GROSS', 'BASIC', 'PF'])
+        payslip_line_values = payslips._get_line_values(['GROSS', 'PF', 'PFE'])
 
         for employee in indian_employees:
-
-            wage = 0
-            epf = 0
-            eps = 0
-            epf_contri = 0
 
             payslip_ids = payslips.filtered(lambda p: p.employee_id == employee)
 
             if not payslip_ids:
                 continue
 
-            for payslip in payslip_ids:
-                pf_value = payslip_line_values['PF'][payslip.id]['total']
-                if pf_value == 0:
-                    continue
+            # 1. Gross - Pull from the latest month payslip with a cap of 25,000
+            raw_gross = sum(
+                payslip_line_values['GROSS'][p.id]['total'] for p in payslip_ids
+            )
+            gross = min(raw_gross, 25000)
 
-                epf_contri -= pf_value
-                wage += payslip_line_values['GROSS'][payslip.id]['total']
-                epf += payslip_line_values['BASIC'][payslip.id]['total']
+            # 2. EPF Wages - Gross with a cap of 15,000
+            epf_wages = min(gross, 15000)
+
+            # 3. EPS Wages - Gross with a cap of 15,000
+            eps_wages = min(gross, 15000)
+
+            # 4. EDLI Wages - Gross with a cap of 15,000
+            edli_wages = min(gross, 15000)
+
+            # 5. EPF Contri Remitted - Pull from the latest month employee contribution
+            epf_contri = sum(
+                payslip_line_values['PF'][p.id]['total'] for p in payslip_ids
+            )
 
             # Skip the employee if there are no valid PF contributions
             if epf_contri == 0:
                 continue
 
-            # Calculate contributions and differences
-            eps = min(payslip_ids[0]._rule_parameter('l10n_in_pf_amount'), epf)
-            eps_contri = round(eps * payslip_ids[0]._rule_parameter('l10n_in_eps_contri_percent'), 2)
-            diff = round(epf_contri - eps_contri, 2)
+            # 6. EPS Contri Remitted - 8.33% of EPS Wages, rounded to int
+            eps_contri = round(eps_wages * 0.0833)
+
+            # 7. EPF-EPS Diff Remitted - Employer contribution from payslip minus EPS contri
+            employer_pf = abs(sum(
+                payslip_line_values['PFE'][p.id]['total'] for p in payslip_ids
+            ))
+            epf_eps_diff = round(employer_pf - eps_contri)
+
+            # 8. NCP Days - Total days in period minus (worked days + paid leave)
+            paid_codes = ['WORK100', 'LEAVE105', 'LEAVE110', 'LEAVE120', 'LEAVE140']
+            total_days = sum(
+                wd.number_of_days
+                for p in payslip_ids
+                for wd in p.worked_days_line_ids
+            )
+            paid_days = sum(
+                wd.number_of_days
+                for p in payslip_ids
+                for wd in p.worked_days_line_ids
+                if wd.code in paid_codes
+            )
+            ncp_days = total_days - paid_days
 
             result.append((
                 employee.l10n_in_uan or '',
                 employee.name,
-                wage,
-                epf,
-                eps,
-                eps,
+                gross,
+                epf_wages,
+                eps_wages,
+                edli_wages,
                 epf_contri,
                 eps_contri,
-                diff,
-                0, 0,
+                epf_eps_diff,
+                ncp_days, 0,
             ))
 
         return result
