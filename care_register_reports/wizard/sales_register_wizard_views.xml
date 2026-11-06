@@ -8,13 +8,16 @@
                     <group>
                         <field name="date_from"/>
                         <field name="company_id"/>
-                        <field name="posted_only"/>
+                        <field name="show_cancelled"/>
                     </group>
                     <group>
                         <field name="date_to"/>
                         <field name="gross_mode"/>
                         <field name="include_refunds"/>
                     </group>
+                </group>
+                <group>
+                    <field name="account_ids" widget="many2many_tags"/>
                 </group>
                 <footer>
                     <button string="Export" type="object" name="action_export_excel" class="btn-primary"/>
