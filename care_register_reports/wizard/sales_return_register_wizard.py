@@ -8,7 +8,6 @@ class SalesReturnRegisterWizard(models.TransientModel):
 
     _SHEET_NAME = "Sales Return Register"
     _FILE_PREFIX = "sales_return_register"
-    _KFC_COLUMN = True
 
     def _move_types(self):
         return ["out_refund"]

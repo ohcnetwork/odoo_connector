@@ -55,8 +55,6 @@ class SalesRegisterBase(models.AbstractModel):
     # Set by each register.
     _SHEET_NAME = ""
     _FILE_PREFIX = ""
-    # The old software's last column, Kerala Flood Cess, which is always 0 now.
-    _KFC_COLUMN = False
 
     @api.onchange("date_from")
     def _onchange_date_from(self):
@@ -246,9 +244,6 @@ class SalesRegisterBase(models.AbstractModel):
                 sheet.write(1, base + 3, "IGST", header_fmt)
             # Amount columns from Invoice Value onwards, totalled in the last row.
             column_count = rates_start_col + len(rates) * 4
-            if self._KFC_COLUMN:
-                sheet.write(0, column_count, "kfc", header_fmt)
-                column_count += 1
 
             widths = [20, 12, 14, 18, 30, 14, 12]
             for col, width in enumerate(widths):
