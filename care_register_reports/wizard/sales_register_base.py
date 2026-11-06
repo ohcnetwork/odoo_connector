@@ -6,6 +6,7 @@ import io
 
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
+from odoo.tools import date_utils
 
 
 class SalesRegisterBase(models.AbstractModel):
@@ -16,7 +17,7 @@ class SalesRegisterBase(models.AbstractModel):
     _description = "Sales Register Base"
 
     date_from = fields.Date(required=True, default=lambda self: date.today().replace(day=1))
-    date_to = fields.Date(required=True, default=lambda self: date.today())
+    date_to = fields.Date(required=True, default=lambda self: date_utils.end_of(date.today(), "month"))
     company_id = fields.Many2one(
         "res.company",
         required=True,
@@ -56,6 +57,11 @@ class SalesRegisterBase(models.AbstractModel):
     _FILE_PREFIX = ""
     # The old software's last column, Kerala Flood Cess, which is always 0 now.
     _KFC_COLUMN = False
+
+    @api.onchange("date_from")
+    def _onchange_date_from(self):
+        if self.date_from:
+            self.date_to = date_utils.end_of(self.date_from, "month")
 
     @api.constrains("date_from", "date_to")
     def _check_dates(self):
