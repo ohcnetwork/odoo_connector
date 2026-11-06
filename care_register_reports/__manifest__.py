@@ -7,7 +7,7 @@
     "license": "LGPL-3",
     "category": "Accounting",
     "version": "19.0.1.1.0",
-    "depends": ["base", "account", "l10n_in"],
+    "depends": ["base", "account", "l10n_in", "care_connector", "grn_number_in_vendor_bill"],
     "data": [
         "security/ir.model.access.csv",
         "views/res_config_settings_views.xml",
