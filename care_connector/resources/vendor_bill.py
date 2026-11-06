@@ -16,7 +16,11 @@ class VendorBillUtility:
 
     Care can move a completed order back to draft to add items, complete it again, or cancel it.
     The bill follows while it is a draft. A posted bill is final, so Care's change is refused instead.
+    Care also reads posted bill lines back, to value its stock at what was billed.
     """
+
+    # Bill lines returned per request at most, about 200 bytes each
+    MAX_PAGE_SIZE = 5000
 
     @classmethod
     def find(cls, env, x_care_id):
@@ -109,6 +113,39 @@ class VendorBillUtility:
             reason = f": {request_data.reason}" if request_data.reason else ""
             cls._post_note(move, f"Vendor bill cancelled from Care{reason}.")
         return move
+
+    @classmethod
+    def posted_lines(cls, env, after_id, limit):
+        """
+        Product lines of posted vendor bills that carry a Care receipt line ID, by line ID from after `after_id`.
+        Lines added in Odoo have no Care ID and are left out. Subtotals exclude tax and include the discount.
+        """
+        if not 0 < limit <= cls.MAX_PAGE_SIZE:
+            raise ValueError(f"limit must be between 1 and {cls.MAX_PAGE_SIZE}")
+        lines = env["account.move.line"].search_read(
+            [
+                ("id", ">", after_id),
+                ("move_id.move_type", "=", "in_invoice"),
+                ("parent_state", "=", "posted"),
+                ("display_type", "=", "product"),
+                ("x_care_id", "!=", False),
+            ],
+            ["x_care_id", "move_name", "price_subtotal", "quantity", "received_qty", "free_qty"],
+            order="id",
+            limit=limit,
+        )
+        return [
+            {
+                "id": line["id"],
+                "care_line_id": line["x_care_id"],
+                "bill": line["move_name"],
+                "price_subtotal": line["price_subtotal"],
+                "quantity": line["quantity"],
+                "received_qty": line["received_qty"],
+                "free_qty": line["free_qty"],
+            }
+            for line in lines
+        ]
 
     @classmethod
     def _post_note(cls, move, title, changes=()):
