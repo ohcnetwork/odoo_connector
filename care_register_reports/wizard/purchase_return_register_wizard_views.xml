@@ -9,6 +9,7 @@
                         <field name="date_from"/>
                         <field name="company_id"/>
                         <field name="posted_only"/>
+                        <field name="care_only"/>
                     </group>
                     <group>
                         <field name="date_to"/>

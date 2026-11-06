@@ -7,6 +7,7 @@ import re
 
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
+from odoo.tools import date_utils
 
 
 class PurchaseRegisterWizard(models.TransientModel):
@@ -14,7 +15,7 @@ class PurchaseRegisterWizard(models.TransientModel):
     _description = "Purchase Register Wizard"
 
     date_from = fields.Date(required=True, default=lambda self: date.today().replace(day=1))
-    date_to = fields.Date(required=True, default=lambda self: date.today())
+    date_to = fields.Date(required=True, default=lambda self: date_utils.end_of(date.today(), "month"))
     company_id = fields.Many2one(
         "res.company",
         required=True,
@@ -27,6 +28,11 @@ class PurchaseRegisterWizard(models.TransientModel):
     posted_only = fields.Boolean(
         default=True,
         help="If enabled, only posted bills are included.",
+    )
+    care_only = fields.Boolean(
+        string="Only Bills from Care",
+        default=True,
+        help="List only bills created from Care. Untick to include bills entered directly in Odoo.",
     )
     gross_mode = fields.Selection(
         [
@@ -42,6 +48,14 @@ class PurchaseRegisterWizard(models.TransientModel):
 
     _ZERO_BUCKET = Decimal("0")
     _RATE_PRECISION = Decimal("0.01")
+    # GST slabs that always get columns, even when no bill in the period uses them. Any other
+    # rate (12%, 28%, ...) gets columns only in periods that use it.
+    _FIXED_RATES = tuple(Decimal(rate).quantize(Decimal("0.01")) for rate in ("5", "18"))
+
+    @api.onchange("date_from")
+    def _onchange_date_from(self):
+        if self.date_from:
+            self.date_to = date_utils.end_of(self.date_from, "month")
 
     @api.constrains("date_from", "date_to")
     def _check_dates(self):
@@ -52,7 +66,10 @@ class PurchaseRegisterWizard(models.TransientModel):
     def action_export_excel(self):
         self.ensure_one()
         xlsx_content = self._build_xlsx_bytes()
-        filename = "purchase_register_%s_to_%s.xlsx" % (self.date_from, self.date_to)
+        filename = "purchase_register_%s_to_%s.xlsx" % (
+            self._file_date(self.date_from),
+            self._file_date(self.date_to),
+        )
         self.write(
             {
                 "file_data": base64.b64encode(xlsx_content),
@@ -65,6 +82,10 @@ class PurchaseRegisterWizard(models.TransientModel):
             % self.id,
             "target": "self",
         }
+
+    def _file_date(self, value):
+        # Same as the sheet's d-mmm-yy dates, e.g. 1-Jun-26.
+        return "%s-%s" % (value.day, value.strftime("%b-%y"))
 
     def _d(self, value):
         if value in (None, ""):
@@ -109,7 +130,7 @@ class PurchaseRegisterWizard(models.TransientModel):
             return next(iter(rates))
         return None
 
-    def _get_grn_info(self, move):
+    def _get_grn_number(self, move):
         grn_numbers = []
         if move.grn_number:
             grn_numbers.append(str(move.grn_number))
@@ -134,12 +155,7 @@ class PurchaseRegisterWizard(models.TransientModel):
             if picking_name and picking_name not in grn_numbers:
                 grn_numbers.append(picking_name)
 
-        grn_date = False
-        date_values = [d for d in pickings.mapped("date_done") if d]
-        if date_values:
-            grn_date = min(date_values).date()
-
-        return ", ".join(grn_numbers), grn_date
+        return ", ".join(grn_numbers)
 
     def _prepare_rows(self):
         self.ensure_one()
@@ -153,6 +169,10 @@ class PurchaseRegisterWizard(models.TransientModel):
             ("invoice_date", ">=", self.date_from),
             ("invoice_date", "<=", self.date_to),
         ]
+        if self.care_only:
+            # Only stock purchases: bills created from Care deliveries. Bills typed in Odoo
+            # (salaries, fees, utilities, services) are left out.
+            domain.append(("x_care_id", "!=", False))
         if self.posted_only:
             domain.append(("state", "=", "posted"))
 
@@ -163,7 +183,7 @@ class PurchaseRegisterWizard(models.TransientModel):
         rows = []
         for move in moves:
             partner = move.partner_id.commercial_partner_id
-            grn_number, grn_date = self._get_grn_info(move)
+            grn_number = self._get_grn_number(move)
             address_parts = [
                 partner.street or "",
                 partner.street2 or "",
@@ -182,15 +202,20 @@ class PurchaseRegisterWizard(models.TransientModel):
                 }
             )
             bucket_data[self._ZERO_BUCKET]
+            # Amounts are taken from the journal items' balance (debit positive), so a
+            # discount line reduces the bill and credit notes come out negative.
             invoice_lines = move.invoice_line_ids.filtered(lambda line: line.display_type == "product")
-            taxable_total = sum(self._absd(line.price_subtotal) for line in invoice_lines)
+            line_total = sum(self._d(line.balance) for line in invoice_lines)
             for line in invoice_lines:
-                taxable = self._absd(line.price_subtotal)
+                taxable = self._d(line.balance)
                 bucket_rate = self._line_bucket_rate(line)
                 if bucket_rate in (None, self._ZERO_BUCKET):
                     bucket_data[self._ZERO_BUCKET]["taxable"] += taxable
                     continue
                 bucket_data[bucket_rate]["taxable"] += taxable
+            # Taxable Value is the gross at the GST rates only: 0% and untaxed lines
+            # show under GST 0% alone, as in the old register. Invoice Value has both.
+            taxable_total = line_total - bucket_data[self._ZERO_BUCKET]["taxable"]
 
             tax_lines = move.line_ids.filtered(lambda line: line.tax_line_id)
 
@@ -198,7 +223,7 @@ class PurchaseRegisterWizard(models.TransientModel):
                 tax = tax_line.tax_line_id
                 tax_name = (tax.name or "").upper()
                 component_rate = self._absd(tax.amount) or self._extract_percent(tax.name)
-                tax_amount = self._absd(tax_line.amount_currency or tax_line.balance)
+                tax_amount = self._d(tax_line.balance)
                 bucket_rate = None
                 if "IGST" in tax_name:
                     bucket_rate = self._normalize_rate(component_rate)
@@ -217,15 +242,23 @@ class PurchaseRegisterWizard(models.TransientModel):
                 else:
                     bucket_data[bucket_rate]["igst"] += tax_amount
 
+            gst_total = sum(
+                bucket["cgst"] + bucket["sgst"] + bucket["igst"] for bucket in bucket_data.values()
+            )
+            round_off = sum(
+                self._d(line.balance) for line in move.line_ids if line.display_type == "rounding"
+            )
+
             rows.append(
                 {
                     "bill_no": move.name or "",
                     "bill_date": move.invoice_date or move.date,
                     "invoice_no": move.ref or "",
                     "grn_no": grn_number,
-                    "grn_date": grn_date,
                     "invoice_date": move.invoice_date or move.date,
-                    "invoice_value": self._absd(move.amount_total),
+                    "invoice_value": line_total + gst_total,
+                    "round_off": round_off,
+                    "bill_total": -self._d(move.amount_total_signed),
                     "place_of_supply": partner.state_id.name or " - ",
                     "gstin": partner.vat or "",
                     "party": partner.name or "",
@@ -238,8 +271,9 @@ class PurchaseRegisterWizard(models.TransientModel):
 
     def _build_xlsx_bytes(self):
         rows = self._prepare_rows()
-        dynamic_rates = sorted(
-            {
+        rates = sorted(
+            set(self._FIXED_RATES)
+            | {
                 rate
                 for row in rows
                 for rate, values in row["buckets"].items()
@@ -251,87 +285,60 @@ class PurchaseRegisterWizard(models.TransientModel):
         workbook = None
         try:
             import xlsxwriter
+            from xlsxwriter.utility import xl_rowcol_to_cell
 
             workbook = xlsxwriter.Workbook(output, {"in_memory": True})
             sheet = workbook.add_worksheet(_("Purchase Register"))
 
-            header_fmt = workbook.add_format({"bold": True, "align": "center", "border": 1})
+            header_fmt = workbook.add_format({"bold": True, "align": "center", "valign": "vcenter", "border": 1})
             subheader_fmt = workbook.add_format({"bold": True, "align": "center", "border": 1})
             text_fmt = workbook.add_format({"border": 1})
             num_fmt = workbook.add_format({"border": 1, "num_format": "#,##0.00"})
-            date_fmt = workbook.add_format({"border": 1, "num_format": "dd-mm-yyyy"})
+            date_fmt = workbook.add_format({"border": 1, "num_format": "d-mmm-yy"})
+            total_text_fmt = workbook.add_format({"bold": True, "border": 1})
+            total_num_fmt = workbook.add_format({"bold": True, "border": 1, "num_format": "#,##0.00"})
 
-            # Header row 1
-            headers = [
-                "Bill No",
-                "Bill Date",
-                "Invoice No",
-                "GRN No",
-                "GRN Date",
-                "Invoice Date",
-                "Invoice Value",
-                "Place Of Supply",
-                "GSTIN",
-                "Party",
-                "Address",
-                "Taxable Value",
-                "GST 0%",
+            # Header row 1: columns before the GST slabs span both header rows.
+            columns = [
+                ("Bill No", 18),
+                ("Bill Date", 11),
+                ("Invoice No", 20),
+                ("GRN No", 14),
+                ("Invoice Date", 11),
+                ("Invoice Value", 14),
+                ("Round Off", 10),
+                ("Bill Total", 14),
+                ("Place Of Supply", 16),
+                ("GSTIN", 18),
+                ("Party", 30),
+                ("Address", 40),
+                ("Taxable Value", 14),
+                ("GST 0%", 12),
             ]
-            for col, label in enumerate(headers):
-                sheet.write(0, col, label, header_fmt)
-            rates_start_col = len(headers)
-            for idx, rate in enumerate(dynamic_rates):
-                base_col = rates_start_col + (idx * 4)
-                rate_label = str(rate.normalize()).rstrip("0").rstrip(".")
-                sheet.write(0, base_col, "GST %s%%" % rate_label, header_fmt)
-
-            # Header row 2
-            for idx in range(len(dynamic_rates)):
-                base = rates_start_col + (idx * 4)
-                sheet.write(1, base, "GROSS", subheader_fmt)
-                sheet.write(1, base + 1, "CGST", subheader_fmt)
-                sheet.write(1, base + 2, "SGST", subheader_fmt)
-                sheet.write(1, base + 3, "IGST", subheader_fmt)
-
-            widths = {
-                0: 18,
-                1: 12,
-                2: 20,
-                3: 20,
-                4: 12,
-                5: 12,
-                6: 14,
-                7: 18,
-                8: 18,
-                9: 30,
-                10: 40,
-                11: 14,
-                12: 12,
-                13: 12,
-                14: 10,
-                15: 10,
-                16: 10,
-                17: 12,
-                18: 10,
-                19: 10,
-                20: 10,
-                21: 12,
-                22: 10,
-                23: 10,
-                24: 10,
-                25: 12,
-                26: 10,
-                27: 10,
-                28: 10,
-            }
-            for col, width in widths.items():
+            for col, (label, width) in enumerate(columns):
+                sheet.merge_range(0, col, 1, col, label, header_fmt)
                 sheet.set_column(col, col, width)
-            for idx in range(len(dynamic_rates)):
+
+            # Header rows 1 and 2: one GST slab over its GROSS, CGST, SGST and IGST columns.
+            rates_start_col = len(columns)
+            for idx, rate in enumerate(rates):
                 base = rates_start_col + (idx * 4)
+                rate_label = format(rate.normalize(), "f")
+                sheet.merge_range(0, base, 0, base + 3, "GST %s%%" % rate_label, header_fmt)
+                for offset, label in enumerate(("GROSS", "CGST", "SGST", "IGST")):
+                    sheet.write(1, base + offset, label, subheader_fmt)
                 sheet.set_column(base, base, 12)
                 sheet.set_column(base + 1, base + 3, 10)
+            last_col = rates_start_col + (len(rates) * 4) - 1
 
-            row_idx = 2
+            first_data_row = 2
+            row_idx = first_data_row
+            totals = defaultdict(Decimal)
+
+            def write_amount(col, value):
+                sheet.write_number(row_idx, col, float(value), num_fmt)
+                totals[col] += value
+
             for row in rows:
                 sheet.write(row_idx, 0, row["bill_no"], text_fmt)
                 if row["bill_date"]:
@@ -340,24 +347,22 @@ class PurchaseRegisterWizard(models.TransientModel):
                     sheet.write(row_idx, 1, "", text_fmt)
                 sheet.write(row_idx, 2, row["invoice_no"], text_fmt)
                 sheet.write(row_idx, 3, row["grn_no"], text_fmt)
-                if row["grn_date"]:
-                    sheet.write_datetime(row_idx, 4, row["grn_date"], date_fmt)
+                if row["invoice_date"]:
+                    sheet.write_datetime(row_idx, 4, row["invoice_date"], date_fmt)
                 else:
                     sheet.write(row_idx, 4, "", text_fmt)
-                if row["invoice_date"]:
-                    sheet.write_datetime(row_idx, 5, row["invoice_date"], date_fmt)
-                else:
-                    sheet.write(row_idx, 5, "", text_fmt)
-                sheet.write_number(row_idx, 6, float(row["invoice_value"]), num_fmt)
-                sheet.write(row_idx, 7, row["place_of_supply"], text_fmt)
-                sheet.write(row_idx, 8, row["gstin"], text_fmt)
-                sheet.write(row_idx, 9, row["party"], text_fmt)
-                sheet.write(row_idx, 10, row["address"], text_fmt)
-                sheet.write_number(row_idx, 11, float(row["taxable_total"]), num_fmt)
+                write_amount(5, row["invoice_value"])
+                write_amount(6, row["round_off"])
+                write_amount(7, row["bill_total"])
+                sheet.write(row_idx, 8, row["place_of_supply"], text_fmt)
+                sheet.write(row_idx, 9, row["gstin"], text_fmt)
+                sheet.write(row_idx, 10, row["party"], text_fmt)
+                sheet.write(row_idx, 11, row["address"], text_fmt)
+                write_amount(12, row["taxable_total"])
                 zero_bucket = row["buckets"].get(self._ZERO_BUCKET, {})
-                sheet.write_number(row_idx, 12, float(zero_bucket.get("taxable", Decimal("0"))), num_fmt)
+                write_amount(13, zero_bucket.get("taxable", Decimal("0")))
 
-                for idx, rate in enumerate(dynamic_rates):
+                for idx, rate in enumerate(rates):
                     start_col = rates_start_col + (idx * 4)
                     bucket = row["buckets"].get(
                         rate,
@@ -365,11 +370,23 @@ class PurchaseRegisterWizard(models.TransientModel):
                     )
                     tax_amount = bucket["cgst"] + bucket["sgst"] + bucket["igst"]
                     gross_val = tax_amount if self.gross_mode == "tax_amount" else bucket["taxable"]
-                    sheet.write_number(row_idx, start_col, float(gross_val), num_fmt)
-                    sheet.write_number(row_idx, start_col + 1, float(bucket["cgst"]), num_fmt)
-                    sheet.write_number(row_idx, start_col + 2, float(bucket["sgst"]), num_fmt)
-                    sheet.write_number(row_idx, start_col + 3, float(bucket["igst"]), num_fmt)
+                    write_amount(start_col, gross_val)
+                    write_amount(start_col + 1, bucket["cgst"])
+                    write_amount(start_col + 2, bucket["sgst"])
+                    write_amount(start_col + 3, bucket["igst"])
                 row_idx += 1
+
+            # Totals row: SUM formulas, with the computed totals cached for viewers that don't recalculate.
+            sheet.write(row_idx, 0, _("Total"), total_text_fmt)
+            for col in range(1, last_col + 1):
+                if col in totals:
+                    formula = "=SUM(%s:%s)" % (
+                        xl_rowcol_to_cell(first_data_row, col),
+                        xl_rowcol_to_cell(row_idx - 1, col),
+                    )
+                    sheet.write_formula(row_idx, col, formula, total_num_fmt, float(round(totals[col], 2)))
+                else:
+                    sheet.write_blank(row_idx, col, None, total_text_fmt)
 
         finally:
             if workbook:
