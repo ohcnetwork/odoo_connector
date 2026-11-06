@@ -29,6 +29,11 @@ class PurchaseRegisterWizard(models.TransientModel):
         default=True,
         help="If enabled, only posted bills are included.",
     )
+    care_only = fields.Boolean(
+        string="Only Bills from Care",
+        default=True,
+        help="List only bills created from Care. Untick to include bills entered directly in Odoo.",
+    )
     gross_mode = fields.Selection(
         [
             ("tax_amount", "Tax Amount"),
@@ -158,15 +163,16 @@ class PurchaseRegisterWizard(models.TransientModel):
         if self.include_refunds:
             move_types.append("in_refund")
 
-        # Only stock purchases: bills created from Care deliveries. Bills typed in Odoo
-        # (salaries, fees, utilities, services) are left out.
         domain = [
             ("company_id", "=", self.company_id.id),
             ("move_type", "in", move_types),
-            ("x_care_id", "!=", False),
             ("invoice_date", ">=", self.date_from),
             ("invoice_date", "<=", self.date_to),
         ]
+        if self.care_only:
+            # Only stock purchases: bills created from Care deliveries. Bills typed in Odoo
+            # (salaries, fees, utilities, services) are left out.
+            domain.append(("x_care_id", "!=", False))
         if self.posted_only:
             domain.append(("state", "=", "posted"))
 
