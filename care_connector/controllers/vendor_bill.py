@@ -26,6 +26,9 @@ class VendorBill(http.Controller):
         receipt lines to value stock. To read them all, ask again with `after_id` set to `next_after_id`
         until it is null.
         """
+        # Care sends a {} body with this GET. Closing the connection with it unread resets the connection
+        # and drops the rest of a large page, so read it first.
+        request.httprequest.get_data()
         try:
             auth_header = request.httprequest.headers.get("Authorization")
             user_env = UserAuthentication.get_authenticated_user(auth_header)
