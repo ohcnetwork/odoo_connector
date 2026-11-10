@@ -2,6 +2,10 @@ from odoo import Command
 from odoo.tests import tagged
 
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
+from odoo.addons.care_connector.pydantic_models.account_move import AccountMoveApiRequest
+from odoo.addons.care_connector.pydantic_models.invoice_resync import InvoiceResyncApiRequest
+from odoo.addons.care_connector.resources.account_move import AccountUtility
+from odoo.addons.care_connector.resources.invoice_resync import InvoiceResyncUtility
 
 
 @tagged("post_install", "-at_install")
@@ -88,3 +92,54 @@ class TestCareTotalRounding(AccountTestInvoicingCommon):
         reversal.reverse_moves()
         credit_note = move.reversal_move_ids
         self.assertEqual(credit_note.amount_total, 445.0)
+
+    def _sync_from_care(self, care_total=None):
+        """A one-line Care invoice synced through the connector; its 445.50 rounds up to 446 in Odoo."""
+        self.env["ir.config_parameter"].sudo().set_param("care_connector.invoice_cash_rounding_id", self.rounding.id)
+        self.env["product.product"].create({"name": "Care item", "x_care_id": "care-item", "taxes_id": [Command.clear()]})
+        request = AccountMoveApiRequest(
+            x_care_id="care-invoice", bill_type="customer", invoice_date="01-06-2026", due_date="01-06-2026",
+            partner_data={"name": "Care patient", "x_care_id": "care-patient", "partner_type": "person"},
+            invoice_items=[{
+                "product_data": {
+                    "product_name": "Care item", "x_care_id": "care-item",
+                    "category": {"category_name": "Pharmacy", "x_care_id": "care-category"},
+                },
+                "quantity": 1, "sale_price": 445.50, "x_care_id": "care-charge-item",
+            }],
+            care_total=care_total,
+        )
+        return AccountUtility.get_or_create_account_move(self.env, request), request
+
+    def _resync(self, move, request, care_total):
+        return InvoiceResyncUtility.resync(
+            self.env, InvoiceResyncApiRequest(number=move.name, care_total=care_total, data=request)
+        )
+
+    def test_resync_rounds_an_old_invoice_to_care_total(self):
+        # Synced before Care sent its total: Odoo rounded up to 446, and Care's ₹445 payment left a rupee open
+        move, request = self._sync_from_care()
+        self.assertEqual(move.amount_total, 446.0)
+        self.env["account.payment.register"].with_context(active_model="account.move", active_ids=move.ids).create(
+            {"amount": 445.0}
+        )._create_payments()
+        self.assertEqual(move.amount_residual, 1.0)
+
+        result = self._resync(move, request, 445.0)
+
+        self.assertEqual(result["status"], "updated", result)
+        self.assertEqual(result["changes"], ["round-off set to Care's total 445.00"])
+        self.assertEqual(move.name, result["old"]["name"])
+        self.assertEqual(move.amount_total, 445.0)
+        self.assertEqual(move.amount_residual, 0.0)
+
+    def test_resync_leaves_an_invoice_on_care_total_alone(self):
+        move, request = self._sync_from_care(care_total=445.0)
+        self.assertEqual(move.amount_total, 445.0)
+        self.assertEqual(self._resync(move, request, 445.0)["status"], "in sync")
+
+    def test_resync_reports_a_total_more_than_a_rupee_off(self):
+        move, request = self._sync_from_care()
+        result = self._resync(move, request, 443.0)
+        self.assertTrue(result["status"].startswith("needs manual fix"), result)
+        self.assertEqual(move.amount_total, 446.0)
