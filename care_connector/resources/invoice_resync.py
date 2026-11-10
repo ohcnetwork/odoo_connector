@@ -65,7 +65,7 @@ class InvoiceResyncUtility:
                     raise _Stop("skipped: lines are on an insurance claim, fix manually")
 
                 taxed = move.is_taxed if "is_taxed" in move._fields else None  # checked after correcting
-                rematched = cls._correct(move, changes)
+                rematched = cls._correct(move, changes, invoice.care_total)
                 result["new"] = cls._snapshot(move)
                 cls._check_corrected(move, invoice, taxed)
                 cls._post_note(move, changes, result, rematched)
@@ -169,7 +169,7 @@ class InvoiceResyncUtility:
         return float_compare(line[field], value or 0.0, precision_digits=digits[1] if digits else 2) != 0
 
     @classmethod
-    def _correct(cls, move, changes):
+    def _correct(cls, move, changes, care_total):
         """Reset, correct and re-post the invoice; returns whether payments were re-matched."""
         receivable = move.line_ids.filtered(lambda l: l.account_id.account_type == "asset_receivable")
         counterparts = (
@@ -177,7 +177,11 @@ class InvoiceResyncUtility:
         ) - receivable
 
         move.button_draft()
-        move.write({"invoice_line_ids": [command for command, _description in changes]})
+        # Round the corrected invoice to Care's total; Care's total is rounded to the rupee
+        move.write({
+            "x_care_total": abs(care_total),
+            "invoice_line_ids": [command for command, _description in changes],
+        })
         move.action_post()
         # Re-posting removes the payment matching; match the same payments again
         for counterpart in counterparts.filtered(lambda l: not l.reconciled):
