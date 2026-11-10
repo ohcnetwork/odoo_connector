@@ -53,22 +53,26 @@ class InvoiceResyncUtility:
                 cls._check_header(move, data)
 
                 changes = cls._line_changes(env, move, data.invoice_items)
+                descriptions = [description for _command, description in changes]
                 if not changes:
                     # Matching lines can still total differently, e.g. through taxes or lines added in Odoo
                     if not cls._total_matches(move, invoice.care_total):
                         raise _Stop(f"needs manual fix: the lines match Care, but the total {move.amount_total_signed} doesn't")
-                    raise _Stop("in sync")
-                result["changes"] = [description for _command, description in changes]
+                    if cls._total_equals(move, invoice.care_total) or not move.invoice_cash_rounding_id:
+                        raise _Stop("in sync")
+                    # A rupee apart, e.g. Care rounded a discount the other way: re-posting rounds it to Care's total
+                    descriptions.append(f"round-off set to Care's total {abs(invoice.care_total):.2f}")
+                result["changes"] = descriptions
                 if "insurance.claim" in env and env["insurance.claim"].sudo().search_count(
                     [("claimed_move_line_ids", "in", move.invoice_line_ids.ids)]
                 ):
                     raise _Stop("skipped: lines are on an insurance claim, fix manually")
 
                 taxed = move.is_taxed if "is_taxed" in move._fields else None  # checked after correcting
-                rematched = cls._correct(move, changes)
+                rematched = cls._correct(move, changes, invoice.care_total)
                 result["new"] = cls._snapshot(move)
                 cls._check_corrected(move, invoice, taxed)
-                cls._post_note(move, changes, result, rematched)
+                cls._post_note(move, descriptions, result, rematched)
             result["status"] = "updated"
         except Exception as error:  # noqa: BLE001 - report it as the status
             env.invalidate_all(flush=False)
@@ -98,6 +102,10 @@ class InvoiceResyncUtility:
     def _total_matches(cls, move, care_total):
         # Written so that a NaN total (e.g. from a NaN discount rate) doesn't match
         return abs(move.amount_total_signed - care_total) <= TOTAL_TOLERANCE
+
+    @classmethod
+    def _total_equals(cls, move, care_total):
+        return move.currency_id.compare_amounts(move.amount_total_signed, care_total) == 0
 
     @classmethod
     def _label(cls, line):
@@ -169,7 +177,7 @@ class InvoiceResyncUtility:
         return float_compare(line[field], value or 0.0, precision_digits=digits[1] if digits else 2) != 0
 
     @classmethod
-    def _correct(cls, move, changes):
+    def _correct(cls, move, changes, care_total):
         """Reset, correct and re-post the invoice; returns whether payments were re-matched."""
         receivable = move.line_ids.filtered(lambda l: l.account_id.account_type == "asset_receivable")
         counterparts = (
@@ -177,7 +185,11 @@ class InvoiceResyncUtility:
         ) - receivable
 
         move.button_draft()
-        move.write({"invoice_line_ids": [command for command, _description in changes]})
+        # Round the corrected invoice to Care's total; Care's total is rounded to the rupee
+        move.write({
+            "x_care_total": abs(care_total),
+            "invoice_line_ids": [command for command, _description in changes],
+        })
         move.action_post()
         # Re-posting removes the payment matching; match the same payments again
         for counterpart in counterparts.filtered(lambda l: not l.reconciled):
@@ -187,8 +199,8 @@ class InvoiceResyncUtility:
         return bool(counterparts)
 
     @classmethod
-    def _post_note(cls, move, changes, result, rematched):
-        items = Markup("").join(Markup("<li>%s</li>") % description for _command, description in changes)
+    def _post_note(cls, move, descriptions, result, rematched):
+        items = Markup("").join(Markup("<li>%s</li>") % description for description in descriptions)
         move.message_post(
             body=Markup("<p>Invoice resynced from Care.</p><ul>%s</ul><p>Total %s → %s.%s</p>")
             % (
