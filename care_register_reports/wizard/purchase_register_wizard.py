@@ -163,8 +163,8 @@ class PurchaseRegisterWizard(models.TransientModel):
         if self.include_refunds:
             move_types.append("in_refund")
 
-        # The month is the bill's accounting date, as in the ledger; the supplier's bill
-        # date goes in Invoice Date.
+        # The month is the bill's accounting date, as in the ledger. It is the first column,
+        # and Bill Date is the supplier's bill date, as on the bill in Odoo.
         domain = [
             ("company_id", "=", self.company_id.id),
             ("move_type", "in", move_types),
@@ -253,11 +253,11 @@ class PurchaseRegisterWizard(models.TransientModel):
 
             rows.append(
                 {
+                    "accounting_date": move.date,
                     "bill_no": move.name or "",
-                    "bill_date": move.date,
+                    "bill_date": move.invoice_date,
                     "invoice_no": move.ref or "",
                     "grn_no": grn_number,
-                    "invoice_date": move.invoice_date,
                     "invoice_value": line_total + gst_total,
                     "round_off": round_off,
                     "bill_total": -self._d(move.amount_total_signed),
@@ -302,11 +302,11 @@ class PurchaseRegisterWizard(models.TransientModel):
 
             # Header row 1: columns before the GST slabs span both header rows.
             columns = [
+                ("Accounting Date", 11),
                 ("Bill No", 18),
                 ("Bill Date", 11),
                 ("Invoice No", 20),
                 ("GRN No", 14),
-                ("Invoice Date", 11),
                 ("Invoice Value", 14),
                 ("Round Off", 10),
                 ("Bill Total", 14),
@@ -341,18 +341,18 @@ class PurchaseRegisterWizard(models.TransientModel):
                 sheet.write_number(row_idx, col, float(value), num_fmt)
                 totals[col] += value
 
+            def write_date(col, value):
+                if value:
+                    sheet.write_datetime(row_idx, col, value, date_fmt)
+                else:
+                    sheet.write(row_idx, col, "", text_fmt)
+
             for row in rows:
-                sheet.write(row_idx, 0, row["bill_no"], text_fmt)
-                if row["bill_date"]:
-                    sheet.write_datetime(row_idx, 1, row["bill_date"], date_fmt)
-                else:
-                    sheet.write(row_idx, 1, "", text_fmt)
-                sheet.write(row_idx, 2, row["invoice_no"], text_fmt)
-                sheet.write(row_idx, 3, row["grn_no"], text_fmt)
-                if row["invoice_date"]:
-                    sheet.write_datetime(row_idx, 4, row["invoice_date"], date_fmt)
-                else:
-                    sheet.write(row_idx, 4, "", text_fmt)
+                write_date(0, row["accounting_date"])
+                sheet.write(row_idx, 1, row["bill_no"], text_fmt)
+                write_date(2, row["bill_date"])
+                sheet.write(row_idx, 3, row["invoice_no"], text_fmt)
+                sheet.write(row_idx, 4, row["grn_no"], text_fmt)
                 write_amount(5, row["invoice_value"])
                 write_amount(6, row["round_off"])
                 write_amount(7, row["bill_total"])
