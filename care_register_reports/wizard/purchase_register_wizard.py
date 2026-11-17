@@ -163,11 +163,13 @@ class PurchaseRegisterWizard(models.TransientModel):
         if self.include_refunds:
             move_types.append("in_refund")
 
+        # The month is the bill's accounting date, as in the ledger; the supplier's bill
+        # date goes in Invoice Date.
         domain = [
             ("company_id", "=", self.company_id.id),
             ("move_type", "in", move_types),
-            ("invoice_date", ">=", self.date_from),
-            ("invoice_date", "<=", self.date_to),
+            ("date", ">=", self.date_from),
+            ("date", "<=", self.date_to),
         ]
         if self.care_only:
             # Only stock purchases: bills created from Care deliveries. Bills typed in Odoo
@@ -176,7 +178,7 @@ class PurchaseRegisterWizard(models.TransientModel):
         if self.posted_only:
             domain.append(("state", "=", "posted"))
 
-        moves = self.env["account.move"].search(domain, order="invoice_date, name, id")
+        moves = self.env["account.move"].search(domain, order="date, name, id")
         if not moves:
             raise ValidationError(_("No records found for the selected filters."))
 
@@ -252,10 +254,10 @@ class PurchaseRegisterWizard(models.TransientModel):
             rows.append(
                 {
                     "bill_no": move.name or "",
-                    "bill_date": move.invoice_date or move.date,
+                    "bill_date": move.date,
                     "invoice_no": move.ref or "",
                     "grn_no": grn_number,
-                    "invoice_date": move.invoice_date or move.date,
+                    "invoice_date": move.invoice_date,
                     "invoice_value": line_total + gst_total,
                     "round_off": round_off,
                     "bill_total": -self._d(move.amount_total_signed),
