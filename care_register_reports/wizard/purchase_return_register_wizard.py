@@ -27,7 +27,8 @@ class PurchaseReturnRegisterWizard(models.TransientModel):
     )
     care_only = fields.Boolean(
         string="Only Bills from Care",
-        default=True,
+        # Off by default: supplier credit notes are typed in Odoo, so almost none come from Care.
+        default=False,
         help="List only credit notes created from Care. Untick to include credit notes entered directly in Odoo.",
     )
     gross_mode = fields.Selection(
@@ -137,8 +138,8 @@ class PurchaseReturnRegisterWizard(models.TransientModel):
     def _prepare_rows(self):
         self.ensure_one()
 
-        # The month is the day the return was booked (the accounting date), as in the old
-        # pharmacy register; the supplier's credit note date goes in Invoice Date.
+        # The month is the day the return was booked (the accounting date), as in the ledger.
+        # It is the first column, and Bill Date is the supplier's credit note date, as in Odoo.
         domain = [
             ("company_id", "=", self.company_id.id),
             ("move_type", "=", "in_refund"),
@@ -222,10 +223,10 @@ class PurchaseReturnRegisterWizard(models.TransientModel):
 
             rows.append(
                 {
+                    "accounting_date": move.date,
                     "bill_no": move.name or "",
-                    "bill_date": move.date,
+                    "bill_date": move.invoice_date,
                     "invoice_no": self._supplier_note_number(move.ref),
-                    "invoice_date": move.invoice_date,
                     # Lines plus GST to the paisa; Odoo's whole-rupee rounding is left out.
                     "invoice_value": line_total + gst_total,
                     "place_of_supply": partner.state_id.name or " - ",
@@ -269,10 +270,10 @@ class PurchaseReturnRegisterWizard(models.TransientModel):
 
             # Header row 1: columns before the GST slabs span both header rows.
             columns = [
+                ("Accounting Date", 11),
                 ("Bill No", 20),
                 ("Bill Date", 11),
                 ("Invoice No", 20),
-                ("Invoice Date", 11),
                 ("Invoice Value", 14),
                 ("Place Of Supply", 16),
                 ("GSTIN", 18),
@@ -312,10 +313,10 @@ class PurchaseReturnRegisterWizard(models.TransientModel):
                     sheet.write(row_idx, col, "", text_fmt)
 
             for row in rows:
-                sheet.write(row_idx, 0, row["bill_no"], text_fmt)
-                write_date(1, row["bill_date"])
-                sheet.write(row_idx, 2, row["invoice_no"], text_fmt)
-                write_date(3, row["invoice_date"])
+                write_date(0, row["accounting_date"])
+                sheet.write(row_idx, 1, row["bill_no"], text_fmt)
+                write_date(2, row["bill_date"])
+                sheet.write(row_idx, 3, row["invoice_no"], text_fmt)
                 write_amount(4, row["invoice_value"])
                 sheet.write(row_idx, 5, row["place_of_supply"], text_fmt)
                 sheet.write(row_idx, 6, row["gstin"], text_fmt)
