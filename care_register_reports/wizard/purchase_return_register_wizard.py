@@ -27,7 +27,8 @@ class PurchaseReturnRegisterWizard(models.TransientModel):
     )
     care_only = fields.Boolean(
         string="Only Bills from Care",
-        default=True,
+        # Off by default: supplier credit notes are typed in Odoo, so almost none come from Care.
+        default=False,
         help="List only credit notes created from Care. Untick to include credit notes entered directly in Odoo.",
     )
     gross_mode = fields.Selection(
