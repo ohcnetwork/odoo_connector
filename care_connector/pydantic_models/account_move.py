@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List
 from enum import Enum
 from .res_partner import PartnerData
@@ -44,6 +44,8 @@ class AccountMoveApiRequest(BaseModel):
     x_account: str | None = None
     ip_bill_no: str | None = None
     is_refund: bool = False
+    # Care's rounded invoice total; the round-off line makes the Odoo total equal to it
+    care_total: float | None = Field(default=None, allow_inf_nan=False)
 
 
 class AccountMoveReturnApiRequest(BaseModel):

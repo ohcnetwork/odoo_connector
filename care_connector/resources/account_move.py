@@ -72,6 +72,7 @@ class AccountUtility:
                 "discharge_date": request_data.discharge_date,
                 "x_account": request_data.x_account,
                 "ip_bill_no": request_data.ip_bill_no,
+                "care_total": request_data.care_total,
             }
             # The controller turns errors into a response and the request still commits,
             # so undo the bill if its GRN can't be drawn; otherwise Care's retry hits "Invoice already exists"
@@ -233,6 +234,11 @@ class AccountUtility:
 
             if rounding_id:
                 move_vals["invoice_cash_rounding_id"] = int(rounding_id)
+
+            # Customer invoices are rounded to Care's total rather than to Odoo's own
+            care_total = move_data.get("care_total")
+            if care_total and move_type in ("out_invoice", "out_refund"):
+                move_vals["x_care_total"] = abs(care_total)
 
             account_move = account_move_model.create(move_vals)
             if not account_move:
