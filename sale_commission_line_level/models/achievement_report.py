@@ -61,7 +61,6 @@ class SaleAchievementReport(models.Model):
           MAX(fm.company_id) AS achievement_company_id,
           aml.id AS related_res_id,
           MAX(fm.partner_id) AS partner_id,
-          MAX(fm.write_date) AS entropy_date,
           SUM(CASE 
               WHEN fm.move_type = 'out_invoice' THEN aml.price_subtotal / fm.invoice_currency_rate
               WHEN fm.move_type = 'out_refund' THEN -aml.price_subtotal / fm.invoice_currency_rate
@@ -84,7 +83,6 @@ class SaleAchievementReport(models.Model):
           MAX(fm.company_id) AS achievement_company_id,
           fm.id AS related_res_id,
           MAX(fm.partner_id) AS partner_id,
-          MAX(fm.write_date) AS entropy_date,
           SUM(CASE 
               WHEN fm.move_type = 'out_invoice' THEN aml.price_subtotal / fm.invoice_currency_rate
               WHEN fm.move_type = 'out_refund' THEN -aml.price_subtotal / fm.invoice_currency_rate
@@ -104,8 +102,9 @@ class SaleAchievementReport(models.Model):
         - Groups by aml.id (line level) instead of fm.id (invoice level)
         - Allows multiple salespeople to earn commission on the same invoice
         """
+        # Filter the effective line salesperson below, not the invoice header.
         return f"""
-{self._get_filtered_moves_cte(users=users, teams=teams)},
+{self._get_filtered_moves_cte(users=None, teams=teams)},
 invoices_rules AS (
     SELECT
         COALESCE(scpu.date_from, scp.date_from) AS date_from,
@@ -167,33 +166,38 @@ invoices_rules AS (
     (SELECT *, 'account.move.line' AS related_res_model FROM invoice_commission_lines_user)
 )""", 'invoice_commission_lines'
 
+    def _with_adjustment_columns(self, query, table_name):
+        """Normalize upstream rows without depending on their IDs or column order."""
+        extended_table = f"{table_name}_line_level"
+        return f"""
+{query},
+{extended_table} AS (
+    SELECT user_id,
+           team_id,
+           plan_id,
+           achieved,
+           currency_id,
+           date,
+           plan_company_id,
+           achievement_company_id,
+           related_res_id,
+           partner_id,
+           0::numeric AS line_amount,
+           NULL::integer AS product_id,
+           related_res_model
+      FROM {table_name}
+)
+""", extended_table
+
     def _achievement_lines_add(self, users=None, teams=None):
-        """Override to add line_amount and product_id columns (set to 0/NULL for adjustments).
-        
-        Important: line_amount and product_id must come BEFORE related_res_model
-        to match the column order in sales and invoice CTEs.
-        """
-        base_query, table_name = super()._achievement_lines_add(users, teams)
-        # Add line_amount and product_id columns BEFORE related_res_model to match UNION order
-        base_query = base_query.replace(
-            "'sale.commission.achievement' AS related_res_model",
-            "0::numeric AS line_amount, NULL::integer AS product_id, 'sale.commission.achievement' AS related_res_model"
+        return self._with_adjustment_columns(
+            *super()._achievement_lines_add(users, teams)
         )
-        return base_query, table_name
 
     def _achievement_lines_rem(self, users=None, teams=None):
-        """Override to add line_amount and product_id columns (set to 0/NULL for adjustments).
-        
-        Important: line_amount and product_id must come BEFORE related_res_model
-        to match the column order in sales and invoice CTEs.
-        """
-        base_query, table_name = super()._achievement_lines_rem(users, teams)
-        # Add line_amount and product_id columns BEFORE related_res_model to match UNION order
-        base_query = base_query.replace(
-            "'sale.commission.achievement' AS related_res_model",
-            "0::numeric AS line_amount, NULL::integer AS product_id, 'sale.commission.achievement' AS related_res_model"
+        return self._with_adjustment_columns(
+            *super()._achievement_lines_rem(users, teams)
         )
-        return base_query, table_name
 
     @api.model
     def _select_sales(self):
@@ -202,15 +206,43 @@ invoices_rules AS (
         This adds the line amount (sum of sale order line subtotals) to
         the inner CTEs where sol and fo tables are accessible.
         """
-        return """
-          fo.id AS related_res_id,
-          MAX(fo.partner_id) AS partner_id,
-          MAX(fo.write_date) as entropy_date,
+        return f"""
+          {super()._select_sales()},
+          MAX(fo.team_id) AS line_level_team_id,
           SUM(sol.price_subtotal / fo.currency_rate) AS line_amount,
           NULL::integer AS product_id
         """
 
-    def _get_report_view(self):
+    def _sale_lines(self, users=None, teams=None):
+        query, _table_name = super()._sale_lines(users, teams)
+        # Newer Odoo builds explicitly project the final sales CTE, dropping
+        # extension columns. Normalize the inner rows where our fields exist.
+        projections = []
+        for source in ("sale_commission_lines_team", "sale_commission_lines_user"):
+            projections.append(f"""
+                SELECT user_id,
+                       line_level_team_id AS team_id,
+                       plan_id,
+                       achieved,
+                       currency_id,
+                       date,
+                       plan_company_id,
+                       achievement_company_id,
+                       related_res_id,
+                       partner_id,
+                       line_amount,
+                       product_id,
+                       'sale.order'::text AS related_res_model
+                  FROM {source}
+            """)
+        return f"""
+{query},
+sale_commission_lines_line_level AS (
+    {' UNION ALL '.join(projections)}
+)
+""", 'sale_commission_lines_line_level'
+
+    def _get_report_view(self, users=None, teams=None):
         """Override to include line_amount and product_id in the report view."""
         # Check if view already exists
         self.env.cr.execute("""
@@ -223,11 +255,16 @@ invoices_rules AS (
         if res:
             return
         
+        # The view is reused by queries with different user/team contexts.
+        # Build it unfiltered and let the parent table query apply those filters.
         query = f"""
             CREATE {self._get_view_parameters()} VIEW sale_commission_achievement_report_view AS
               WITH {self._commission_lines_query(users=None, teams=None)}
             SELECT
-                    (cl.plan_id *10^13 + cl.related_res_id * 10^5 + 10^3 * LENGTH(cl.related_res_model) + cl.user_id + TO_CHAR(entropy_date, 'YYYYMMDDHH24MISS')::bigint + TO_CHAR(cl.date, 'YYMMDD')::integer)::bigint  AS id,
+                    ROW_NUMBER() OVER (
+                        ORDER BY cl.plan_id, cl.related_res_model,
+                                 cl.related_res_id, cl.user_id, era.id, cl.achieved
+                    ) AS id,
                     era.id AS target_id,
                     cl.user_id AS user_id,
                     cl.team_id AS team_id,
@@ -253,54 +290,14 @@ invoices_rules AS (
 
     @property
     def _table_query(self):
-        """Override to include line_amount and product_id in the final query."""
-        users = self.env.context.get('commission_user_ids', [])
-        if users:
-            users = self.env['res.users'].browse(users).exists()
-        teams = self.env.context.get('commission_team_ids', [])
-        if teams:
-            teams = self.env['crm.team'].browse(teams).exists()
-        date_from, date_to = self.env['sale.commission.achievement.report']._get_achievement_default_dates()
-        from datetime import datetime
-        today = fields.Date.today().strftime('%Y-%m-%d')
-        date_from_condition = f"""AND date >= '{datetime.strftime(date_from, "%Y-%m-%d")}'""" if date_from else ""
-        achievement_view = self._get_report_view()
-        if not self._is_materialized_view() and achievement_view:
-            self.env.cr.execute(achievement_view)
-        query = f"""
+        """Keep upstream filtering and currency conversion for standard fields."""
+        query = super()._table_query
+        return f"""
         WITH {self._get_currency_rate()}
-        SELECT cl.id AS id,
-               cl.target_id,
-               cl.user_id,
-               cl.team_id,
-               cl.achieved * cr.rate AS achieved,
-               {self.env.company.currency_id.id} AS currency_id,
-               cl.plan_company_id as company_id,
-               cl.achievement_company_id as achievement_company_id,
-               cl.plan_id,
-               cl.related_res_model,
-               cl.related_res_id,
-               cl.date,
-               cl.partner_id,
-               era.amount * cr.rate AS target_amount,
-               era.payment_amount * cr.rate AS commission_target_amount,
-               CASE
-                   WHEN era.amount IS NULL OR era.amount = 0 THEN 0
-                   ELSE cl.achieved / (era.amount * cr.rate)
-               END as target_rate,
-               CASE
-                   WHEN era.payment_amount IS NULL OR era.payment_amount = 0 THEN 0
-                   ELSE cl.achieved / (era.payment_amount * cr.rate)
-               END as commission_rate,
-               COALESCE(cl.line_amount, 0) * cr.rate AS line_amount,
+        SELECT report_rows.*,
+               cl.line_amount * cr.rate AS line_amount,
                cl.product_id
-          FROM sale_commission_achievement_report_view cl
-          JOIN sale_commission_plan_target era ON era.id = cl.target_id
-         JOIN currency_rate cr ON cr.company_id = cl.achievement_company_id
-        WHERE 1=1
-        {'AND user_id in (%s)' % ','.join(str(i) for i in users.ids) if users else ''}
-        {'AND team_id in (%s)' % ','.join(str(i) for i in teams.ids) if teams else ''}
-        {date_from_condition}
-        AND date <= '{datetime.strftime(date_to, "%Y-%m-%d") if date_to else today}'
+          FROM ({query}) report_rows
+          JOIN sale_commission_achievement_report_view cl ON cl.id = report_rows.id
+          JOIN currency_rate cr ON cr.company_id = cl.achievement_company_id
         """
-        return query
